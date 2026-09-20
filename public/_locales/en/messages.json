@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Tab Vault"
+  },
+  "appShortName": {
+    "message": "Tab Vault"
+  },
+  "appDescription": {
+    "message": "Save, group, deduplicate, sleep, and restore browser tabs."
+  },
+  "actionTitle": {
+    "message": "Open Tab Vault"
+  }
+}

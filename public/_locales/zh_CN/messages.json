@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "标签资产库"
+  },
+  "appShortName": {
+    "message": "标签资产库"
+  },
+  "appDescription": {
+    "message": "自动保存、分组、去重、休眠和恢复浏览器标签。"
+  },
+  "actionTitle": {
+    "message": "打开标签资产库"
+  }
+}
