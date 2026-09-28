@@ -1,6 +1,6 @@
 # 标签资产库
 
-面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前版本为 Chrome Web Store 发布候选版 0.7.0。
+面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.1。
 
 ## 已实现
 

@@ -2,13 +2,18 @@
 
 All notable changes to Tab Vault are documented in this file.
 
-## [0.7.0] - 2026-09-28
+## [0.0.1] - 2026-09-28
 
 ### Added
 
+- Initial public release of the local-first Tab Vault extension.
+- Automatic capture, normalized URL deduplication, local search, permanent
+  groups, deterministic grouping rules, and session snapshots.
 - Three progressive sleep levels for the current window, all windows, and
   broader manual coverage.
 - Clear sleeping-state visuals and a dedicated wake action.
+- Safe archiving, individual and batch restoration, and browser tab-group
+  restoration.
 - Permanent deletion for archived resources, including related group,
   event, and snapshot records.
 - Validated JSON backup imports with a 50 MB file limit.
@@ -23,7 +28,7 @@ All notable changes to Tab Vault are documented in this file.
 - Disabled Incognito operation and added an explicit extension-page CSP.
 - Normalized persisted settings and limited local event retention.
 - Added confirmation before restoring snapshots containing more than 20 tabs.
-- Aligned design and README documentation with the implemented v0.7 scope.
+- Aligned design and README documentation with the implemented v0.0.1 scope.
 
 ### Fixed
 
@@ -32,19 +37,4 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
-## [0.6.0] - 2026-09-28
-
-### Added
-
-- One-click sleeping for eligible tabs in the current window or all windows.
-
-## [0.5.0] - 2026-09-20
-
-### Added
-
-- Initial public release with local capture, search, grouping, deduplication,
-  archiving, snapshots, and JSON backup.
-
-[0.7.0]: https://github.com/theZmemo/tab-vault-extension/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/theZmemo/tab-vault-extension/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.5.0
+[0.0.1]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.1
