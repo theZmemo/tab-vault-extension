@@ -11,17 +11,7 @@ import type {
   VaultSettings,
   VaultState,
 } from "./types";
-
-export const DEFAULT_SETTINGS: VaultSettings = {
-  key: "main",
-  autoCapture: true,
-  autoDiscardEnabled: true,
-  autoDiscardMinutes: 30,
-  snapshotIntervalMinutes: 5,
-  restoreConcurrency: 5,
-  recentClosedRetentionDays: 30,
-  collectionSort: "manual",
-};
+import { DEFAULT_SETTINGS, normalizeSettings } from "./settings";
 
 export class TabVaultDatabase extends Dexie {
   resources!: EntityTable<Resource, "id">;
@@ -71,14 +61,17 @@ export async function ensureDatabaseDefaults(): Promise<VaultSettings> {
       navigationSide: _legacyNavigationSide,
       ...supportedSettings
     } = existing as VaultSettings & { navigationSide?: unknown };
-    const merged = {
-      ...DEFAULT_SETTINGS,
-      ...supportedSettings,
-      key: "main" as const,
-    };
+    const merged = normalizeSettings(supportedSettings);
     if (
       _legacyNavigationSide !== undefined ||
-      existing.collectionSort === undefined
+      existing.autoCapture !== merged.autoCapture ||
+      existing.autoDiscardEnabled !== merged.autoDiscardEnabled ||
+      existing.autoDiscardMinutes !== merged.autoDiscardMinutes ||
+      existing.snapshotIntervalMinutes !== merged.snapshotIntervalMinutes ||
+      existing.restoreConcurrency !== merged.restoreConcurrency ||
+      existing.recentClosedRetentionDays !==
+        merged.recentClosedRetentionDays ||
+      existing.collectionSort !== merged.collectionSort
     ) {
       await db.settings.put(merged);
     }

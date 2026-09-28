@@ -63,6 +63,13 @@ try {
   await panel.getByTitle("Settings").click();
   await expect(panel.getByText("Navigation rail position")).toHaveCount(0);
   await expect(panel.getByText("Browser side panel")).toBeVisible();
+  await expect(panel.getByText("Privacy and data", { exact: true })).toBeVisible();
+  await expect(
+    panel.getByText(
+      "Tab URLs, titles, visit times, and groups stay in this browser and are not transmitted.",
+      { exact: true },
+    ),
+  ).toBeVisible();
   await panel.screenshot({
     path: join(artifactsPath, "sidepanel-en-dark.png"),
     fullPage: true,
@@ -80,6 +87,7 @@ try {
         appName: true,
         groupOverviewDefault: true,
         settings: true,
+        privacyDisclosure: true,
         groupOverviewScreenshot: "artifacts/group-overview-en-dark.png",
         screenshot: "artifacts/sidepanel-en-dark.png",
       },

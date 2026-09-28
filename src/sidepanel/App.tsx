@@ -30,6 +30,7 @@ import {
   Trash2,
   Upload,
   X,
+  Zap,
 } from "lucide-preact";
 import MiniSearch from "minisearch";
 import { type ComponentChildren, type ComponentProps } from "preact";
@@ -110,6 +111,9 @@ const COLLECTION_COLORS: CollectionColor[] = [
   "indigo",
   "gray",
 ];
+
+const PRIVACY_POLICY_URL =
+  "https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md";
 
 const COLLECTION_COLOR_LABELS: Record<CollectionColor, string> = {
   blue: t("colorBlue"),
@@ -308,12 +312,19 @@ function SleepTabsDialog({
 }) {
   return (
     <Modal title={t("batchSleepTabs")} onClose={onClose}>
+      <div className="sleep-dialog-intro">
+        <strong>{t("sleepProgressiveTitle")}</strong>
+        <span>{t("sleepProgressiveHint")}</span>
+      </div>
       <div className="sleep-scope-list">
         <button type="button" disabled={busy} onClick={() => onSleep("window")}>
           <span className="sleep-scope-icon">
             <Moon size={17} />
           </span>
-          <span>
+          <span className="sleep-scope-copy">
+            <small className="sleep-scope-level">
+              {t("sleepLevelCurrent")}
+            </small>
             <strong>{t("sleepOtherTabs")}</strong>
             <small>{t("sleepOtherTabsScope")}</small>
           </span>
@@ -323,9 +334,26 @@ function SleepTabsDialog({
           <span className="sleep-scope-icon">
             <Layers3 size={17} />
           </span>
-          <span>
+          <span className="sleep-scope-copy">
+            <small className="sleep-scope-level">{t("sleepLevelAll")}</small>
             <strong>{t("sleepAllTabs")}</strong>
             <small>{t("sleepAllTabsScope")}</small>
+          </span>
+          <ChevronRight size={16} />
+        </button>
+        <button
+          type="button"
+          className="is-force"
+          disabled={busy}
+          onClick={() => onSleep("force-all")}
+        >
+          <span className="sleep-scope-icon">
+            <Zap size={17} />
+          </span>
+          <span className="sleep-scope-copy">
+            <small className="sleep-scope-level">{t("sleepLevelForce")}</small>
+            <strong>{t("forceSleepAllTabs")}</strong>
+            <small>{t("forceSleepAllTabsScope")}</small>
           </span>
           <ChevronRight size={16} />
         </button>
@@ -419,7 +447,7 @@ export function App() {
     if (!toast) {
       return;
     }
-    const timer = window.setTimeout(() => setToast(null), 2600);
+    const timer = window.setTimeout(() => setToast(null), 4200);
     return () => window.clearTimeout(timer);
   }, [toast]);
 
@@ -441,6 +469,54 @@ export function App() {
     }
   };
 
+  const sleepResources = async (resourceIds: string[]): Promise<void> => {
+    setBusy(true);
+    try {
+      const count = await sendCommand<number>({
+        type: "DISCARD_RESOURCES",
+        resourceIds,
+      });
+      await loadState();
+      if (count > 0) {
+        setSelected(new Set());
+      }
+      setToast(
+        count > 0
+          ? t("selectedTabsSleeping", { count })
+          : t("selectedTabsNotSleeping"),
+      );
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t("actionFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteSavedResource = async (resourceId: string): Promise<void> => {
+    setBusy(true);
+    try {
+      const count = await sendCommand<number>({
+        type: "DELETE_RESOURCES",
+        resourceIds: [resourceId],
+      });
+      await loadState();
+      if (count === 0) {
+        setToast(t("resourceDeleteFailed"));
+        return;
+      }
+      setSelected((current) => {
+        const next = new Set(current);
+        next.delete(resourceId);
+        return next;
+      });
+      setToast(t("resourceDeleted"));
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t("actionFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const sleepEligibleTabs = async (
     scope: SleepScope,
   ): Promise<void> => {
@@ -454,8 +530,19 @@ export function App() {
         windowId: currentWindow?.id,
       });
       await loadState();
+      if (count > 0) {
+        setView("discarded");
+        setSelected(new Set());
+        setNavOpen(false);
+      }
       setToast(
-        count > 0 ? t("tabsPutToSleep", { count }) : t("noTabsToSleep"),
+        count > 0
+          ? t("tabsPutToSleep", { count })
+          : scope === "window"
+            ? t("noTabsToSleepCurrent")
+            : scope === "all"
+              ? t("noTabsToSleepSafe")
+              : t("noTabsToSleep"),
       );
     } catch (error) {
       setToast(error instanceof Error ? error.message : t("actionFailed"));
@@ -735,6 +822,10 @@ export function App() {
       setDialog(null);
     } catch (error) {
       setToast(error instanceof Error ? error.message : t("importFailed"));
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -1077,15 +1168,7 @@ export function App() {
                         resourceId: item.resource.id,
                       })
                     }
-                    onDiscard={() =>
-                      void run(
-                        {
-                          type: "DISCARD_RESOURCES",
-                          resourceIds: [item.resource.id],
-                        },
-                        t("statusSleeping"),
-                      )
-                    }
+                    onDiscard={() => void sleepResources([item.resource.id])}
                     onArchive={() =>
                       void run(
                         {
@@ -1095,6 +1178,19 @@ export function App() {
                         t("statusArchived"),
                       )
                     }
+                    onDelete={() => {
+                      if (
+                        window.confirm(
+                          t("confirmDeleteResource", {
+                            name:
+                              item.resource.customTitle ||
+                              item.resource.title,
+                          }),
+                        )
+                      ) {
+                        void deleteSavedResource(item.resource.id);
+                      }
+                    }}
                     onRestore={() =>
                       void run(
                         {
@@ -1159,12 +1255,7 @@ export function App() {
         <button
           type="button"
           disabled={busy}
-          onClick={() =>
-            void run(
-              { type: "DISCARD_RESOURCES", resourceIds: selectedIds },
-              t("selectedSleeping"),
-            )
-          }
+          onClick={() => void sleepResources(selectedIds)}
         >
           <Moon size={15} />
           {t("sleep")}
@@ -1861,6 +1952,7 @@ function ResourceRow({
   onFocus,
   onDiscard,
   onArchive,
+  onDelete,
   onRestore,
   onProtect,
   onRename,
@@ -1873,6 +1965,7 @@ function ResourceRow({
   onFocus: () => void;
   onDiscard: () => void;
   onArchive: () => void;
+  onDelete: () => void;
   onRestore: () => void;
   onProtect: () => void;
   onRename: () => void;
@@ -1888,7 +1981,11 @@ function ResourceRow({
 
   return (
     <article
-      className={cx("resource-row", checked && "is-selected")}
+      className={cx(
+        "resource-row",
+        `resource-${state}`,
+        checked && "is-selected",
+      )}
       onDblClick={onFocus}
     >
       <label className="row-checkbox">
@@ -1974,9 +2071,23 @@ function ResourceRow({
       </div>
       <div className="row-actions">
         {state === "virtual" ? (
-          <IconButton label={t("openPage")} onClick={onRestore}>
-            <ArchiveRestore size={15} />
-          </IconButton>
+          <>
+            <IconButton label={t("openPage")} onClick={onRestore}>
+              <ArchiveRestore size={15} />
+            </IconButton>
+            <IconButton label={t("deletePermanently")} onClick={onDelete}>
+              <Trash2 size={15} />
+            </IconButton>
+          </>
+        ) : state === "discarded" ? (
+          <>
+            <IconButton label={t("wakeTab")} onClick={onFocus}>
+              <RotateCcw size={15} />
+            </IconButton>
+            <IconButton label={t("archiveAndClose")} onClick={onArchive}>
+              <Archive size={15} />
+            </IconButton>
+          </>
         ) : (
           <>
             <IconButton label={t("sleepTab")} onClick={onDiscard}>
@@ -2471,6 +2582,24 @@ function SettingsDialog({
             {t("openAppearanceSettings")}
           </button>
         </div>
+        <div className="browser-side-setting">
+          <div>
+            <strong>{t("privacyAndData")}</strong>
+            <span>{t("localDataDisclosure")}</span>
+          </div>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() =>
+              void chrome.tabs.create({
+                url: PRIVACY_POLICY_URL,
+              })
+            }
+          >
+            <Shield size={14} />
+            {t("viewPrivacyPolicy")}
+          </button>
+        </div>
         <div className="form-actions">
           <button type="button" className="button-ghost" onClick={onClose}>
             {t("cancel")}
@@ -2533,7 +2662,19 @@ function SnapshotsDialog({
               <button
                 type="button"
                 className="button-secondary compact"
-                onClick={() => onRestore(snapshot.id)}
+                onClick={() => {
+                  if (
+                    snapshot.tabs.length > 20 &&
+                    !window.confirm(
+                      t("confirmRestoreSnapshot", {
+                        count: snapshot.tabs.length,
+                      }),
+                    )
+                  ) {
+                    return;
+                  }
+                  onRestore(snapshot.id);
+                }}
               >
                 <RotateCcw size={14} />
                 {t("restore")}

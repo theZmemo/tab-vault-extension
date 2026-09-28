@@ -13,9 +13,11 @@ const profilePath = join(
 );
 
 const server = createServer((request, response) => {
-  const title = request.url?.startsWith("/new")
-    ? "数据治理工作台"
-    : "治理任务校验 SQL";
+  const title = request.url?.startsWith("/delete")
+    ? "待删除页面"
+    : request.url?.startsWith("/new")
+      ? "数据治理工作台"
+      : "治理任务校验 SQL";
   response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
   response.end(`
     <title>${title}</title>
@@ -348,7 +350,17 @@ try {
   await panel.getByTitle("设置").click();
   await expect(panel.getByText("图标导航轨道位置")).toHaveCount(0);
   await expect(panel.getByText("浏览器侧边栏", { exact: true })).toBeVisible();
-  await panel.keyboard.press("Escape");
+  await expect(panel.getByText("隐私与数据", { exact: true })).toBeVisible();
+  await expect(
+    panel.getByText(
+      "标签 URL、标题、访问时间和分组仅保存在当前浏览器中，不会对外传输。",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    panel.getByRole("button", { name: "查看隐私政策" }),
+  ).toBeVisible();
+  await panel.getByTitle("关闭").press("Escape");
   await expect(panel.locator(".modal")).toHaveCount(0);
   await panel.getByTitle("收起导航").click();
   await expect(panel.locator(".navigation")).not.toHaveClass(/is-open/);
@@ -384,11 +396,20 @@ try {
     }
   });
   await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await expect(panel.getByText("选择休眠级别", { exact: true })).toBeVisible();
+  await expect(panel.getByText("第 1 级 · 推荐", { exact: true })).toBeVisible();
+  await expect(
+    panel.getByText("第 2 级 · 扩大范围", { exact: true }),
+  ).toBeVisible();
+  await expect(panel.getByText("第 3 级 · 增强", { exact: true })).toBeVisible();
   await expect(
     panel.getByRole("button", { name: "休眠当前窗口其他标签" }),
   ).toBeVisible();
   await expect(
     panel.getByRole("button", { name: "休眠所有窗口可休眠标签" }),
+  ).toBeVisible();
+  await expect(
+    panel.getByRole("button", { name: "强力休眠所有后台标签" }),
   ).toBeVisible();
   await panel.screenshot({
     path: join(artifactsPath, "batch-sleep-dialog.png"),
@@ -397,14 +418,62 @@ try {
   await panel
     .getByRole("button", { name: "休眠当前窗口其他标签" })
     .click();
-  await expect(panel.getByText("没有可休眠的标签", { exact: true })).toBeVisible({
-    timeout: 10_000,
-  });
+  await expect(
+    panel.getByText("当前窗口没有可休眠标签，可尝试第 2 级处理所有窗口。", {
+      exact: true,
+    }),
+  ).toBeVisible({ timeout: 10_000 });
   await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
   await panel
     .getByRole("button", { name: "休眠所有窗口可休眠标签" })
     .click();
+  await expect(
+    panel.getByText("安全级别没有可休眠标签，可尝试第 3 级扩大覆盖。", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .getByRole("button", { name: "强力休眠所有后台标签" })
+    .click();
   await expect(panel.getByText("没有可休眠的标签", { exact: true })).toBeVisible();
+
+  const deletionPage = await context.newPage();
+  await deletionPage.goto("http://127.0.0.1:4178/delete?id=100");
+  await expect(deletionPage).toHaveTitle("待删除页面");
+  await panel.getByLabel("搜索资源").fill("待删除页面");
+  const deletionRow = panel
+    .locator(".resource-row")
+    .filter({ hasText: "待删除页面" });
+  await expect(deletionRow).toBeVisible({ timeout: 10_000 });
+  await panel.getByTitle("保存当前快照").click();
+  const deletionResourceId = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data.resources.find(
+      (resource) => resource.title === "待删除页面",
+    ).id;
+  });
+  await deletionRow.getByTitle("归档并关闭").click();
+  await expect(deletionRow.getByText("已归档", { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+  panel.once("dialog", (dialog) => dialog.accept());
+  await deletionRow.getByTitle("永久删除").click();
+  await expect(deletionRow).toHaveCount(0);
+  const deletionState = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data;
+  });
+  expect(
+    deletionState.resources.some(
+      (resource) => resource.id === deletionResourceId,
+    ),
+  ).toBe(false);
+  expect(
+    deletionState.snapshots.some((snapshot) =>
+      snapshot.tabs.some((tab) => tab.resourceId === deletionResourceId),
+    ),
+  ).toBe(false);
 
   if (runtimeErrors.length > 0) {
     throw new Error(`Side panel errors: ${runtimeErrors.join("; ")}`);
@@ -427,6 +496,8 @@ try {
         compactResourceScreenshot: "artifacts/compact-resource-card.png",
         batchSleepCurrentWindow: true,
         batchSleepAllWindowsAvailable: true,
+        batchSleepForceAllAvailable: true,
+        batchSleepProgressiveLevels: true,
         batchSleepScreenshot: "artifacts/batch-sleep-dialog.png",
         groupOverviewDefault: true,
         groupOverviewSearch: true,
@@ -437,6 +508,7 @@ try {
         collectionRailDirectOpen: true,
         groupHoverFeedback: true,
         modalEscapeClose: true,
+        privacyDisclosure: true,
         locale: "zh-CN",
         navigationFollowsBrowser: true,
         compactRail: true,
@@ -447,6 +519,7 @@ try {
           chrome.runtime.getManifest().permissions?.includes("contextMenus"),
         ),
         archiveRestore: true,
+        permanentDelete: true,
         snapshot: true,
         groupOverviewScreenshot: "artifacts/group-overview.png",
         screenshot: "artifacts/sidepanel-smoke.png",

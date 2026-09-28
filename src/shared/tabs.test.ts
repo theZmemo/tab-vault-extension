@@ -42,4 +42,12 @@ describe("isSafeToDiscard", () => {
       isSafeToDiscard(makeTab({ url: "chrome://extensions" }), 2_000),
     ).toBe(false);
   });
+
+  it("allows an explicit force action to ignore auto-discard limits", () => {
+    expect(
+      isSafeToDiscard(makeTab({ autoDiscardable: false }), 2_000, {
+        respectAutoDiscardable: false,
+      }),
+    ).toBe(true);
+  });
 });

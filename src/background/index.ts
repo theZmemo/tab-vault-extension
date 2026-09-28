@@ -6,9 +6,11 @@ import {
   makeId,
   membershipId,
 } from "../shared/db";
+import { parseVaultExport } from "../shared/backup";
 import { sortCollections } from "../shared/collections";
 import { t } from "../shared/i18n";
 import { matchesRule } from "../shared/rules";
+import { normalizeSettings } from "../shared/settings";
 import { isSafeToDiscard } from "../shared/tabs";
 import type {
   Collection,
@@ -449,29 +451,36 @@ async function discardTab(
   return false;
 }
 
-async function discardResources(resourceIds: string[]): Promise<void> {
+async function discardResources(resourceIds: string[]): Promise<number> {
   const selected = new Set(resourceIds);
   const instances = await db.tabInstances
     .filter((instance) => selected.has(instance.resourceId))
     .toArray();
+  let discardedCount = 0;
 
   for (const instance of instances) {
+    let tab: chrome.tabs.Tab;
     try {
-      const tab = await chrome.tabs.get(instance.browserTabId);
-      if (
-        tab.id !== undefined &&
-        !tab.active &&
-        !tab.pinned &&
-        !tab.audible &&
-        !tab.discarded
-      ) {
-        await discardTab(tab as chrome.tabs.Tab & { id: number });
-      }
+      tab = await chrome.tabs.get(instance.browserTabId);
     } catch {
       await db.tabInstances.delete(instance.browserTabId);
+      continue;
+    }
+    try {
+      if (
+        isSafeToDiscard(tab, Number.POSITIVE_INFINITY, {
+          respectAutoDiscardable: false,
+        }) &&
+        (await discardTab(tab, true))
+      ) {
+        discardedCount += 1;
+      }
+    } catch {
+      // Keep the instance when persistence or discard fails.
     }
   }
   await broadcastChange();
+  return discardedCount;
 }
 
 async function discardEligibleTabs(
@@ -481,13 +490,20 @@ async function discardEligibleTabs(
   >["scope"],
   windowId?: number,
 ): Promise<number> {
+  if (scope === "window" && windowId === undefined) {
+    throw new Error(t("windowUnavailable"));
+  }
   const tabs = await chrome.tabs.query(
-    scope === "window" && windowId !== undefined ? { windowId } : {},
+    scope === "window" ? { windowId } : {},
   );
   let discardedCount = 0;
 
   for (const tab of tabs) {
-    if (!isSafeToDiscard(tab, Number.POSITIVE_INFINITY)) {
+    if (
+      !isSafeToDiscard(tab, Number.POSITIVE_INFINITY, {
+        respectAutoDiscardable: scope !== "force-all",
+      })
+    ) {
       continue;
     }
     try {
@@ -510,12 +526,14 @@ async function archiveResources(resourceIds: string[]): Promise<void> {
     .toArray();
 
   for (const instance of instances) {
+    let tab: chrome.tabs.Tab;
     try {
-      const tab = await chrome.tabs.get(instance.browserTabId);
-      await captureTab(tab, "TAB_CAPTURED", false);
+      tab = await chrome.tabs.get(instance.browserTabId);
     } catch {
       await db.tabInstances.delete(instance.browserTabId);
+      continue;
     }
+    await captureTab(tab, "TAB_CAPTURED", false);
   }
 
   const liveInstances = await db.tabInstances
@@ -548,6 +566,73 @@ async function archiveResources(resourceIds: string[]): Promise<void> {
   }
 
   await syncOpenTabs();
+}
+
+async function deleteResources(resourceIds: string[]): Promise<number> {
+  const requestedIds = [...new Set(resourceIds)];
+  const [resources, instances, snapshots] = await Promise.all([
+    db.resources.bulkGet(requestedIds),
+    db.tabInstances.toArray(),
+    db.snapshots.toArray(),
+  ]);
+  const openResourceIds = new Set(
+    instances.map((instance) => instance.resourceId),
+  );
+  const deletableIds = resources
+    .filter(
+      (resource): resource is Resource =>
+        Boolean(resource && !openResourceIds.has(resource.id)),
+    )
+    .map((resource) => resource.id);
+  if (deletableIds.length === 0) {
+    return 0;
+  }
+
+  const deleting = new Set(deletableIds);
+  const snapshotUpdates = await Promise.all(
+    snapshots.map(async (snapshot) => {
+      const tabs = snapshot.tabs.filter(
+        (tab) => !deleting.has(tab.resourceId),
+      );
+      if (tabs.length === snapshot.tabs.length) {
+        return null;
+      }
+      return {
+        ...snapshot,
+        tabs,
+        checksum: await createDedupeKey(JSON.stringify(tabs)),
+      };
+    }),
+  );
+
+  await db.transaction(
+    "rw",
+    db.resources,
+    db.memberships,
+    db.events,
+    db.snapshots,
+    async () => {
+      await db.resources.bulkDelete(deletableIds);
+      await db.memberships
+        .where("resourceId")
+        .anyOf(deletableIds)
+        .delete();
+      await db.events.where("resourceId").anyOf(deletableIds).delete();
+      for (const snapshot of snapshotUpdates) {
+        if (snapshot) {
+          if (snapshot.tabs.length === 0) {
+            await db.snapshots.delete(snapshot.id);
+          } else {
+            await db.snapshots.put(snapshot);
+          }
+        }
+      }
+    },
+  );
+
+  await rebuildContextMenus();
+  await broadcastChange();
+  return deletableIds.length;
 }
 
 function chunkItems<T>(items: T[], size: number): T[][] {
@@ -654,6 +739,7 @@ async function restoreSnapshot(snapshotId: string): Promise<void> {
             url: tab.url,
             active: false,
             pinned: tab.pinned,
+            index: tab.index,
           }),
         ),
       );
@@ -942,26 +1028,10 @@ async function updateSettings(
   patch: Partial<VaultSettings>,
 ): Promise<VaultSettings> {
   const existing = await ensureDatabaseDefaults();
-  const settings: VaultSettings = {
+  const settings = normalizeSettings({
     ...existing,
     ...patch,
-    key: "main",
-    autoDiscardMinutes: Math.max(
-      5,
-      Math.min(1440, patch.autoDiscardMinutes ?? existing.autoDiscardMinutes),
-    ),
-    snapshotIntervalMinutes: Math.max(
-      1,
-      Math.min(
-        60,
-        patch.snapshotIntervalMinutes ?? existing.snapshotIntervalMinutes,
-      ),
-    ),
-    restoreConcurrency: Math.max(
-      1,
-      Math.min(10, patch.restoreConcurrency ?? existing.restoreConcurrency),
-    ),
-  };
+  });
   await db.settings.put(settings);
   await scheduleMaintenance(settings);
   if (patch.collectionSort !== undefined) {
@@ -999,9 +1069,26 @@ async function updateResourceTitle(
 }
 
 async function importData(data: VaultExport): Promise<void> {
-  if (data.format !== "tab-vault" || data.version !== 1) {
-    throw new Error(t("unsupportedBackup"));
-  }
+  const validated = parseVaultExport(data);
+  const normalizedResources = await Promise.all(
+    validated.resources.map(async (resource) => {
+      const normalized = normalizeUrl(resource.originalUrl);
+      if (!normalized) {
+        throw new Error(t("invalidBackup"));
+      }
+      return {
+        ...resource,
+        originalUrl: normalized.originalUrl,
+        normalizedUrl: normalized.normalizedUrl,
+        domain: normalized.domain,
+        dedupeKey: await createDedupeKey(normalized.normalizedUrl),
+      };
+    }),
+  );
+  const importedSettings = normalizeSettings({
+    ...(await ensureDatabaseDefaults()),
+    ...validated.settings,
+  });
 
   await db.transaction(
     "rw",
@@ -1017,7 +1104,7 @@ async function importData(data: VaultExport): Promise<void> {
     async () => {
       const resourceIdMap = new Map<string, string>();
 
-      for (const resource of data.resources) {
+      for (const resource of normalizedResources) {
         const existing = await db.resources
           .where("dedupeKey")
           .equals(resource.dedupeKey)
@@ -1044,15 +1131,18 @@ async function importData(data: VaultExport): Promise<void> {
             updatedAt: Date.now(),
           });
         } else {
-          resourceIdMap.set(resource.id, resource.id);
-          await db.resources.put(resource);
+          const targetId = (await db.resources.get(resource.id))
+            ? makeId("resource")
+            : resource.id;
+          resourceIdMap.set(resource.id, targetId);
+          await db.resources.put({ ...resource, id: targetId });
         }
       }
 
-      await db.collections.bulkPut(data.collections);
-      await db.rules.bulkPut(data.rules);
+      await db.collections.bulkPut(validated.collections);
+      await db.rules.bulkPut(validated.rules);
 
-      const importedMemberships = data.memberships.map((membership) => {
+      const importedMemberships = validated.memberships.map((membership) => {
         const resourceId =
           resourceIdMap.get(membership.resourceId) ?? membership.resourceId;
         return {
@@ -1064,7 +1154,7 @@ async function importData(data: VaultExport): Promise<void> {
       });
       await db.memberships.bulkPut(importedMemberships);
 
-      const importedSnapshots = data.snapshots.map((snapshot) => ({
+      const importedSnapshots = validated.snapshots.map((snapshot) => ({
         ...snapshot,
         tabs: snapshot.tabs.map((tab) => ({
           ...tab,
@@ -1072,20 +1162,16 @@ async function importData(data: VaultExport): Promise<void> {
         })),
       }));
       await db.snapshots.bulkPut(importedSnapshots);
-      await db.settings.put({
-        ...(await ensureDatabaseDefaults()),
-        ...data.settings,
-        key: "main",
-      });
+      await db.settings.put(importedSettings);
       await db.events.add({
         type: "IMPORT_COMPLETED",
-        payload: { resourceCount: data.resources.length },
+        payload: { resourceCount: validated.resources.length },
         createdAt: Date.now(),
       });
     },
   );
 
-  await scheduleMaintenance(data.settings);
+  await scheduleMaintenance(importedSettings);
   await rebuildContextMenus();
   await broadcastChange();
 }
@@ -1107,6 +1193,9 @@ async function runMaintenance(): Promise<void> {
   }
 
   await createSnapshot("automatic");
+  const eventCutoff =
+    Date.now() - settings.recentClosedRetentionDays * 24 * 60 * 60_000;
+  await db.events.where("createdAt").below(eventCutoff).delete();
   await broadcastChange();
 }
 
@@ -1151,13 +1240,14 @@ async function handleCommand(command: VaultCommand): Promise<unknown> {
       await syncOpenTabs();
       return getVaultState();
     case "DISCARD_RESOURCES":
-      await discardResources(command.resourceIds);
-      return undefined;
+      return discardResources(command.resourceIds);
     case "DISCARD_ELIGIBLE_TABS":
       return discardEligibleTabs(command.scope, command.windowId);
     case "ARCHIVE_RESOURCES":
       await archiveResources(command.resourceIds);
       return undefined;
+    case "DELETE_RESOURCES":
+      return deleteResources(command.resourceIds);
     case "RESTORE_RESOURCES":
       await restoreResources(command.resourceIds);
       return undefined;

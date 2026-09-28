@@ -3,7 +3,10 @@ import type {
   VaultExport,
   VaultResponse,
 } from "../shared/types";
+import { parseVaultExport } from "../shared/backup";
 import { t } from "../shared/i18n";
+
+const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
 
 export async function sendCommand<T = undefined>(
   command: VaultCommand,
@@ -35,10 +38,13 @@ export function downloadBackup(data: VaultExport): void {
 }
 
 export async function readBackup(file: File): Promise<VaultExport> {
+  if (file.size > MAX_BACKUP_BYTES) {
+    throw new Error(t("backupTooLarge"));
+  }
   const content = await file.text();
-  const data = JSON.parse(content) as Partial<VaultExport>;
-  if (data.format !== "tab-vault" || data.version !== 1) {
+  try {
+    return parseVaultExport(JSON.parse(content) as unknown);
+  } catch {
     throw new Error(t("invalidBackup"));
   }
-  return data as VaultExport;
 }
