@@ -53,6 +53,7 @@ function makeBackup(): VaultExport {
       restoreConcurrency: 5,
       recentClosedRetentionDays: 30,
       collectionSort: "manual",
+      deepSleepWarningAccepted: false,
     },
   };
 }
@@ -72,6 +73,16 @@ describe("parseVaultExport", () => {
     const backup = makeBackup();
     backup.resources[0].originalUrl = "javascript:alert(1)";
     expect(() => parseVaultExport(backup)).toThrow();
+  });
+
+  it("accepts backups created before the deep-sleep warning setting", () => {
+    const backup = makeBackup() as unknown as {
+      settings: Record<string, unknown>;
+    };
+    delete backup.settings.deepSleepWarningAccepted;
+    expect(parseVaultExport(backup).settings.deepSleepWarningAccepted).toBe(
+      undefined,
+    );
   });
 
   it("rejects orphaned memberships", () => {

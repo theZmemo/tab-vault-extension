@@ -2,6 +2,22 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.2] - 2026-09-28
+
+### Added
+
+- Fourth-level deep sleep that replaces eligible background pages with a
+  lightweight packaged placeholder after persisting the original resource.
+- Redundant recovery data in IndexedDB and the placeholder URL fragment.
+- Automatic restoration when a deep-sleeping tab is activated, plus explicit
+  wake actions from the side panel and placeholder page.
+- A first-use warning that explains unsaved form and in-page runtime state
+  cannot be preserved.
+- Dedicated deep-sleep state visuals and snapshot handling that always stores
+  the original page URL.
+- Unit and Chromium smoke coverage for payload validation, placeholder
+  replacement, original-URL snapshots, and activation recovery.
+
 ## [0.0.1] - 2026-09-28
 
 ### Added
@@ -39,4 +55,5 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.2]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.2
 [0.0.1]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.1

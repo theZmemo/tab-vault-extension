@@ -27,7 +27,9 @@ import {
   Shield,
   ShieldOff,
   SlidersHorizontal,
+  Snowflake,
   Trash2,
+  TriangleAlert,
   Upload,
   X,
   Zap,
@@ -68,11 +70,12 @@ type SortMode = "recent" | "title" | "visits";
 type SleepScope = Extract<
   VaultCommand,
   { type: "DISCARD_ELIGIBLE_TABS" }
->["scope"];
+>["scope"] | "deep";
 
 type DialogKey =
   | "collection"
   | "sleep-tabs"
+  | "deep-sleep-warning"
   | "rules"
   | "settings"
   | "snapshots"
@@ -147,7 +150,14 @@ function getRuntimeState(instances: TabInstance[]): ResourceRuntimeState {
   if (instances.length === 0) {
     return "virtual";
   }
-  if (instances.every((instance) => instance.discarded)) {
+  if (instances.every((instance) => instance.deepSleeping)) {
+    return "deep-sleeping";
+  }
+  if (
+    instances.every(
+      (instance) => instance.discarded || instance.deepSleeping,
+    )
+  ) {
     return "discarded";
   }
   return "open";
@@ -358,11 +368,66 @@ function SleepTabsDialog({
           </span>
           <ChevronRight size={16} />
         </button>
+        <button
+          type="button"
+          className="is-deep"
+          disabled={busy}
+          onClick={() => onSleep("deep")}
+        >
+          <span className="sleep-scope-icon">
+            <Snowflake size={17} />
+          </span>
+          <span className="sleep-scope-copy">
+            <small className="sleep-scope-level">{t("sleepLevelDeep")}</small>
+            <strong>{t("deepSleepAllTabs")}</strong>
+            <small>{t("deepSleepAllTabsScope")}</small>
+          </span>
+          <ChevronRight size={16} />
+        </button>
       </div>
       <p className="modal-note">{t("sleepTabsSafety")}</p>
       <div className="form-actions">
         <button type="button" className="button-ghost" onClick={onClose}>
           {t("cancel")}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function DeepSleepWarningDialog({
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal title={t("deepSleepWarningTitle")} onClose={onClose}>
+      <div className="deep-sleep-warning">
+        <span className="deep-sleep-warning-icon">
+          <TriangleAlert size={20} />
+        </span>
+        <div>
+          <strong>{t("deepSleepWarningBody")}</strong>
+          <p>{t("deepSleepWarningRuntimeLoss")}</p>
+          <p>{t("deepSleepWarningRecovery")}</p>
+        </div>
+      </div>
+      <div className="form-actions">
+        <button type="button" className="button-ghost" onClick={onClose}>
+          {t("cancel")}
+        </button>
+        <button
+          type="button"
+          className="button-primary"
+          disabled={busy}
+          onClick={onConfirm}
+        >
+          <Snowflake size={15} />
+          {t("confirmDeepSleep")}
         </button>
       </div>
     </Modal>
@@ -523,16 +588,39 @@ export function App() {
 
   const sleepEligibleTabs = async (
     scope: SleepScope,
+    warningAccepted = false,
   ): Promise<void> => {
+    if (
+      scope === "deep" &&
+      !warningAccepted &&
+      !state?.settings.deepSleepWarningAccepted
+    ) {
+      setDialog("deep-sleep-warning");
+      return;
+    }
+
     setBusy(true);
     try {
+      if (
+        scope === "deep" &&
+        warningAccepted &&
+        !state?.settings.deepSleepWarningAccepted
+      ) {
+        await sendCommand({
+          type: "UPDATE_SETTINGS",
+          settings: { deepSleepWarningAccepted: true },
+        });
+      }
       const currentWindow =
         scope === "window" ? await chrome.windows.getCurrent() : null;
-      const count = await sendCommand<number>({
-        type: "DISCARD_ELIGIBLE_TABS",
-        scope,
-        windowId: currentWindow?.id,
-      });
+      const count =
+        scope === "deep"
+          ? await sendCommand<number>({ type: "DEEP_SLEEP_ELIGIBLE_TABS" })
+          : await sendCommand<number>({
+              type: "DISCARD_ELIGIBLE_TABS",
+              scope,
+              windowId: currentWindow?.id,
+            });
       await loadState();
       if (count > 0) {
         setView("discarded");
@@ -541,12 +629,16 @@ export function App() {
       }
       setToast(
         count > 0
-          ? t("tabsPutToSleep", { count })
+          ? scope === "deep"
+            ? t("deepSleepTabsPutToSleep", { count })
+            : t("tabsPutToSleep", { count })
           : scope === "window"
             ? t("noTabsToSleepCurrent")
             : scope === "all"
               ? t("noTabsToSleepSafe")
-              : t("noTabsToSleep"),
+              : scope === "deep"
+                ? t("noTabsToDeepSleep")
+                : t("noTabsToSleep"),
       );
     } catch (error) {
       setToast(error instanceof Error ? error.message : t("actionFailed"));
@@ -647,7 +739,9 @@ export function App() {
         case "open":
           return item.state === "open";
         case "discarded":
-          return item.state === "discarded";
+          return (
+            item.state === "discarded" || item.state === "deep-sleeping"
+          );
         case "virtual":
           return item.state === "virtual";
         case "duplicates":
@@ -702,8 +796,10 @@ export function App() {
     () => ({
       all: resourceViews.length,
       open: resourceViews.filter((item) => item.state === "open").length,
-      discarded: resourceViews.filter((item) => item.state === "discarded")
-        .length,
+      discarded: resourceViews.filter(
+        (item) =>
+          item.state === "discarded" || item.state === "deep-sleeping",
+      ).length,
       virtual: resourceViews.filter((item) => item.state === "virtual").length,
       duplicates: resourceViews.filter((item) => item.instances.length > 1)
         .length,
@@ -1418,6 +1514,17 @@ export function App() {
         />
       )}
 
+      {dialog === "deep-sleep-warning" && (
+        <DeepSleepWarningDialog
+          busy={busy}
+          onClose={() => setDialog(null)}
+          onConfirm={() => {
+            setDialog(null);
+            void sleepEligibleTabs("deep", true);
+          }}
+        />
+      )}
+
       {dialog === "rules" && (
         <RuleDialog
           collections={sortedCollections}
@@ -2103,6 +2210,8 @@ function ResourceRow({
                 ? t("openStatusHint")
                 : state === "discarded"
                   ? t("sleepingStatusHint")
+                  : state === "deep-sleeping"
+                    ? t("deepSleepingStatusHint")
                   : t("archivedStatusHint")
             }
           >
@@ -2110,6 +2219,8 @@ function ResourceRow({
               ? t("opened")
               : state === "discarded"
                 ? t("statusSleeping")
+                : state === "deep-sleeping"
+                  ? t("statusDeepSleeping")
                 : t("statusArchived")}
           </span>
           {instances.length > 1 && (
@@ -2143,7 +2254,7 @@ function ResourceRow({
               <Trash2 size={15} />
             </IconButton>
           </>
-        ) : state === "discarded" ? (
+        ) : state === "discarded" || state === "deep-sleeping" ? (
           <>
             <IconButton label={t("wakeTab")} onClick={onFocus}>
               <RotateCcw size={15} />

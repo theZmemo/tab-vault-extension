@@ -71,13 +71,17 @@ const en = {
   sleepLevelCurrent: "Level 1 · Recommended",
   sleepLevelAll: "Level 2 · Wider scope",
   sleepLevelForce: "Level 3 · Stronger",
+  sleepLevelDeep: "Level 4 · Deep sleep",
   sleepOtherTabs: "Sleep other tabs in this window",
   sleepAllTabs: "Sleep eligible tabs in all windows",
   forceSleepAllTabs: "Force-sleep all background tabs",
+  deepSleepAllTabs: "Deep-sleep all eligible background tabs",
   sleepOtherTabsScope: "Smallest scope · All safeguards remain active",
   sleepAllTabsScope: "All windows · The same safeguards remain active",
   forceSleepAllTabsScope:
     "All windows · Also includes tabs blocked from automatic discard",
+  deepSleepAllTabsScope:
+    "Replaces pages with local placeholders for maximum memory release",
   sleepTabsSafety:
     "Every level still skips active, pinned, audible, loading, protected, and browser-internal tabs.",
   tabsPutToSleep:
@@ -87,6 +91,18 @@ const en = {
   noTabsToSleepSafe:
     "No tabs match the safe levels. Try Level 3 for broader coverage.",
   noTabsToSleep: "No eligible tabs to sleep",
+  deepSleepTabsPutToSleep:
+    "{count} tabs are in deep sleep and will restore when selected",
+  noTabsToDeepSleep: "No eligible tabs for deep sleep",
+  deepSleepWarningTitle: "Before deep sleep",
+  deepSleepWarningBody:
+    "Deep sleep replaces eligible background pages with a lightweight local placeholder. The original URL, title, and group are saved first.",
+  deepSleepWarningRuntimeLoss:
+    "Unsaved form input, playback position, and in-page app state may be lost.",
+  deepSleepWarningRecovery:
+    "The original URL is stored both in Tab Vault and in the placeholder address for recovery.",
+  confirmDeepSleep: "Continue with deep sleep",
+  deepSleepTabUnavailable: "Unable to identify the deep-sleeping tab",
   windowUnavailable: "The current browser window is unavailable",
   archive: "Archive",
   groups: "Groups",
@@ -132,10 +148,13 @@ const en = {
   protected: "Protected",
   opened: "Open",
   statusSleeping: "Sleeping",
+  statusDeepSleeping: "Deep sleeping",
   statusArchived: "Archived",
   openStatusHint: "This page is currently open in the browser",
   sleepingStatusHint:
     "The tab remains in the browser, but its page process is unloaded",
+  deepSleepingStatusHint:
+    "The original URL is saved and the page is replaced by a local placeholder",
   archivedStatusHint:
     "The browser tab is closed; its saved record can be reopened here",
   duplicateCount: "{count} duplicates",
@@ -237,6 +256,12 @@ const en = {
   resourceMissing: "Page resource not found",
   unsupportedBackup: "Unsupported backup format",
   invalidBackup: "This is not a valid Tab Vault backup",
+  deepSleepPageTitle: "Deep sleeping",
+  deepSleepPageState: "This tab is in deep sleep",
+  deepSleepPageRestoring: "Restoring page...",
+  deepSleepPageRestore: "Restore now",
+  deepSleepPageRecoveryUnavailable:
+    "The recovery address is unavailable. Restore this page from Tab Vault.",
 } as const;
 
 type MessageKey = keyof typeof en;
@@ -314,18 +339,32 @@ const zh: Record<MessageKey, string> = {
   sleepLevelCurrent: "第 1 级 · 推荐",
   sleepLevelAll: "第 2 级 · 扩大范围",
   sleepLevelForce: "第 3 级 · 增强",
+  sleepLevelDeep: "第 4 级 · 深度休眠",
   sleepOtherTabs: "休眠当前窗口其他标签",
   sleepAllTabs: "休眠所有窗口可休眠标签",
   forceSleepAllTabs: "强力休眠所有后台标签",
+  deepSleepAllTabs: "深度休眠所有可处理后台标签",
   sleepOtherTabsScope: "最小范围 · 保留全部安全保护",
   sleepAllTabsScope: "扩大到所有窗口 · 保护条件不变",
   forceSleepAllTabsScope: "所有窗口 · 额外处理禁止自动丢弃的后台标签",
+  deepSleepAllTabsScope: "替换为本地占位页 · 最大程度释放页面内存",
   sleepTabsSafety:
     "所有级别都会跳过活动、固定、播放声音、加载中、已保护和浏览器内部标签。",
   tabsPutToSleep: "已休眠 {count} 个标签；标签仍保留在标签栏，切回时会重新加载",
   noTabsToSleepCurrent: "当前窗口没有可休眠标签，可尝试第 2 级处理所有窗口。",
   noTabsToSleepSafe: "安全级别没有可休眠标签，可尝试第 3 级扩大覆盖。",
   noTabsToSleep: "没有可休眠的标签",
+  deepSleepTabsPutToSleep: "已深度休眠 {count} 个标签；选中时会自动恢复",
+  noTabsToDeepSleep: "没有可深度休眠的标签",
+  deepSleepWarningTitle: "深度休眠前确认",
+  deepSleepWarningBody:
+    "深度休眠会先保存原 URL、标题和分组，再把符合条件的后台网页替换为轻量本地占位页。",
+  deepSleepWarningRuntimeLoss:
+    "未提交的表单、播放进度和网页应用内的临时状态可能丢失。",
+  deepSleepWarningRecovery:
+    "原 URL 同时保存在标签资产库和占位页地址中，可双重恢复。",
+  confirmDeepSleep: "确认并开始深度休眠",
+  deepSleepTabUnavailable: "无法识别待恢复的深度休眠标签",
   windowUnavailable: "无法获取当前浏览器窗口",
   archive: "归档",
   groups: "分组",
@@ -369,9 +408,11 @@ const zh: Record<MessageKey, string> = {
   protected: "已保护",
   opened: "已打开",
   statusSleeping: "已休眠",
+  statusDeepSleeping: "深度休眠",
   statusArchived: "已归档",
   openStatusHint: "页面当前仍在浏览器中打开",
   sleepingStatusHint: "标签仍在浏览器标签栏，但页面进程已卸载",
+  deepSleepingStatusHint: "原 URL 已保存，网页已替换为本地轻量占位页",
   archivedStatusHint: "浏览器标签已关闭，记录保留在资产库中，可重新打开",
   duplicateCount: "重复 {count}",
   openPage: "打开页面",
@@ -470,6 +511,11 @@ const zh: Record<MessageKey, string> = {
   resourceMissing: "页面资源不存在",
   unsupportedBackup: "不支持的备份文件格式",
   invalidBackup: "不是有效的标签资产库备份",
+  deepSleepPageTitle: "深度休眠",
+  deepSleepPageState: "此标签正在深度休眠",
+  deepSleepPageRestoring: "正在恢复页面…",
+  deepSleepPageRestore: "立即恢复",
+  deepSleepPageRecoveryUnavailable: "恢复地址不可用，请从标签资产库恢复此页面。",
 };
 
 export type UiLocale = "zh-CN" | "en";

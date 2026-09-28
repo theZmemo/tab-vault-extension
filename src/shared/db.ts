@@ -71,7 +71,9 @@ export async function ensureDatabaseDefaults(): Promise<VaultSettings> {
       existing.restoreConcurrency !== merged.restoreConcurrency ||
       existing.recentClosedRetentionDays !==
         merged.recentClosedRetentionDays ||
-      existing.collectionSort !== merged.collectionSort
+      existing.collectionSort !== merged.collectionSort ||
+      existing.deepSleepWarningAccepted !==
+        merged.deepSleepWarningAccepted
     ) {
       await db.settings.put(merged);
     }

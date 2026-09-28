@@ -10,7 +10,8 @@ users save, organize, search, sleep, archive, and restore their browser tabs.
 To provide that purpose, the extension reads and stores:
 
 - Tab URLs, page titles, domain names, and tab positions.
-- Tab state such as active, pinned, audible, discarded, window, and group.
+- Tab state such as active, pinned, audible, discarded, deep sleeping, window,
+  and group.
 - Visit timestamps and locally calculated visit counts.
 - Names, notes, rules, groups, and settings entered by the user.
 - Session snapshots created automatically or manually.
@@ -24,6 +25,11 @@ information, or precise location.
 The data is used only to provide the extension's tab-management features:
 local search, deduplication, grouping, sleeping, archiving, session snapshots,
 and restoration.
+
+For user-initiated deep sleep, the original page URL is stored in IndexedDB and
+redundantly encoded in the fragment of a packaged local placeholder URL. This
+fragment stays inside the browser and is used only to restore that tab. Deep
+sleep does not capture page content, form values, or in-page runtime state.
 
 ## Storage and Transmission
 
@@ -85,7 +91,7 @@ For privacy questions, contact: zhyp@useai.tech
 为实现上述用途，扩展会读取并保存：
 
 - 标签 URL、网页标题、域名和标签位置。
-- 活动、固定、有声、休眠、窗口和标签组等标签状态。
+- 活动、固定、有声、原生休眠、深度休眠、窗口和标签组等标签状态。
 - 访问时间和本地计算的访问次数。
 - 用户填写的名称、备注、规则、分组和设置。
 - 自动或手动创建的会话快照。
@@ -95,6 +101,8 @@ For privacy questions, contact: zhyp@useai.tech
 ## 数据用途
 
 这些数据仅用于提供本扩展的标签管理功能，包括本地搜索、去重、分组、休眠、归档、会话快照和恢复。
+
+用户主动执行深度休眠时，原网页 URL 会保存在 IndexedDB 中，并冗余编码到扩展本地占位页 URL 的片段中。该片段仅保留在浏览器内，只用于恢复对应标签。深度休眠不会采集网页正文、表单内容或网页应用内的运行时状态。
 
 ## 存储与传输
 

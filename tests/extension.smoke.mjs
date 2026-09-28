@@ -403,6 +403,9 @@ try {
   ).toBeVisible();
   await expect(panel.getByText("第 3 级 · 增强", { exact: true })).toBeVisible();
   await expect(
+    panel.getByText("第 4 级 · 深度休眠", { exact: true }),
+  ).toBeVisible();
+  await expect(
     panel.getByRole("button", { name: "休眠当前窗口其他标签" }),
   ).toBeVisible();
   await expect(
@@ -410,6 +413,9 @@ try {
   ).toBeVisible();
   await expect(
     panel.getByRole("button", { name: "强力休眠所有后台标签" }),
+  ).toBeVisible();
+  await expect(
+    panel.getByRole("button", { name: "深度休眠所有可处理后台标签" }),
   ).toBeVisible();
   await panel.screenshot({
     path: join(artifactsPath, "batch-sleep-dialog.png"),
@@ -437,6 +443,108 @@ try {
     .getByRole("button", { name: "强力休眠所有后台标签" })
     .click();
   await expect(panel.getByText("没有可休眠的标签", { exact: true })).toBeVisible();
+
+  const deepSleepPage = await context.newPage();
+  await deepSleepPage.addInitScript(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+  });
+  await deepSleepPage.goto("http://127.0.0.1:4178/deep-sleep?id=101");
+  await expect(deepSleepPage).toHaveTitle("治理任务校验 SQL");
+  const deepSleepOriginalUrl = deepSleepPage.url();
+  await panel.bringToFront();
+  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .getByRole("button", { name: "深度休眠所有可处理后台标签" })
+    .click();
+  await expect(
+    panel.getByText("深度休眠前确认", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(
+      "未提交的表单、播放进度和网页应用内的临时状态可能丢失。",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await panel.screenshot({
+    path: join(artifactsPath, "deep-sleep-warning.png"),
+    fullPage: true,
+  });
+  await panel
+    .getByRole("button", { name: "确认并开始深度休眠" })
+    .click();
+  await expect(
+    panel.getByText("已深度休眠 1 个标签；选中时会自动恢复", {
+      exact: true,
+    }),
+  ).toBeVisible({ timeout: 10_000 });
+  await expect
+    .poll(() => deepSleepPage.url())
+    .toContain(`chrome-extension://${extensionId}/suspended.html`);
+  await deepSleepPage.screenshot({
+    path: join(artifactsPath, "deep-sleep-placeholder.png"),
+    fullPage: true,
+  });
+  const deepSleepState = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data;
+  });
+  const deepSleepInstance = deepSleepState.instances.find(
+    (instance) => instance.deepSleeping,
+  );
+  expect(deepSleepInstance).toBeTruthy();
+  expect(deepSleepState.settings.deepSleepWarningAccepted).toBe(true);
+
+  await panel.getByTitle("保存当前快照").click();
+  await expect(panel.getByText("当前会话已保存", { exact: true })).toBeVisible();
+  const snapshotState = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data;
+  });
+  expect(
+    snapshotState.snapshots[0].tabs.some(
+      (tab) => tab.url === deepSleepOriginalUrl,
+    ),
+  ).toBe(true);
+
+  await serviceWorker.evaluate(async (tabId) => {
+    await chrome.tabs.update(tabId, { active: true });
+  }, deepSleepInstance.browserTabId);
+  await expect
+    .poll(() => deepSleepPage.url(), { timeout: 10_000 })
+    .toBe(deepSleepOriginalUrl);
+  await expect(deepSleepPage).toHaveTitle("治理任务校验 SQL");
+  await panel.bringToFront();
+  const restoredDeepSleepState = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data;
+  });
+  expect(
+    restoredDeepSleepState.instances.some(
+      (instance) =>
+        instance.browserTabId === deepSleepInstance.browserTabId &&
+        instance.deepSleeping,
+    ),
+  ).toBe(false);
+  await serviceWorker.evaluate(async (tabId) => {
+    await chrome.tabs.update(tabId, { pinned: true });
+  }, deepSleepInstance.browserTabId);
+  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .getByRole("button", { name: "深度休眠所有可处理后台标签" })
+    .click();
+  await expect(panel.getByText("深度休眠前确认", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    panel.getByText("没有可深度休眠的标签", { exact: true }),
+  ).toBeVisible();
+  await panel
+    .locator(".navigation-rail")
+    .getByLabel("全部资源", { exact: true })
+    .click();
 
   const deletionPage = await context.newPage();
   await deletionPage.goto("http://127.0.0.1:4178/delete?id=100");
@@ -497,8 +605,16 @@ try {
         batchSleepCurrentWindow: true,
         batchSleepAllWindowsAvailable: true,
         batchSleepForceAllAvailable: true,
+        batchSleepDeepAvailable: true,
         batchSleepProgressiveLevels: true,
         batchSleepScreenshot: "artifacts/batch-sleep-dialog.png",
+        deepSleepWarningScreenshot: "artifacts/deep-sleep-warning.png",
+        deepSleepPlaceholderScreenshot:
+          "artifacts/deep-sleep-placeholder.png",
+        deepSleepPlaceholder: true,
+        deepSleepSnapshotOriginalUrl: true,
+        deepSleepAutomaticRestore: true,
+        deepSleepWarningPersisted: true,
         groupOverviewDefault: true,
         groupOverviewSearch: true,
         searchCustomTitle: true,

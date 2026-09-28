@@ -192,7 +192,9 @@ function isSettings(value: unknown): value is VaultSettings {
     isFiniteNumber(value.snapshotIntervalMinutes) &&
     isFiniteNumber(value.restoreConcurrency) &&
     isFiniteNumber(value.recentClosedRetentionDays) &&
-    SORT_MODES.has(value.collectionSort as VaultSettings["collectionSort"])
+    SORT_MODES.has(value.collectionSort as VaultSettings["collectionSort"]) &&
+    (value.deepSleepWarningAccepted === undefined ||
+      typeof value.deepSleepWarningAccepted === "boolean")
   );
 }
 

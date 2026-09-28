@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: VaultSettings = {
   restoreConcurrency: 5,
   recentClosedRetentionDays: 30,
   collectionSort: "manual",
+  deepSleepWarningAccepted: false,
 };
 
 const COLLECTION_SORT_MODES = new Set<VaultSettings["collectionSort"]>([
@@ -72,5 +73,9 @@ export function normalizeSettings(
       COLLECTION_SORT_MODES.has(input.collectionSort)
         ? input.collectionSort
         : DEFAULT_SETTINGS.collectionSort,
+    deepSleepWarningAccepted:
+      typeof input?.deepSleepWarningAccepted === "boolean"
+        ? input.deepSleepWarningAccepted
+        : DEFAULT_SETTINGS.deepSleepWarningAccepted,
   };
 }

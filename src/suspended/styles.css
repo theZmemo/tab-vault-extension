@@ -1,0 +1,111 @@
+:root {
+  color: #1d2732;
+  background: #eef1f4;
+  font-family:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px;
+}
+
+.suspended-shell {
+  width: min(520px, 100%);
+  text-align: center;
+}
+
+.app-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(35 55 77 / 14%);
+}
+
+.state-label {
+  display: block;
+  margin-top: 20px;
+  color: #3567b3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+h1 {
+  overflow-wrap: anywhere;
+  margin: 8px 0 0;
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.page-domain {
+  overflow-wrap: anywhere;
+  margin: 5px 0 0;
+  color: #697684;
+  font-size: 13px;
+}
+
+.status-copy {
+  margin: 22px 0 14px;
+  color: #586675;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+button {
+  min-height: 38px;
+  cursor: pointer;
+  border: 1px solid #285ba9;
+  border-radius: 7px;
+  background: #326bc2;
+  padding: 0 18px;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+button:hover {
+  background: #285ba9;
+}
+
+button:focus-visible {
+  outline: 2px solid #4779dc;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #ecf1f6;
+    background: #171b20;
+  }
+
+  .state-label {
+    color: #79a7ee;
+  }
+
+  .page-domain,
+  .status-copy {
+    color: #a8b2bd;
+  }
+}

@@ -8,6 +8,11 @@ import {
 } from "../shared/db";
 import { parseVaultExport } from "../shared/backup";
 import { sortCollections } from "../shared/collections";
+import {
+  createDeepSleepUrl,
+  isDeepSleepPageUrl,
+  parseDeepSleepPayload,
+} from "../shared/deepSleep";
 import { t } from "../shared/i18n";
 import { matchesRule } from "../shared/rules";
 import { normalizeSettings } from "../shared/settings";
@@ -31,6 +36,7 @@ const MAINTENANCE_ALARM = "tab-vault-maintenance";
 const CONTEXT_MENU_ROOT = "tab-vault:add-to-group";
 const CONTEXT_MENU_OPEN = "tab-vault:open";
 const CONTEXT_MENU_COLLECTION_PREFIX = "tab-vault:collection:";
+const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 const captureQueue = new Map<number, Promise<void>>();
 let bootstrapPromise: Promise<void> | null = null;
 
@@ -127,6 +133,70 @@ async function openSidePanel(tab?: chrome.tabs.Tab): Promise<void> {
   }
 }
 
+async function captureDeepSleepingTab(
+  tab: chrome.tabs.Tab & { id: number },
+  rawUrl: string,
+): Promise<Resource | null> {
+  const payload = parseDeepSleepPayload(rawUrl, SUSPENDED_PAGE_URL);
+  const previousInstance = await db.tabInstances.get(tab.id);
+  let resource = previousInstance
+    ? await db.resources.get(previousInstance.resourceId)
+    : undefined;
+
+  if (!resource && payload) {
+    resource = await db.resources.get(payload.resourceId);
+  }
+
+  if (!resource && payload) {
+    const normalized = normalizeUrl(payload.url);
+    if (!normalized) {
+      return null;
+    }
+    const dedupeKey = await createDedupeKey(normalized.normalizedUrl);
+    resource = await db.resources.where("dedupeKey").equals(dedupeKey).first();
+    if (!resource) {
+      const now = Date.now();
+      resource = {
+        id: payload.resourceId,
+        originalUrl: normalized.originalUrl,
+        normalizedUrl: normalized.normalizedUrl,
+        dedupeKey,
+        title: payload.title,
+        domain: normalized.domain,
+        createdAt: now,
+        updatedAt: now,
+        lastVisitedAt: tab.lastAccessed ?? now,
+        visitCount: 1,
+        protected: false,
+        notes: "",
+      };
+      await db.resources.put(resource);
+    }
+  }
+
+  if (!resource) {
+    return null;
+  }
+
+  const now = Date.now();
+  const instance: TabInstance = {
+    browserTabId: tab.id,
+    resourceId: resource.id,
+    windowId: tab.windowId,
+    index: tab.index,
+    pinned: tab.pinned,
+    active: tab.active,
+    discarded: false,
+    deepSleeping: true,
+    audible: tab.audible ?? false,
+    groupId: tab.groupId,
+    lastAccessed: tab.lastAccessed ?? previousInstance?.lastAccessed ?? now,
+    lastSeenAt: now,
+  };
+  await db.tabInstances.put(instance);
+  return resource;
+}
+
 async function captureTab(
   tab: chrome.tabs.Tab,
   eventType: "TAB_CAPTURED" | "RESOURCE_RESTORED" = "TAB_CAPTURED",
@@ -136,7 +206,19 @@ async function captureTab(
     return null;
   }
 
-  const normalized = normalizeUrl(tab.url ?? tab.pendingUrl ?? "");
+  const rawUrl = tab.url ?? tab.pendingUrl ?? "";
+  if (isDeepSleepPageUrl(rawUrl, SUSPENDED_PAGE_URL)) {
+    const resource = await captureDeepSleepingTab(
+      tab as chrome.tabs.Tab & { id: number },
+      rawUrl,
+    );
+    if (notify) {
+      await broadcastChange();
+    }
+    return resource;
+  }
+
+  const normalized = normalizeUrl(rawUrl);
   if (!normalized) {
     await db.tabInstances.delete(tab.id);
     return null;
@@ -204,6 +286,7 @@ async function captureTab(
         pinned: tab.pinned,
         active: tab.active,
         discarded: tab.discarded,
+        deepSleeping: false,
         audible: tab.audible ?? false,
         groupId: tab.groupId,
         lastAccessed: tab.lastAccessed ?? now,
@@ -331,7 +414,10 @@ async function createSnapshot(
 ): Promise<Snapshot | null> {
   const tabs = await chrome.tabs.query({});
   const eligibleTabs = tabs.filter(
-    (tab) => tab.id !== undefined && normalizeUrl(tab.url ?? "") !== null,
+    (tab) =>
+      tab.id !== undefined &&
+      (normalizeUrl(tab.url ?? "") !== null ||
+        isDeepSleepPageUrl(tab.url ?? "", SUSPENDED_PAGE_URL)),
   );
 
   for (const tab of eligibleTabs) {
@@ -438,6 +524,7 @@ async function discardTab(
   if (discarded) {
     await db.tabInstances.update(tab.id, {
       discarded: true,
+      deepSleeping: false,
       lastSeenAt: Date.now(),
     });
     await appendEvent({
@@ -517,6 +604,68 @@ async function discardEligibleTabs(
 
   await broadcastChange();
   return discardedCount;
+}
+
+async function deepSleepTab(
+  tab: chrome.tabs.Tab & { id: number },
+): Promise<boolean> {
+  const resource = await captureTab(tab, "TAB_CAPTURED", false);
+  if (!resource || resource.protected) {
+    return false;
+  }
+
+  const placeholderUrl = createDeepSleepUrl(SUSPENDED_PAGE_URL, {
+    version: 1,
+    resourceId: resource.id,
+    url: resource.originalUrl,
+    title: resource.customTitle || resource.title,
+  });
+  await appendEvent({
+    type: "TAB_DEEP_SLEEP_PREPARED",
+    resourceId: resource.id,
+    browserTabId: tab.id,
+    payload: { originalUrl: resource.originalUrl },
+    createdAt: Date.now(),
+  });
+
+  await chrome.tabs.update(tab.id, { url: placeholderUrl });
+  await db.tabInstances.update(tab.id, {
+    discarded: false,
+    deepSleeping: true,
+    lastSeenAt: Date.now(),
+  });
+  await appendEvent({
+    type: "TAB_DEEP_SLEEP_COMMITTED",
+    resourceId: resource.id,
+    browserTabId: tab.id,
+    createdAt: Date.now(),
+  });
+  return true;
+}
+
+async function deepSleepEligibleTabs(): Promise<number> {
+  const tabs = await chrome.tabs.query({});
+  let deepSleepingCount = 0;
+
+  for (const tab of tabs) {
+    if (
+      !isSafeToDiscard(tab, Number.POSITIVE_INFINITY, {
+        respectAutoDiscardable: false,
+      })
+    ) {
+      continue;
+    }
+    try {
+      if (await deepSleepTab(tab)) {
+        deepSleepingCount += 1;
+      }
+    } catch {
+      // One unavailable tab must not stop the remaining batch.
+    }
+  }
+
+  await broadcastChange();
+  return deepSleepingCount;
 }
 
 async function archiveResources(resourceIds: string[]): Promise<void> {
@@ -675,6 +824,52 @@ async function restoreResources(resourceIds: string[]): Promise<void> {
   await broadcastChange();
 }
 
+async function restoreDeepSleepingTab(
+  tabId: number,
+  activate = false,
+): Promise<boolean> {
+  const tab = await chrome.tabs.get(tabId);
+  const rawUrl = tab.url ?? tab.pendingUrl ?? "";
+  const isPlaceholder = isDeepSleepPageUrl(rawUrl, SUSPENDED_PAGE_URL);
+  if (isPlaceholder) {
+    await captureDeepSleepingTab(
+      tab as chrome.tabs.Tab & { id: number },
+      rawUrl,
+    );
+  }
+
+  const instance = await db.tabInstances.get(tabId);
+  if (!isPlaceholder && !instance?.deepSleeping) {
+    return false;
+  }
+
+  const resource = instance
+    ? await db.resources.get(instance.resourceId)
+    : undefined;
+  const payload = parseDeepSleepPayload(rawUrl, SUSPENDED_PAGE_URL);
+  const targetUrl = resource?.originalUrl ?? payload?.url;
+  if (!targetUrl || normalizeUrl(targetUrl) === null) {
+    return false;
+  }
+
+  await chrome.tabs.update(tabId, { url: targetUrl, active: activate });
+  if (instance) {
+    await db.tabInstances.update(tabId, {
+      deepSleeping: false,
+      discarded: false,
+      lastSeenAt: Date.now(),
+    });
+  }
+  await appendEvent({
+    type: "TAB_DEEP_SLEEP_RESTORED",
+    resourceId: resource?.id ?? payload?.resourceId,
+    browserTabId: tabId,
+    createdAt: Date.now(),
+  });
+  await broadcastChange();
+  return true;
+}
+
 async function focusResource(resourceId: string): Promise<void> {
   const instance = await db.tabInstances
     .where("resourceId")
@@ -687,7 +882,11 @@ async function focusResource(resourceId: string): Promise<void> {
 
   try {
     await chrome.windows.update(instance.windowId, { focused: true });
-    await chrome.tabs.update(instance.browserTabId, { active: true });
+    if (instance.deepSleeping) {
+      await restoreDeepSleepingTab(instance.browserTabId, true);
+    } else {
+      await chrome.tabs.update(instance.browserTabId, { active: true });
+    }
   } catch {
     await db.tabInstances.delete(instance.browserTabId);
     await restoreResources([resourceId]);
@@ -1230,7 +1429,10 @@ function ensureBootstrapped(): Promise<void> {
   return bootstrapPromise;
 }
 
-async function handleCommand(command: VaultCommand): Promise<unknown> {
+async function handleCommand(
+  command: VaultCommand,
+  sender?: chrome.runtime.MessageSender,
+): Promise<unknown> {
   await ensureBootstrapped();
 
   switch (command.type) {
@@ -1243,6 +1445,13 @@ async function handleCommand(command: VaultCommand): Promise<unknown> {
       return discardResources(command.resourceIds);
     case "DISCARD_ELIGIBLE_TABS":
       return discardEligibleTabs(command.scope, command.windowId);
+    case "DEEP_SLEEP_ELIGIBLE_TABS":
+      return deepSleepEligibleTabs();
+    case "RESTORE_DEEP_SLEEP_TAB":
+      if (sender?.tab?.id === undefined) {
+        throw new Error(t("deepSleepTabUnavailable"));
+      }
+      return restoreDeepSleepingTab(sender.tab.id);
     case "ARCHIVE_RESOURCES":
       await archiveResources(command.resourceIds);
       return undefined;
@@ -1323,10 +1532,10 @@ async function handleCommand(command: VaultCommand): Promise<unknown> {
 chrome.runtime.onMessage.addListener(
   (
     message: VaultCommand,
-    _sender,
+    sender,
     sendResponse: (response: VaultResponse<unknown>) => void,
   ) => {
-    void handleCommand(message)
+    void handleCommand(message, sender)
       .then((data) => sendResponse({ ok: true, data }))
       .catch((error: unknown) =>
         sendResponse({
@@ -1379,7 +1588,28 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 });
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
-  queueTabCapture(tabId);
+  void (async () => {
+    try {
+      await ensureBootstrapped();
+      const [instance, tab] = await Promise.all([
+        db.tabInstances.get(tabId),
+        chrome.tabs.get(tabId),
+      ]);
+      if (
+        instance?.deepSleeping ||
+        isDeepSleepPageUrl(
+          tab.url ?? tab.pendingUrl ?? "",
+          SUSPENDED_PAGE_URL,
+        )
+      ) {
+        await restoreDeepSleepingTab(tabId);
+        return;
+      }
+    } catch {
+      // The tab may have closed or navigated while activation was handled.
+    }
+    queueTabCapture(tabId);
+  })();
 });
 
 chrome.tabs.onMoved.addListener((tabId) => {

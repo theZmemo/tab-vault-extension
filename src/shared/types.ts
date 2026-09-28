@@ -1,6 +1,7 @@
 export type ResourceRuntimeState =
   | "open"
   | "discarded"
+  | "deep-sleeping"
   | "virtual"
   | "trashed";
 
@@ -30,6 +31,7 @@ export interface TabInstance {
   pinned: boolean;
   active: boolean;
   discarded: boolean;
+  deepSleeping?: boolean;
   audible: boolean;
   groupId: number;
   lastAccessed: number;
@@ -121,6 +123,9 @@ export interface VaultEvent {
     | "TAB_CLOSED"
     | "TAB_DISCARD_PREPARED"
     | "TAB_DISCARDED"
+    | "TAB_DEEP_SLEEP_PREPARED"
+    | "TAB_DEEP_SLEEP_COMMITTED"
+    | "TAB_DEEP_SLEEP_RESTORED"
     | "ARCHIVE_PREPARED"
     | "ARCHIVE_COMMITTED"
     | "RESOURCE_RESTORED"
@@ -142,6 +147,7 @@ export interface VaultSettings {
   restoreConcurrency: number;
   recentClosedRetentionDays: number;
   collectionSort: "manual" | "name" | "count" | "recent";
+  deepSleepWarningAccepted: boolean;
 }
 
 export interface VaultState {
@@ -185,6 +191,8 @@ export type VaultCommand =
       scope: "window" | "all" | "force-all";
       windowId?: number;
     }
+  | { type: "DEEP_SLEEP_ELIGIBLE_TABS" }
+  | { type: "RESTORE_DEEP_SLEEP_TAB" }
   | { type: "ARCHIVE_RESOURCES"; resourceIds: string[] }
   | { type: "DELETE_RESOURCES"; resourceIds: string[] }
   | { type: "RESTORE_RESOURCES"; resourceIds: string[] }

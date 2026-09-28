@@ -665,6 +665,12 @@ input[type="checkbox"] {
   color: #6b4eaa;
 }
 
+.status-deep-sleeping {
+  border-color: #b8d5df;
+  background: #e9f4f6;
+  color: #246f7c;
+}
+
 .status-virtual {
   border-color: #d3d8dd;
   background: #f0f2f4;
@@ -1246,6 +1252,52 @@ input[type="checkbox"] {
   background: #fbf6ec;
 }
 
+.sleep-scope-list > button.is-deep .sleep-scope-icon {
+  border-color: #b8d5df;
+  background: #e9f4f6;
+  color: #246f7c;
+}
+
+.sleep-scope-list > button.is-deep .sleep-scope-level {
+  color: #246f7c;
+}
+
+.sleep-scope-list > button.is-deep:hover {
+  background: #eff7f8;
+}
+
+.deep-sleep-warning {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 11px;
+  padding: 15px;
+}
+
+.deep-sleep-warning-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid #e4c890;
+  border-radius: 7px;
+  background: #fbf4e5;
+  color: #936218;
+}
+
+.deep-sleep-warning strong {
+  display: block;
+  color: #2a3745;
+  font-size: 11px;
+  line-height: 17px;
+}
+
+.deep-sleep-warning p {
+  margin: 7px 0 0;
+  color: #687583;
+  font-size: 10px;
+  line-height: 16px;
+}
+
 .group-picker > button {
   display: grid;
   width: 100%;
@@ -1535,13 +1587,15 @@ body {
     0 2px 8px rgb(42 83 151 / 9%);
 }
 
-.resource-row.resource-discarded {
+.resource-row.resource-discarded,
+.resource-row.resource-deep-sleeping {
   border-color: #d6dce2;
   background: #f1f3f5;
   box-shadow: none;
 }
 
-.resource-row.resource-discarded::after {
+.resource-row.resource-discarded::after,
+.resource-row.resource-deep-sleeping::after {
   position: absolute;
   z-index: 0;
   inset: 0;
@@ -1552,25 +1606,31 @@ body {
 }
 
 .resource-row.resource-discarded > :not(.row-actions),
-.resource-row.resource-discarded .row-actions {
+.resource-row.resource-discarded .row-actions,
+.resource-row.resource-deep-sleeping > :not(.row-actions),
+.resource-row.resource-deep-sleeping .row-actions {
   position: relative;
   z-index: 1;
 }
 
-.resource-row.resource-discarded .row-actions {
+.resource-row.resource-discarded .row-actions,
+.resource-row.resource-deep-sleeping .row-actions {
   position: absolute;
 }
 
-.resource-row.resource-discarded .site-mark {
+.resource-row.resource-discarded .site-mark,
+.resource-row.resource-deep-sleeping .site-mark {
   filter: grayscale(1);
   opacity: 0.56;
 }
 
-.resource-row.resource-discarded .resource-main {
+.resource-row.resource-discarded .resource-main,
+.resource-row.resource-deep-sleeping .resource-main {
   opacity: 0.76;
 }
 
-.resource-row.resource-discarded:hover {
+.resource-row.resource-discarded:hover,
+.resource-row.resource-deep-sleeping:hover {
   border-color: #c7d0d9;
   background: #f5f6f7;
 }
@@ -2333,12 +2393,14 @@ body {
   opacity: 1;
 }
 
-.collection-resource-row:has(.state-discarded) .collection-resource {
+.collection-resource-row:has(.state-discarded) .collection-resource,
+.collection-resource-row:has(.state-deep-sleeping) .collection-resource {
   filter: grayscale(0.7);
   opacity: 0.62;
 }
 
-.collection-resource-row:has(.state-discarded):hover .collection-resource {
+.collection-resource-row:has(.state-discarded):hover .collection-resource,
+.collection-resource-row:has(.state-deep-sleeping):hover .collection-resource {
   opacity: 0.82;
 }
 
@@ -2369,6 +2431,10 @@ body {
 
 .resource-state-dot.state-discarded {
   background: #7659b8;
+}
+
+.resource-state-dot.state-deep-sleeping {
+  background: #2e8390;
 }
 
 .resource-state-dot.state-virtual {
@@ -2702,16 +2768,19 @@ body {
     background: #28364a;
   }
 
-  .resource-row.resource-discarded {
+  .resource-row.resource-discarded,
+  .resource-row.resource-deep-sleeping {
     border-color: #40474f;
     background: #272b30;
   }
 
-  .resource-row.resource-discarded::after {
+  .resource-row.resource-discarded::after,
+  .resource-row.resource-deep-sleeping::after {
     background: rgb(15 18 22 / 12%);
   }
 
-  .resource-row.resource-discarded:hover {
+  .resource-row.resource-discarded:hover,
+  .resource-row.resource-deep-sleeping:hover {
     border-color: #505963;
     background: #2b3035;
   }
@@ -2873,6 +2942,34 @@ body {
 
   .sleep-scope-list > button.is-force:hover {
     background: #39352d;
+  }
+
+  .sleep-scope-list > button.is-deep .sleep-scope-icon {
+    border-color: #35636c;
+    background: #263c40;
+    color: #75c1ce;
+  }
+
+  .sleep-scope-list > button.is-deep .sleep-scope-level {
+    color: #75c1ce;
+  }
+
+  .sleep-scope-list > button.is-deep:hover {
+    background: #2b393c;
+  }
+
+  .deep-sleep-warning strong {
+    color: #e6ebf0;
+  }
+
+  .deep-sleep-warning p {
+    color: #a4aeb8;
+  }
+
+  .deep-sleep-warning-icon {
+    border-color: #6f5b35;
+    background: #403725;
+    color: #e2b863;
   }
 
   .browser-side-setting {

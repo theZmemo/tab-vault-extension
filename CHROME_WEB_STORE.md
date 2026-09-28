@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.1
+版本：0.0.2
 
 ## 单一用途
 
@@ -30,7 +30,8 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 永久分组、20 种颜色、规则分类和组内移动。
 - 中文子串、标题、URL、域名和备注搜索。
 - 规范化 URL 去重，合并常见跟踪参数造成的重复记录。
-- 三级渐进式休眠，按当前窗口、所有窗口和强力模式逐级扩大覆盖。
+- 四级渐进式休眠，按当前窗口、所有窗口、强力模式和本地占位页深度休眠逐级增强。
+- 深度休眠前先保存原 URL，并在重新选中标签时自动恢复；首次使用会提示未提交表单和网页运行时状态无法保留。
 - 安全归档，在本地写入成功后才关闭真实标签。
 - 自动及手动会话快照，并按窗口、顺序和标签组恢复。
 - JSON 备份导出、校验和合并导入。
@@ -55,8 +56,10 @@ Key features:
 - Permanent groups, 20 colors, deterministic rules, and group management.
 - Search across custom names, titles, URLs, domains, and notes.
 - Normalized URL deduplication for common tracking parameters.
-- Three progressive sleep levels for the current window, all windows, or
-  broader manual coverage.
+- Four progressive sleep levels for the current window, all windows, broader
+  manual coverage, or placeholder-based deep sleep.
+- Deep sleep persists the original URL before replacement and restores the page
+  when its tab is selected; a first-use warning explains runtime-state limits.
 - Safe archiving that persists data before closing live tabs.
 - Automatic and manual session snapshots with window and tab-group restoration.
 - Validated JSON backup export, import, and merge.
@@ -77,7 +80,7 @@ Privacy:
 | `contextMenus` | 允许用户从浏览器右键菜单把当前标签加入永久分组或打开管理界面。 |
 | `sidePanel` | 在 Chrome 原生侧边栏中提供扩展的主要管理界面。 |
 | `tabGroups` | 读取标签组元数据，并在恢复会话快照时重建标签组。 |
-| `tabs` | 读取标签 URL、标题和状态，并执行用户请求的聚焦、休眠、关闭和恢复操作。 |
+| `tabs` | 读取标签 URL、标题和状态，并执行用户请求的聚焦、原生休眠、深度休眠占位替换、关闭和恢复操作。 |
 | `unlimitedStorage` | 将大量标签资源、分组和会话快照长期保存在本机 IndexedDB，避免浏览器配额导致资产丢失。 |
 
 扩展不申请主机权限，不注入内容脚本，不读取网页正文。
@@ -124,6 +127,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.1 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.2 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。
