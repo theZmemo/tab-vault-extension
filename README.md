@@ -17,6 +17,7 @@
 - 根据系统外观自动切换浅色或深色界面。
 - 正式扩展 Logo 与 16/32/48/128px 浏览器图标。
 - 当前打开、已休眠、已归档、重复页面和未分类视图。
+- 大资源库采用每批 80 条的渐进渲染，滚动时继续加载。
 - 手动休眠、归档、恢复及批量操作。
 - 已归档资源支持从资源库和会话快照中永久删除。
 - 三级渐进式休眠：当前窗口安全休眠、所有窗口安全休眠、所有窗口强力休眠。
@@ -121,11 +122,14 @@ npm run build
 npm test
 npm run test:extension
 npm run test:locale
+npm run test:performance
 npm run verify:store
 npm run render:store
 ```
 
 `npm run test:extension` 会启动临时 Chromium 配置，验证自动捕获、去重、永久分组、规则、归档恢复和会话快照，不会使用日常浏览器配置。
+
+`npm run test:performance` 会构造 2,000 条本地资源，验证“全部资源”首屏只渲染 80 条、点击响应不超过 200ms，并确认滚动后继续加载。
 
 `npm run verify:store` 会重新构建并检查 Manifest V3、版本、图标、权限、CSP、远程代码、调试端点和发布包文件类型。Chrome Web Store 字段及权限理由见 [发布资料](./CHROME_WEB_STORE.md)。
 

@@ -114,6 +114,7 @@ const COLLECTION_COLORS: CollectionColor[] = [
 
 const PRIVACY_POLICY_URL =
   "https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md";
+const RESOURCE_RENDER_BATCH = 80;
 
 const COLLECTION_COLOR_LABELS: Record<CollectionColor, string> = {
   blue: t("colorBlue"),
@@ -372,6 +373,9 @@ export function App() {
   const [state, setState] = useState<VaultState | null>(null);
   const [view, setView] = useState<ViewKey>("groups");
   const [sortMode, setSortMode] = useState<SortMode>("recent");
+  const [resourceRenderLimit, setResourceRenderLimit] = useState(
+    RESOURCE_RENDER_BATCH,
+  );
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dialog, setDialog] = useState<DialogKey>(null);
@@ -679,6 +683,21 @@ export function App() {
     });
   }, [resourceViews, searchResultIds, sortMode, view]);
 
+  const renderedResources = useMemo(
+    () => visibleResources.slice(0, resourceRenderLimit),
+    [resourceRenderLimit, visibleResources],
+  );
+  const collectionMap = useMemo(
+    () =>
+      new Map(
+        (state?.collections ?? []).map((collection) => [
+          collection.id,
+          collection,
+        ]),
+      ),
+    [state?.collections],
+  );
+
   const counts = useMemo(
     () => ({
       all: resourceViews.length,
@@ -760,6 +779,7 @@ export function App() {
   };
 
   const chooseView = (nextView: ViewKey) => {
+    setResourceRenderLimit(RESOURCE_RENDER_BATCH);
     setView(nextView);
     setSelected(new Set());
     if (window.innerWidth < 620) {
@@ -1077,14 +1097,21 @@ export function App() {
               <Search size={16} />
               <input
                 value={query}
-                onInput={(event) =>
-                  setQuery((event.currentTarget as HTMLInputElement).value)
-                }
+                onInput={(event) => {
+                  setResourceRenderLimit(RESOURCE_RENDER_BATCH);
+                  setQuery((event.currentTarget as HTMLInputElement).value);
+                }}
                 placeholder={t("searchPlaceholder")}
                 aria-label={t("searchResources")}
               />
               {query && (
-                <IconButton label={t("clearSearch")} onClick={() => setQuery("")}>
+                <IconButton
+                  label={t("clearSearch")}
+                  onClick={() => {
+                    setResourceRenderLimit(RESOURCE_RENDER_BATCH);
+                    setQuery("");
+                  }}
+                >
                   <X size={14} />
                 </IconButton>
               )}
@@ -1140,12 +1167,13 @@ export function App() {
                   <select
                     value={sortMode}
                     aria-label={t("sortResources")}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setResourceRenderLimit(RESOURCE_RENDER_BATCH);
                       setSortMode(
                         (event.currentTarget as HTMLSelectElement)
                           .value as SortMode,
-                      )
-                    }
+                      );
+                    }}
                   >
                     <option value="recent">{t("recentlyVisited")}</option>
                     <option value="title">{t("sortByTitle")}</option>
@@ -1154,12 +1182,29 @@ export function App() {
                 </div>
               </div>
 
-              <div className="resource-list">
-                {visibleResources.map((item) => (
+              <div
+                className="resource-list"
+                onScroll={(event) => {
+                  const list = event.currentTarget;
+                  if (
+                    list.scrollHeight - list.scrollTop - list.clientHeight <
+                      320 &&
+                    resourceRenderLimit < visibleResources.length
+                  ) {
+                    setResourceRenderLimit((current) =>
+                      Math.min(
+                        current + RESOURCE_RENDER_BATCH,
+                        visibleResources.length,
+                      ),
+                    );
+                  }
+                }}
+              >
+                {renderedResources.map((item) => (
                   <ResourceRow
                     key={item.resource.id}
                     item={item}
-                    collections={state.collections}
+                    collectionMap={collectionMap}
                     checked={selected.has(item.resource.id)}
                     onToggle={() => toggleSelected(item.resource.id)}
                     onFocus={() =>
@@ -1223,6 +1268,28 @@ export function App() {
                     }
                   />
                 ))}
+                {renderedResources.length < visibleResources.length && (
+                  <button
+                    type="button"
+                    className="resource-load-more"
+                    onClick={() =>
+                      setResourceRenderLimit((current) =>
+                        Math.min(
+                          current + RESOURCE_RENDER_BATCH,
+                          visibleResources.length,
+                        ),
+                      )
+                    }
+                  >
+                    <ChevronDown size={14} />
+                    {t("loadMoreResources", {
+                      count: Math.min(
+                        RESOURCE_RENDER_BATCH,
+                        visibleResources.length - renderedResources.length,
+                      ),
+                    })}
+                  </button>
+                )}
 
                 {visibleResources.length === 0 && (
                   <EmptyState
@@ -1946,7 +2013,7 @@ function CollectionAccordion({
 
 function ResourceRow({
   item,
-  collections,
+  collectionMap,
   checked,
   onToggle,
   onFocus,
@@ -1959,7 +2026,7 @@ function ResourceRow({
   onManageGroup,
 }: {
   item: ResourceView;
-  collections: Collection[];
+  collectionMap: ReadonlyMap<string, Collection>;
   checked: boolean;
   onToggle: () => void;
   onFocus: () => void;
@@ -1972,9 +2039,6 @@ function ResourceRow({
   onManageGroup?: () => void;
 }) {
   const { resource, instances, state, collectionIds } = item;
-  const collectionMap = new Map(
-    collections.map((collection) => [collection.id, collection]),
-  );
   const initial = (resource.domain || resource.title).slice(0, 1).toUpperCase();
   const displayTitle = resource.customTitle || resource.title;
   const domainTone = getDomainTone(resource.domain);

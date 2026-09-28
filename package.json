@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:extension": "node tests/extension.smoke.mjs",
     "test:locale": "node tests/locale.smoke.mjs",
+    "test:performance": "node tests/all-resources-performance.mjs",
     "verify:store": "npm run build && node tests/store-readiness.mjs",
     "render:store": "node tests/render-store-assets.mjs",
     "render:logo": "node tests/render-logo.mjs",
