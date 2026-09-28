@@ -139,4 +139,4 @@ npm run render:store
 - 浏览器配置目录损坏或卸载扩展会删除 IndexedDB；当前应定期导出 JSON 备份。
 - SQLite、iCloud 加密备份、分组自动关闭归档和跨设备同步尚未实现。
 
-完整产品与技术设计见 [设计方案.md](./设计方案.md)。
+完整产品与技术设计见 [设计方案.md](./设计方案.md)，版本变化见 [CHANGELOG.md](./CHANGELOG.md)。
