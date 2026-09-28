@@ -9,6 +9,7 @@ import {
 import { sortCollections } from "../shared/collections";
 import { t } from "../shared/i18n";
 import { matchesRule } from "../shared/rules";
+import { isSafeToDiscard } from "../shared/tabs";
 import type {
   Collection,
   CollectionMembership,
@@ -415,30 +416,13 @@ async function createSnapshot(
   return snapshot;
 }
 
-function isSafeToDiscard(
-  tab: chrome.tabs.Tab,
-  cutoff: number,
-): tab is chrome.tabs.Tab & { id: number } {
-  return Boolean(
-    tab.id !== undefined &&
-      !tab.active &&
-      !tab.pinned &&
-      !tab.audible &&
-      !tab.discarded &&
-      tab.autoDiscardable !== false &&
-      tab.status !== "loading" &&
-      (tab.lastAccessed ?? Date.now()) <= cutoff &&
-      normalizeUrl(tab.url ?? "") !== null,
-  );
-}
-
 async function discardTab(
   tab: chrome.tabs.Tab & { id: number },
   respectProtection = false,
-): Promise<void> {
+): Promise<boolean> {
   const resource = await captureTab(tab, "TAB_CAPTURED", false);
   if (!resource || (respectProtection && resource.protected)) {
-    return;
+    return false;
   }
 
   await appendEvent({
@@ -460,7 +444,9 @@ async function discardTab(
       browserTabId: tab.id,
       createdAt: Date.now(),
     });
+    return true;
   }
+  return false;
 }
 
 async function discardResources(resourceIds: string[]): Promise<void> {
@@ -486,6 +472,35 @@ async function discardResources(resourceIds: string[]): Promise<void> {
     }
   }
   await broadcastChange();
+}
+
+async function discardEligibleTabs(
+  scope: Extract<
+    VaultCommand,
+    { type: "DISCARD_ELIGIBLE_TABS" }
+  >["scope"],
+  windowId?: number,
+): Promise<number> {
+  const tabs = await chrome.tabs.query(
+    scope === "window" && windowId !== undefined ? { windowId } : {},
+  );
+  let discardedCount = 0;
+
+  for (const tab of tabs) {
+    if (!isSafeToDiscard(tab, Number.POSITIVE_INFINITY)) {
+      continue;
+    }
+    try {
+      if (await discardTab(tab, true)) {
+        discardedCount += 1;
+      }
+    } catch {
+      // One unavailable tab must not stop the remaining batch.
+    }
+  }
+
+  await broadcastChange();
+  return discardedCount;
 }
 
 async function archiveResources(resourceIds: string[]): Promise<void> {
@@ -1138,6 +1153,8 @@ async function handleCommand(command: VaultCommand): Promise<unknown> {
     case "DISCARD_RESOURCES":
       await discardResources(command.resourceIds);
       return undefined;
+    case "DISCARD_ELIGIBLE_TABS":
+      return discardEligibleTabs(command.scope, command.windowId);
     case "ARCHIVE_RESOURCES":
       await archiveResources(command.resourceIds);
       return undefined;

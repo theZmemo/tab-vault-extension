@@ -372,6 +372,40 @@ try {
     fullPage: true,
   });
 
+  await serviceWorker.evaluate(async () => {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (
+        tab.id !== undefined &&
+        (tab.url?.startsWith("http://") || tab.url?.startsWith("https://"))
+      ) {
+        await chrome.tabs.update(tab.id, { pinned: true });
+      }
+    }
+  });
+  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await expect(
+    panel.getByRole("button", { name: "休眠当前窗口其他标签" }),
+  ).toBeVisible();
+  await expect(
+    panel.getByRole("button", { name: "休眠所有窗口可休眠标签" }),
+  ).toBeVisible();
+  await panel.screenshot({
+    path: join(artifactsPath, "batch-sleep-dialog.png"),
+    fullPage: true,
+  });
+  await panel
+    .getByRole("button", { name: "休眠当前窗口其他标签" })
+    .click();
+  await expect(panel.getByText("没有可休眠的标签", { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .getByRole("button", { name: "休眠所有窗口可休眠标签" })
+    .click();
+  await expect(panel.getByText("没有可休眠的标签", { exact: true })).toBeVisible();
+
   if (runtimeErrors.length > 0) {
     throw new Error(`Side panel errors: ${runtimeErrors.join("; ")}`);
   }
@@ -391,6 +425,9 @@ try {
         compactResourceCards: true,
         archiveMeaningExposed: true,
         compactResourceScreenshot: "artifacts/compact-resource-card.png",
+        batchSleepCurrentWindow: true,
+        batchSleepAllWindowsAvailable: true,
+        batchSleepScreenshot: "artifacts/batch-sleep-dialog.png",
         groupOverviewDefault: true,
         groupOverviewSearch: true,
         searchCustomTitle: true,

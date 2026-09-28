@@ -180,6 +180,11 @@ export type VaultCommand =
   | { type: "GET_STATE" }
   | { type: "REFRESH_TABS" }
   | { type: "DISCARD_RESOURCES"; resourceIds: string[] }
+  | {
+      type: "DISCARD_ELIGIBLE_TABS";
+      scope: "window" | "all";
+      windowId?: number;
+    }
   | { type: "ARCHIVE_RESOURCES"; resourceIds: string[] }
   | { type: "RESTORE_RESOURCES"; resourceIds: string[] }
   | { type: "FOCUS_RESOURCE"; resourceId: string }

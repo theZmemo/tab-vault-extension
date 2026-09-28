@@ -64,9 +64,14 @@ type ViewKey =
   | `collection:${string}`;
 
 type SortMode = "recent" | "title" | "visits";
+type SleepScope = Extract<
+  VaultCommand,
+  { type: "DISCARD_ELIGIBLE_TABS" }
+>["scope"];
 
 type DialogKey =
   | "collection"
+  | "sleep-tabs"
   | "rules"
   | "settings"
   | "snapshots"
@@ -292,6 +297,49 @@ function EmptyState({
   );
 }
 
+function SleepTabsDialog({
+  busy,
+  onClose,
+  onSleep,
+}: {
+  busy: boolean;
+  onClose: () => void;
+  onSleep: (scope: SleepScope) => void;
+}) {
+  return (
+    <Modal title={t("batchSleepTabs")} onClose={onClose}>
+      <div className="sleep-scope-list">
+        <button type="button" disabled={busy} onClick={() => onSleep("window")}>
+          <span className="sleep-scope-icon">
+            <Moon size={17} />
+          </span>
+          <span>
+            <strong>{t("sleepOtherTabs")}</strong>
+            <small>{t("sleepOtherTabsScope")}</small>
+          </span>
+          <ChevronRight size={16} />
+        </button>
+        <button type="button" disabled={busy} onClick={() => onSleep("all")}>
+          <span className="sleep-scope-icon">
+            <Layers3 size={17} />
+          </span>
+          <span>
+            <strong>{t("sleepAllTabs")}</strong>
+            <small>{t("sleepAllTabsScope")}</small>
+          </span>
+          <ChevronRight size={16} />
+        </button>
+      </div>
+      <p className="modal-note">{t("sleepTabsSafety")}</p>
+      <div className="form-actions">
+        <button type="button" className="button-ghost" onClick={onClose}>
+          {t("cancel")}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export function App() {
   const [state, setState] = useState<VaultState | null>(null);
   const [view, setView] = useState<ViewKey>("groups");
@@ -386,6 +434,29 @@ export function App() {
       if (successMessage) {
         setToast(successMessage);
       }
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t("actionFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sleepEligibleTabs = async (
+    scope: SleepScope,
+  ): Promise<void> => {
+    setBusy(true);
+    try {
+      const currentWindow =
+        scope === "window" ? await chrome.windows.getCurrent() : null;
+      const count = await sendCommand<number>({
+        type: "DISCARD_ELIGIBLE_TABS",
+        scope,
+        windowId: currentWindow?.id,
+      });
+      await loadState();
+      setToast(
+        count > 0 ? t("tabsPutToSleep", { count }) : t("noTabsToSleep"),
+      );
     } catch (error) {
       setToast(error instanceof Error ? error.message : t("actionFailed"));
     } finally {
@@ -708,6 +779,13 @@ export function App() {
             onClick={() => openCollectionEditor()}
           >
             <FolderPlus size={17} />
+          </IconButton>
+          <IconButton
+            label={t("batchSleepTabs")}
+            disabled={busy}
+            onClick={() => setDialog("sleep-tabs")}
+          >
+            <Moon size={17} />
           </IconButton>
           <IconButton
             label={t("saveCurrentSnapshot")}
@@ -1168,6 +1246,17 @@ export function App() {
                 }
               : undefined
           }
+        />
+      )}
+
+      {dialog === "sleep-tabs" && (
+        <SleepTabsDialog
+          busy={busy}
+          onClose={() => setDialog(null)}
+          onSleep={(scope) => {
+            setDialog(null);
+            void sleepEligibleTabs(scope);
+          }}
         />
       )}
 
