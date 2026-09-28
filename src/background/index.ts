@@ -16,7 +16,7 @@ import {
 import { t } from "../shared/i18n";
 import { matchesRule } from "../shared/rules";
 import { normalizeSettings } from "../shared/settings";
-import { isSafeToDiscard } from "../shared/tabs";
+import { isSafeToDeepSleep, isSafeToDiscard } from "../shared/tabs";
 import type {
   Collection,
   CollectionMembership,
@@ -648,11 +648,7 @@ async function deepSleepEligibleTabs(): Promise<number> {
   let deepSleepingCount = 0;
 
   for (const tab of tabs) {
-    if (
-      !isSafeToDiscard(tab, Number.POSITIVE_INFINITY, {
-        respectAutoDiscardable: false,
-      })
-    ) {
+    if (!isSafeToDeepSleep(tab)) {
       continue;
     }
     try {

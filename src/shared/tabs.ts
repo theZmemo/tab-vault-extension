@@ -18,3 +18,16 @@ export function isSafeToDiscard(
       normalizeUrl(tab.url ?? "") !== null,
   );
 }
+
+export function isSafeToDeepSleep(
+  tab: chrome.tabs.Tab,
+): tab is chrome.tabs.Tab & { id: number } {
+  return Boolean(
+    tab.id !== undefined &&
+      !tab.active &&
+      !tab.pinned &&
+      !tab.audible &&
+      tab.status !== "loading" &&
+      normalizeUrl(tab.url ?? "") !== null,
+  );
+}

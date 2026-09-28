@@ -2,6 +2,15 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.3] - 2026-09-28
+
+### Fixed
+
+- Level 4 deep sleep now accepts tabs that Levels 1-3 already unloaded with
+  Chrome's native discard mechanism.
+- Deep sleep keeps the same active, pinned, audible, loading, protected, and
+  browser-internal page safeguards while upgrading native sleeping tabs.
+
 ## [0.0.2] - 2026-09-28
 
 ### Added
@@ -55,5 +64,6 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.3]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.3
 [0.0.2]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.2
 [0.0.1]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.1
