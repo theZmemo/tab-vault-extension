@@ -30,7 +30,9 @@
 
 ## 安装
 
-生产构建生成在：
+推荐从 [GitHub Releases](https://github.com/theZmemo/tab-vault-extension/releases) 下载 `tab-vault-*-extension.zip` 并解压。
+
+从源码构建时，生产文件生成在：
 
 ```text
 dist/
