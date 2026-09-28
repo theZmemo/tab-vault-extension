@@ -118,6 +118,7 @@ const COLLECTION_COLORS: CollectionColor[] = [
 const PRIVACY_POLICY_URL =
   "https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md";
 const RESOURCE_RENDER_BATCH = 80;
+const DEEP_SLEEP_WARNING_VERSION = 2;
 
 const COLLECTION_COLOR_LABELS: Record<CollectionColor, string> = {
   blue: t("colorBlue"),
@@ -593,7 +594,8 @@ export function App() {
     if (
       scope === "deep" &&
       !warningAccepted &&
-      !state?.settings.deepSleepWarningAccepted
+      (state?.settings.deepSleepWarningVersion ?? 0) <
+        DEEP_SLEEP_WARNING_VERSION
     ) {
       setDialog("deep-sleep-warning");
       return;
@@ -604,11 +606,15 @@ export function App() {
       if (
         scope === "deep" &&
         warningAccepted &&
-        !state?.settings.deepSleepWarningAccepted
+        (state?.settings.deepSleepWarningVersion ?? 0) <
+          DEEP_SLEEP_WARNING_VERSION
       ) {
         await sendCommand({
           type: "UPDATE_SETTINGS",
-          settings: { deepSleepWarningAccepted: true },
+          settings: {
+            deepSleepWarningAccepted: true,
+            deepSleepWarningVersion: DEEP_SLEEP_WARNING_VERSION,
+          },
         });
       }
       const currentWindow =

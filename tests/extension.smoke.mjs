@@ -415,7 +415,7 @@ try {
     panel.getByRole("button", { name: "强力休眠所有后台标签" }),
   ).toBeVisible();
   await expect(
-    panel.getByRole("button", { name: "深度休眠所有可处理后台标签" }),
+    panel.getByRole("button", { name: "深度休眠所有可操作网页标签" }),
   ).toBeVisible();
   await panel.screenshot({
     path: join(artifactsPath, "batch-sleep-dialog.png"),
@@ -455,16 +455,26 @@ try {
   await expect(deepSleepPage).toHaveTitle("治理任务校验 SQL");
   const deepSleepOriginalUrl = deepSleepPage.url();
   await panel.bringToFront();
+  const deepSleepTabId = await serviceWorker.evaluate(async (originalUrl) => {
+    const tab = (await chrome.tabs.query({})).find(
+      (candidate) => candidate.url === originalUrl,
+    );
+    if (tab?.id === undefined) {
+      throw new Error("Deep-sleep fixture tab not found");
+    }
+    await chrome.tabs.update(tab.id, { pinned: true });
+    return tab.id;
+  }, deepSleepOriginalUrl);
   await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
   await panel
-    .getByRole("button", { name: "深度休眠所有可处理后台标签" })
+    .getByRole("button", { name: "深度休眠所有可操作网页标签" })
     .click();
   await expect(
     panel.getByText("深度休眠前确认", { exact: true }),
   ).toBeVisible();
   await expect(
     panel.getByText(
-      "未提交的表单、播放进度和网页应用内的临时状态可能丢失。",
+      "活动页面会立即被替换；音频、加载任务、未提交表单和网页应用临时状态都会中断。",
       { exact: true },
     ),
   ).toBeVisible();
@@ -476,9 +486,7 @@ try {
     .getByRole("button", { name: "确认并开始深度休眠" })
     .click();
   await expect(
-    panel.getByText("已深度休眠 1 个标签；选中时会自动恢复", {
-      exact: true,
-    }),
+    panel.getByText(/已深度休眠 \d+ 个标签；选中时会自动恢复/),
   ).toBeVisible({ timeout: 10_000 });
   await expect
     .poll(() => deepSleepPage.url())
@@ -492,10 +500,12 @@ try {
     return response.data;
   });
   const deepSleepInstance = deepSleepState.instances.find(
-    (instance) => instance.deepSleeping,
+    (instance) =>
+      instance.browserTabId === deepSleepTabId && instance.deepSleeping,
   );
   expect(deepSleepInstance).toBeTruthy();
   expect(deepSleepState.settings.deepSleepWarningAccepted).toBe(true);
+  expect(deepSleepState.settings.deepSleepWarningVersion).toBe(2);
 
   await panel.getByTitle("保存当前快照").click();
   await expect(panel.getByText("当前会话已保存", { exact: true })).toBeVisible();
@@ -528,19 +538,28 @@ try {
         instance.deepSleeping,
     ),
   ).toBe(false);
-  await serviceWorker.evaluate(async (tabId) => {
-    await chrome.tabs.update(tabId, { pinned: true });
-  }, deepSleepInstance.browserTabId);
-  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
-  await panel
-    .getByRole("button", { name: "深度休眠所有可处理后台标签" })
-    .click();
-  await expect(panel.getByText("深度休眠前确认", { exact: true })).toHaveCount(
-    0,
+
+  const activeDeepSleepPage = await context.newPage();
+  await activeDeepSleepPage.goto(
+    "http://127.0.0.1:4178/active-deep-sleep?id=102",
   );
+  const activeDeepSleepUrl = activeDeepSleepPage.url();
+  const activeDeepSleepResponse = await panel.evaluate(async () =>
+    chrome.runtime.sendMessage({ type: "DEEP_SLEEP_ELIGIBLE_TABS" }),
+  );
+  expect(activeDeepSleepResponse.ok).toBe(true);
+  expect(activeDeepSleepResponse.data).toBeGreaterThan(0);
+  await expect
+    .poll(() => activeDeepSleepPage.url())
+    .toContain(`chrome-extension://${extensionId}/suspended.html`);
   await expect(
-    panel.getByText("没有可深度休眠的标签", { exact: true }),
+    activeDeepSleepPage.getByRole("button", { name: "立即恢复" }),
   ).toBeVisible();
+  await activeDeepSleepPage.getByRole("button", { name: "立即恢复" }).click();
+  await expect
+    .poll(() => activeDeepSleepPage.url(), { timeout: 10_000 })
+    .toBe(activeDeepSleepUrl);
+  await panel.bringToFront();
   await panel
     .locator(".navigation-rail")
     .getByLabel("全部资源", { exact: true })
@@ -614,6 +633,7 @@ try {
         deepSleepPlaceholder: true,
         deepSleepSnapshotOriginalUrl: true,
         deepSleepAutomaticRestore: true,
+        deepSleepActiveTab: true,
         deepSleepWarningPersisted: true,
         groupOverviewDefault: true,
         groupOverviewSearch: true,

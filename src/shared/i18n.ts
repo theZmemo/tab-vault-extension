@@ -75,15 +75,15 @@ const en = {
   sleepOtherTabs: "Sleep other tabs in this window",
   sleepAllTabs: "Sleep eligible tabs in all windows",
   forceSleepAllTabs: "Force-sleep all background tabs",
-  deepSleepAllTabs: "Deep-sleep all eligible background tabs",
+  deepSleepAllTabs: "Deep-sleep all operable web tabs",
   sleepOtherTabsScope: "Smallest scope · All safeguards remain active",
   sleepAllTabsScope: "All windows · The same safeguards remain active",
   forceSleepAllTabsScope:
     "All windows · Also includes tabs blocked from automatic discard",
   deepSleepAllTabsScope:
-    "Replaces pages with local placeholders for maximum memory release",
+    "Includes active, pinned, audible, loading, and sleeping web tabs",
   sleepTabsSafety:
-    "Every level still skips active, pinned, audible, loading, protected, and browser-internal tabs.",
+    "Levels 1-3 retain all safeguards. Level 4 skips only protected and browser-internal tabs.",
   tabsPutToSleep:
     "{count} tabs are sleeping; they remain in the tab strip and reload when selected",
   noTabsToSleepCurrent:
@@ -96,9 +96,9 @@ const en = {
   noTabsToDeepSleep: "No eligible tabs for deep sleep",
   deepSleepWarningTitle: "Before deep sleep",
   deepSleepWarningBody:
-    "Deep sleep replaces eligible background pages with a lightweight local placeholder. The original URL, title, and group are saved first.",
+    "Deep sleep replaces every operable web tab with a lightweight local placeholder after saving its original URL, title, and group.",
   deepSleepWarningRuntimeLoss:
-    "Unsaved form input, playback position, and in-page app state may be lost.",
+    "Active pages are replaced immediately. Audio, loading, unsaved forms, and in-page app state will be interrupted.",
   deepSleepWarningRecovery:
     "The original URL is stored both in Tab Vault and in the placeholder address for recovery.",
   confirmDeepSleep: "Continue with deep sleep",
@@ -343,13 +343,13 @@ const zh: Record<MessageKey, string> = {
   sleepOtherTabs: "休眠当前窗口其他标签",
   sleepAllTabs: "休眠所有窗口可休眠标签",
   forceSleepAllTabs: "强力休眠所有后台标签",
-  deepSleepAllTabs: "深度休眠所有可处理后台标签",
+  deepSleepAllTabs: "深度休眠所有可操作网页标签",
   sleepOtherTabsScope: "最小范围 · 保留全部安全保护",
   sleepAllTabsScope: "扩大到所有窗口 · 保护条件不变",
   forceSleepAllTabsScope: "所有窗口 · 额外处理禁止自动丢弃的后台标签",
-  deepSleepAllTabsScope: "替换为本地占位页 · 最大程度释放页面内存",
+  deepSleepAllTabsScope: "包含活动、固定、有声、加载中和已休眠网页",
   sleepTabsSafety:
-    "所有级别都会跳过活动、固定、播放声音、加载中、已保护和浏览器内部标签。",
+    "第 1～3 级保留全部保护；第 4 级仅跳过已保护和浏览器内部标签。",
   tabsPutToSleep: "已休眠 {count} 个标签；标签仍保留在标签栏，切回时会重新加载",
   noTabsToSleepCurrent: "当前窗口没有可休眠标签，可尝试第 2 级处理所有窗口。",
   noTabsToSleepSafe: "安全级别没有可休眠标签，可尝试第 3 级扩大覆盖。",
@@ -358,9 +358,9 @@ const zh: Record<MessageKey, string> = {
   noTabsToDeepSleep: "没有可深度休眠的标签",
   deepSleepWarningTitle: "深度休眠前确认",
   deepSleepWarningBody:
-    "深度休眠会先保存原 URL、标题和分组，再把符合条件的后台网页替换为轻量本地占位页。",
+    "深度休眠会先保存原 URL、标题和分组，再把所有可操作网页标签替换为轻量本地占位页。",
   deepSleepWarningRuntimeLoss:
-    "未提交的表单、播放进度和网页应用内的临时状态可能丢失。",
+    "活动页面会立即被替换；音频、加载任务、未提交表单和网页应用临时状态都会中断。",
   deepSleepWarningRecovery:
     "原 URL 同时保存在标签资产库和占位页地址中，可双重恢复。",
   confirmDeepSleep: "确认并开始深度休眠",

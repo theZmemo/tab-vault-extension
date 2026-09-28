@@ -148,6 +148,7 @@ export interface VaultSettings {
   recentClosedRetentionDays: number;
   collectionSort: "manual" | "name" | "count" | "recent";
   deepSleepWarningAccepted: boolean;
+  deepSleepWarningVersion: number;
 }
 
 export interface VaultState {

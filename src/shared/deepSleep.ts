@@ -5,6 +5,7 @@ export interface DeepSleepPayload {
   resourceId: string;
   url: string;
   title: string;
+  initiallyActive?: boolean;
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -35,6 +36,8 @@ export function createDeepSleepUrl(
     payload.version !== 1 ||
     !isNonEmptyString(payload.resourceId) ||
     !isNonEmptyString(payload.title) ||
+    (payload.initiallyActive !== undefined &&
+      typeof payload.initiallyActive !== "boolean") ||
     normalizeUrl(payload.url) === null
   ) {
     throw new Error("Invalid deep sleep payload");
@@ -67,6 +70,8 @@ export function parseDeepSleepPayload(
       !isNonEmptyString(value.resourceId) ||
       !isNonEmptyString(value.url) ||
       !isNonEmptyString(value.title) ||
+      (value.initiallyActive !== undefined &&
+        typeof value.initiallyActive !== "boolean") ||
       normalizeUrl(value.url) === null
     ) {
       return null;
@@ -76,6 +81,7 @@ export function parseDeepSleepPayload(
       resourceId: value.resourceId,
       url: value.url,
       title: value.title,
+      initiallyActive: value.initiallyActive,
     };
   } catch {
     return null;

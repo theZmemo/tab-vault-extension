@@ -194,7 +194,9 @@ function isSettings(value: unknown): value is VaultSettings {
     isFiniteNumber(value.recentClosedRetentionDays) &&
     SORT_MODES.has(value.collectionSort as VaultSettings["collectionSort"]) &&
     (value.deepSleepWarningAccepted === undefined ||
-      typeof value.deepSleepWarningAccepted === "boolean")
+      typeof value.deepSleepWarningAccepted === "boolean") &&
+    (value.deepSleepWarningVersion === undefined ||
+      isFiniteNumber(value.deepSleepWarningVersion))
   );
 }
 

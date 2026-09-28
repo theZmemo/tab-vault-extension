@@ -16,7 +16,7 @@ import {
 import { t } from "../shared/i18n";
 import { matchesRule } from "../shared/rules";
 import { normalizeSettings } from "../shared/settings";
-import { isSafeToDeepSleep, isSafeToDiscard } from "../shared/tabs";
+import { isEligibleForDeepSleep, isSafeToDiscard } from "../shared/tabs";
 import type {
   Collection,
   CollectionMembership,
@@ -206,7 +206,7 @@ async function captureTab(
     return null;
   }
 
-  const rawUrl = tab.url ?? tab.pendingUrl ?? "";
+  const rawUrl = tab.pendingUrl ?? tab.url ?? "";
   if (isDeepSleepPageUrl(rawUrl, SUSPENDED_PAGE_URL)) {
     const resource = await captureDeepSleepingTab(
       tab as chrome.tabs.Tab & { id: number },
@@ -619,6 +619,7 @@ async function deepSleepTab(
     resourceId: resource.id,
     url: resource.originalUrl,
     title: resource.customTitle || resource.title,
+    initiallyActive: tab.active,
   });
   await appendEvent({
     type: "TAB_DEEP_SLEEP_PREPARED",
@@ -648,7 +649,7 @@ async function deepSleepEligibleTabs(): Promise<number> {
   let deepSleepingCount = 0;
 
   for (const tab of tabs) {
-    if (!isSafeToDeepSleep(tab)) {
+    if (!isEligibleForDeepSleep(tab)) {
       continue;
     }
     try {

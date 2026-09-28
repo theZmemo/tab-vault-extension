@@ -2,6 +2,18 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.4] - 2026-09-28
+
+### Changed
+
+- Level 4 now deep-sleeps every browser-operable web or local-file tab,
+  including active, pinned, audible, loading, and natively discarded tabs.
+- Active tabs remain on the local placeholder until manually restored or
+  selected again, preventing immediate self-restoration.
+- The Level 4 warning is shown again to existing users and now explicitly
+  describes interruption of active pages, audio, and loading work.
+- User-protected resources and browser-internal pages remain excluded.
+
 ## [0.0.3] - 2026-09-28
 
 ### Fixed
@@ -64,6 +76,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.4]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.4
 [0.0.3]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.3
 [0.0.2]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.2
 [0.0.1]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.1

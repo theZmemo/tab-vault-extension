@@ -73,7 +73,8 @@ export async function ensureDatabaseDefaults(): Promise<VaultSettings> {
         merged.recentClosedRetentionDays ||
       existing.collectionSort !== merged.collectionSort ||
       existing.deepSleepWarningAccepted !==
-        merged.deepSleepWarningAccepted
+        merged.deepSleepWarningAccepted ||
+      existing.deepSleepWarningVersion !== merged.deepSleepWarningVersion
     ) {
       await db.settings.put(merged);
     }

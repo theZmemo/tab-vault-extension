@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSafeToDeepSleep, isSafeToDiscard } from "./tabs";
+import { isEligibleForDeepSleep, isSafeToDiscard } from "./tabs";
 
 function makeTab(
   patch: Partial<chrome.tabs.Tab> = {},
@@ -52,25 +52,25 @@ describe("isSafeToDiscard", () => {
   });
 });
 
-describe("isSafeToDeepSleep", () => {
-  it("accepts both running and natively discarded background tabs", () => {
-    expect(isSafeToDeepSleep(makeTab())).toBe(true);
-    expect(isSafeToDeepSleep(makeTab({ discarded: true }))).toBe(true);
+describe("isEligibleForDeepSleep", () => {
+  it("accepts every operable web-tab state", () => {
+    expect(isEligibleForDeepSleep(makeTab())).toBe(true);
+    expect(isEligibleForDeepSleep(makeTab({ active: true }))).toBe(true);
+    expect(isEligibleForDeepSleep(makeTab({ pinned: true }))).toBe(true);
+    expect(isEligibleForDeepSleep(makeTab({ audible: true }))).toBe(true);
+    expect(isEligibleForDeepSleep(makeTab({ discarded: true }))).toBe(true);
+    expect(
+      isEligibleForDeepSleep(makeTab({ status: "loading" })),
+    ).toBe(true);
+    expect(
+      isEligibleForDeepSleep(makeTab({ autoDiscardable: false })),
+    ).toBe(true);
   });
 
   it.each([
-    ["active", { active: true }],
-    ["pinned", { pinned: true }],
-    ["audible", { audible: true }],
-    ["loading", { status: "loading" as const }],
+    ["missing ID", { id: undefined }],
     ["browser-internal", { url: "chrome://extensions" }],
   ])("rejects a %s tab", (_label, patch) => {
-    expect(isSafeToDeepSleep(makeTab(patch))).toBe(false);
-  });
-
-  it("ignores the browser auto-discard flag for a manual deep sleep", () => {
-    expect(
-      isSafeToDeepSleep(makeTab({ autoDiscardable: false })),
-    ).toBe(true);
+    expect(isEligibleForDeepSleep(makeTab(patch))).toBe(false);
   });
 });

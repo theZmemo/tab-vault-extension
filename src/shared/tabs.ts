@@ -19,15 +19,11 @@ export function isSafeToDiscard(
   );
 }
 
-export function isSafeToDeepSleep(
+export function isEligibleForDeepSleep(
   tab: chrome.tabs.Tab,
 ): tab is chrome.tabs.Tab & { id: number } {
   return Boolean(
     tab.id !== undefined &&
-      !tab.active &&
-      !tab.pinned &&
-      !tab.audible &&
-      tab.status !== "loading" &&
-      normalizeUrl(tab.url ?? "") !== null,
+      normalizeUrl(tab.pendingUrl ?? tab.url ?? "") !== null,
   );
 }

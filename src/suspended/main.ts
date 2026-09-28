@@ -11,6 +11,7 @@ const statusCopy = document.querySelector<HTMLElement>("#status-copy");
 const restoreButton =
   document.querySelector<HTMLButtonElement>("#restore-button");
 let restoreStarted = false;
+let hasBeenHidden = document.visibilityState === "hidden";
 
 document.documentElement.lang = uiLocale;
 document.title = payload
@@ -66,10 +67,14 @@ restoreButton?.addEventListener("click", () => {
   void restorePage();
 });
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
+  if (document.visibilityState === "hidden") {
+    hasBeenHidden = true;
+    return;
+  }
+  if (!payload?.initiallyActive || hasBeenHidden) {
     void restorePage();
   }
 });
-if (document.visibilityState === "visible") {
+if (document.visibilityState === "visible" && !payload?.initiallyActive) {
   window.setTimeout(() => void restorePage(), 0);
 }
