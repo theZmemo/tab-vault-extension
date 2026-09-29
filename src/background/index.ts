@@ -483,6 +483,7 @@ async function createSnapshot(
         groupKey: group ? `${tab.windowId}:${group.id}` : undefined,
         groupTitle: group?.title,
         groupColor: group?.color,
+        groupCollapsed: group?.collapsed,
       });
       return result;
     }, [])
@@ -633,6 +634,7 @@ async function discardEligibleTabs(
 
 async function deepSleepTab(
   tab: chrome.tabs.Tab & { id: number },
+  group?: chrome.tabGroups.TabGroup,
 ): Promise<boolean> {
   const resource = await captureTab(tab, "TAB_CAPTURED", false);
   if (!resource || resource.protected) {
@@ -655,6 +657,10 @@ async function deepSleepTab(
     index: tab.index,
     pinned: tab.pinned,
     groupId: tab.groupId,
+    groupKey: group ? `${tab.windowId}:${group.id}` : undefined,
+    groupTitle: group?.title,
+    groupColor: group?.color,
+    groupCollapsed: group?.collapsed,
     createdAt: Date.now(),
     pendingRemovalAt: undefined,
   };
@@ -695,7 +701,10 @@ async function deepSleepTab(
 }
 
 async function deepSleepEligibleTabs(): Promise<number> {
-  const tabs = await chrome.tabs.query({});
+  const [tabs, groups] = await Promise.all([
+    chrome.tabs.query({}),
+    getTabGroups(),
+  ]);
   let deepSleepingCount = 0;
 
   for (const tab of tabs) {
@@ -703,7 +712,7 @@ async function deepSleepEligibleTabs(): Promise<number> {
       continue;
     }
     try {
-      if (await deepSleepTab(tab)) {
+      if (await deepSleepTab(tab, groups.get(tab.groupId))) {
         deepSleepingCount += 1;
       }
     } catch {
@@ -949,6 +958,10 @@ async function rebuildMissingDeepSleepingTabs(): Promise<void> {
 
   const tabs = await chrome.tabs.query({});
   const deepSleepingTabs = new Map<string, chrome.tabs.Tab[]>();
+  const resolvedTabs: Array<{
+    tab: chrome.tabs.Tab & { id: number };
+    recovery: DeepSleepRecovery;
+  }> = [];
   for (const tab of tabs) {
     const payload = parseDeepSleepPayload(
       tab.url ?? tab.pendingUrl ?? "",
@@ -980,6 +993,10 @@ async function rebuildMissingDeepSleepingTabs(): Promise<void> {
         existing as chrome.tabs.Tab & { id: number },
         existing.url ?? existing.pendingUrl ?? "",
       );
+      resolvedTabs.push({
+        tab: existing as chrome.tabs.Tab & { id: number },
+        recovery,
+      });
       continue;
     }
 
@@ -1020,20 +1037,76 @@ async function rebuildMissingDeepSleepingTabs(): Promise<void> {
       created as chrome.tabs.Tab & { id: number },
       placeholderUrl,
     );
+    resolvedTabs.push({
+      tab: created as chrome.tabs.Tab & { id: number },
+      recovery,
+    });
+  }
+
+  const newGroups = new Map<
+    string,
+    Array<{
+      tab: chrome.tabs.Tab & { id: number };
+      recovery: DeepSleepRecovery;
+    }>
+  >();
+  for (const entry of resolvedTabs) {
+    const { recovery, tab } = entry;
+    if (recovery.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+      try {
+        const existingGroup = await chrome.tabGroups.get(recovery.groupId);
+        if (existingGroup.windowId === tab.windowId) {
+          await chrome.tabs.group({
+            groupId: recovery.groupId,
+            tabIds: [tab.id],
+          });
+          continue;
+        }
+      } catch {
+        // The original group disappears when its final tab is removed.
+      }
+    }
+
+    if (!recovery.groupKey) {
+      continue;
+    }
+    const restoreKey = `${tab.windowId}:${recovery.groupKey}`;
+    const entries = newGroups.get(restoreKey) ?? [];
+    entries.push(entry);
+    newGroups.set(restoreKey, entries);
+  }
+
+  for (const entries of newGroups.values()) {
+    const [sample] = entries;
+    const groupId = await chrome.tabs.group({
+      tabIds: entries.map((entry) => entry.tab.id) as [
+        number,
+        ...number[],
+      ],
+      createProperties: { windowId: sample.tab.windowId },
+    });
+    await chrome.tabGroups.update(groupId, {
+      title: sample.recovery.groupTitle,
+      color: sample.recovery.groupColor,
+      collapsed: sample.recovery.groupCollapsed,
+    });
   }
 }
 
 async function migrateLegacyDeepSleepRecoveries(): Promise<void> {
   const settings = await ensureDatabaseDefaults();
-  if (settings.deepSleepLegacyRecoveryVersion >= 1) {
+  if (settings.deepSleepLegacyRecoveryVersion >= 2) {
     return;
   }
 
-  const [events, instances, resources] = await Promise.all([
-    db.events.orderBy("createdAt").toArray(),
-    db.tabInstances.toArray(),
-    db.resources.toArray(),
-  ]);
+  const [events, instances, resources, snapshots, savedRecoveries] =
+    await Promise.all([
+      db.events.orderBy("createdAt").toArray(),
+      db.tabInstances.toArray(),
+      db.resources.toArray(),
+      db.snapshots.orderBy("createdAt").reverse().toArray(),
+      db.deepSleepRecoveries.toArray(),
+    ]);
   const latestDeepSleepState = new Map<
     number,
     { resourceId: string; sleeping: boolean; createdAt: number }
@@ -1063,6 +1136,9 @@ async function migrateLegacyDeepSleepRecoveries(): Promise<void> {
   const resourceById = new Map(
     resources.map((resource) => [resource.id, resource]),
   );
+  const savedRecoveryById = new Map(
+    savedRecoveries.map((recovery) => [recovery.id, recovery]),
+  );
   const recoveries: DeepSleepRecovery[] = [];
   for (const [browserTabId, state] of latestDeepSleepState) {
     if (!state.sleeping) {
@@ -1073,16 +1149,40 @@ async function migrateLegacyDeepSleepRecoveries(): Promise<void> {
       continue;
     }
     const instance = instanceByTabId.get(browserTabId);
+    const id = `${resource.id}:${browserTabId}`;
+    const savedRecovery = savedRecoveryById.get(id);
+    const snapshotTabs = snapshots
+      .flatMap((snapshot) => snapshot.tabs)
+      .filter((tab) => tab.resourceId === resource.id);
+    const snapshotTab =
+      snapshotTabs.find((tab) => tab.groupKey !== undefined) ??
+      snapshotTabs[0];
+    const snapshotWindowId = Number(snapshotTab?.windowKey);
     recoveries.push({
-      id: `${resource.id}:${browserTabId}`,
-      browserTabId,
+      ...savedRecovery,
+      id,
+      browserTabId: savedRecovery?.browserTabId ?? browserTabId,
       resourceId: resource.id,
       originalUrl: resource.originalUrl,
       title: resource.customTitle || resource.title,
-      windowId: instance?.windowId ?? chrome.windows.WINDOW_ID_NONE,
-      index: instance?.index ?? 0,
-      pinned: instance?.pinned ?? false,
-      groupId: instance?.groupId ?? chrome.tabGroups.TAB_GROUP_ID_NONE,
+      windowId:
+        savedRecovery?.windowId ??
+        instance?.windowId ??
+        (Number.isFinite(snapshotWindowId)
+          ? snapshotWindowId
+          : chrome.windows.WINDOW_ID_NONE),
+      index: savedRecovery?.index ?? instance?.index ?? snapshotTab?.index ?? 0,
+      pinned:
+        savedRecovery?.pinned ?? instance?.pinned ?? snapshotTab?.pinned ?? false,
+      groupId:
+        savedRecovery?.groupId ??
+        instance?.groupId ??
+        chrome.tabGroups.TAB_GROUP_ID_NONE,
+      groupKey: savedRecovery?.groupKey ?? snapshotTab?.groupKey,
+      groupTitle: savedRecovery?.groupTitle ?? snapshotTab?.groupTitle,
+      groupColor: savedRecovery?.groupColor ?? snapshotTab?.groupColor,
+      groupCollapsed:
+        savedRecovery?.groupCollapsed ?? snapshotTab?.groupCollapsed,
       createdAt: state.createdAt,
       pendingRemovalAt: undefined,
     });
@@ -1098,7 +1198,7 @@ async function migrateLegacyDeepSleepRecoveries(): Promise<void> {
       }
       await db.settings.put({
         ...settings,
-        deepSleepLegacyRecoveryVersion: 1,
+        deepSleepLegacyRecoveryVersion: 2,
       });
     },
   );
@@ -1207,6 +1307,7 @@ async function restoreSnapshot(snapshotId: string): Promise<void> {
       await chrome.tabGroups.update(groupId, {
         title: sample?.groupTitle,
         color: sample?.groupColor,
+        collapsed: sample?.groupCollapsed,
       });
     }
 

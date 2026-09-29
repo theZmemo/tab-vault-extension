@@ -2,6 +2,15 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.7] - 2026-09-29
+
+### Fixed
+
+- Automatic deep-sleep recovery now restores Chrome tab groups, including
+  group membership, title, color, and collapsed state.
+- Legacy recovery prefers the newest snapshot that still contains group
+  metadata, avoiding snapshots created after the group had already vanished.
+
 ## [0.0.6] - 2026-09-29
 
 ### Fixed
@@ -104,6 +113,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.7]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.7
 [0.0.6]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.6
 [0.0.5]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.5
 [0.0.4]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.4

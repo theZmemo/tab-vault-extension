@@ -163,7 +163,9 @@ function isSnapshotTab(value: unknown): value is SnapshotTab {
     (value.groupColor === undefined ||
       TAB_GROUP_COLORS.has(
         value.groupColor as NonNullable<SnapshotTab["groupColor"]>,
-      ))
+      )) &&
+    (value.groupCollapsed === undefined ||
+      typeof value.groupCollapsed === "boolean")
   );
 }
 

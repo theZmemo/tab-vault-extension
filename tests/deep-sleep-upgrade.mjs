@@ -73,7 +73,7 @@ try {
         request.onsuccess = () => resolveDatabase(request.result);
       });
       const transaction = database.transaction(
-        ["events", "settings", "deepSleepRecoveries"],
+        ["events", "settings", "snapshots", "deepSleepRecoveries"],
         "readwrite",
       );
       const settingsStore = transaction.objectStore("settings");
@@ -93,6 +93,27 @@ try {
         browserTabId: 987_654_321,
         payload: { originalUrl: targetUrl, title },
         createdAt: Date.now(),
+      });
+      transaction.objectStore("snapshots").put({
+        id: "snapshot_reload_recovery",
+        type: "manual",
+        createdAt: Date.now() - 1_000,
+        checksum: "reload-recovery",
+        tabs: [
+          {
+            resourceId,
+            url: targetUrl,
+            title,
+            windowKey: "123456",
+            index: 2,
+            pinned: false,
+            active: false,
+            groupKey: "123456:77",
+            groupTitle: "Recovery Group",
+            groupColor: "cyan",
+            groupCollapsed: true,
+          },
+        ],
       });
       await new Promise((resolveTransaction, rejectTransaction) => {
         transaction.oncomplete = resolveTransaction;
@@ -157,7 +178,30 @@ try {
   );
   expect(recoveryState).toHaveLength(1);
   expect(recoveryState[0].originalUrl).toBe(originalUrl);
+  expect(recoveryState[0]).toMatchObject({
+    groupKey: "123456:77",
+    groupTitle: "Recovery Group",
+    groupColor: "cyan",
+    groupCollapsed: true,
+  });
   const rebuiltTabId = recoveryState[0].browserTabId;
+  const restoredGroup = await worker.evaluate(async (tabId) => {
+    const tab = await chrome.tabs.get(tabId);
+    if (tab.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE) {
+      return null;
+    }
+    const group = await chrome.tabGroups.get(tab.groupId);
+    return {
+      title: group.title,
+      color: group.color,
+      collapsed: group.collapsed,
+    };
+  }, rebuiltTabId);
+  expect(restoredGroup).toEqual({
+    title: "Recovery Group",
+    color: "cyan",
+    collapsed: true,
+  });
   await worker.evaluate(async (tabId) => chrome.tabs.remove(tabId), rebuiltTabId);
   await expect
     .poll(() =>
@@ -186,6 +230,7 @@ try {
         deepSleepTabRebuilt: true,
         originalUrlPreserved: true,
         independentRecoveryRecord: true,
+        nativeTabGroupRestored: true,
         manualCloseCleanup: true,
       },
       null,

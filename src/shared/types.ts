@@ -48,6 +48,10 @@ export interface DeepSleepRecovery {
   index: number;
   pinned: boolean;
   groupId: number;
+  groupKey?: string;
+  groupTitle?: string;
+  groupColor?: chrome.tabGroups.TabGroup["color"];
+  groupCollapsed?: boolean;
   createdAt: number;
   pendingRemovalAt?: number;
 }
@@ -120,6 +124,7 @@ export interface SnapshotTab {
   groupKey?: string;
   groupTitle?: string;
   groupColor?: chrome.tabGroups.TabGroup["color"];
+  groupCollapsed?: boolean;
 }
 
 export interface Snapshot {
