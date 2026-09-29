@@ -1,0 +1,1368 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#172534" />
+    <meta
+      name="description"
+      content="Tab Vault 是一款本地优先的浏览器标签资产库，用永久分组、搜索、会话快照和四级休眠管理长期工作资料。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tab Vault · 标签资产库" />
+    <meta
+      property="og:description"
+      content="在本地保存、整理、搜索、休眠和恢复浏览器标签。"
+    />
+    <meta property="og:url" content="https://tidr.dev/xxx" />
+    <link rel="canonical" href="https://tidr.dev/xxx" />
+    <title>Tab Vault · 标签资产库</title>
+    <style>
+      :root {
+        color: #17222d;
+        background: #e9eef2;
+        font-family:
+          Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        --page: #e9eef2;
+        --surface: #f8fafb;
+        --surface-strong: #ffffff;
+        --surface-muted: #e2e8ed;
+        --ink: #17222d;
+        --muted: #5d6a76;
+        --line: #cdd6de;
+        --line-strong: #aebac5;
+        --charcoal: #172534;
+        --teal: #26a98f;
+        --teal-soft: #d9f3ec;
+        --coral: #ed6a58;
+        --coral-soft: #fbe3df;
+        --blue: #315b91;
+        --shadow: 0 24px 60px rgb(31 48 64 / 16%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        overflow-x: hidden;
+        background: var(--page);
+        color: var(--ink);
+      }
+
+      a,
+      button {
+        color: inherit;
+        font: inherit;
+        letter-spacing: 0;
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      button {
+        border: 0;
+      }
+
+      a:focus-visible,
+      button:focus-visible {
+        outline: 3px solid rgb(38 169 143 / 38%);
+        outline-offset: 3px;
+      }
+
+      .svg-defs {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+
+      .site-header {
+        position: relative;
+        z-index: 20;
+        height: 64px;
+        border-bottom: 1px solid var(--line);
+        background: rgb(248 250 251 / 92%);
+      }
+
+      .header-inner,
+      .section-inner,
+      .hero-inner {
+        width: min(1180px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .header-inner {
+        display: flex;
+        height: 100%;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 15px;
+        font-weight: 760;
+      }
+
+      .brand-link svg {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+      }
+
+      .brand-link small {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 560;
+      }
+
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 640;
+      }
+
+      .header-nav a:hover {
+        color: var(--ink);
+      }
+
+      .header-nav .header-action {
+        min-height: 34px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: var(--surface-strong);
+        padding: 8px 13px;
+        color: var(--ink);
+      }
+
+      .hero {
+        position: relative;
+        height: clamp(500px, 82svh, 760px);
+        min-height: 0;
+        overflow: hidden;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .hero-inner {
+        position: relative;
+        height: 100%;
+      }
+
+      .hero-copy {
+        position: relative;
+        z-index: 5;
+        display: flex;
+        width: min(510px, 48%);
+        height: 100%;
+        flex-direction: column;
+        justify-content: center;
+        padding-bottom: 28px;
+      }
+
+      .hero-brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .hero-brand svg {
+        width: 72px;
+        height: 72px;
+        flex: 0 0 auto;
+        filter: drop-shadow(0 10px 18px rgb(23 37 52 / 16%));
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(48px, 6vw, 76px);
+        font-weight: 790;
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .hero-kicker {
+        margin: 24px 0 0;
+        color: var(--teal);
+        font-size: 14px;
+        font-weight: 780;
+      }
+
+      .hero-summary {
+        max-width: 500px;
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+
+      .primary-action,
+      .secondary-action {
+        display: inline-flex;
+        min-height: 42px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        padding: 10px 17px;
+        font-size: 14px;
+        font-weight: 720;
+      }
+
+      .primary-action {
+        background: var(--charcoal);
+        color: #ffffff;
+      }
+
+      .primary-action:hover {
+        background: #26394c;
+      }
+
+      .secondary-action {
+        border: 1px solid var(--line-strong);
+        background: var(--surface-strong);
+      }
+
+      .secondary-action:hover {
+        border-color: var(--teal);
+      }
+
+      .trust-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 620;
+      }
+
+      .trust-line span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .trust-line span::before {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--teal);
+        content: "";
+      }
+
+      .product-stage {
+        position: absolute;
+        top: 50%;
+        right: -72px;
+        width: min(720px, 60vw);
+        transform: translateY(-48%);
+      }
+
+      .mode-switch {
+        display: inline-flex;
+        height: 34px;
+        align-items: center;
+        margin: 0 0 10px 54px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--surface-muted);
+        padding: 3px;
+      }
+
+      .mode-switch button {
+        min-width: 72px;
+        height: 26px;
+        cursor: pointer;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .mode-switch button[aria-selected="true"] {
+        background: var(--surface-strong);
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgb(31 48 64 / 14%);
+      }
+
+      .product-window {
+        position: relative;
+        aspect-ratio: 16 / 10.2;
+        overflow: hidden;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: var(--surface-strong);
+        box-shadow: var(--shadow);
+      }
+
+      .window-bar {
+        display: flex;
+        height: 38px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding: 0 13px;
+        background: var(--surface);
+      }
+
+      .window-controls {
+        display: flex;
+        gap: 6px;
+      }
+
+      .window-controls i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--line-strong);
+      }
+
+      .window-controls i:first-child {
+        background: var(--coral);
+      }
+
+      .window-controls i:nth-child(2) {
+        background: #e5ad4b;
+      }
+
+      .window-controls i:last-child {
+        background: var(--teal);
+      }
+
+      .window-title {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 650;
+      }
+
+      .app-preview {
+        display: grid;
+        height: calc(100% - 38px);
+        grid-template-columns: 44px 154px minmax(0, 1fr);
+      }
+
+      .preview-rail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        border-right: 1px solid var(--line);
+        background: var(--surface);
+        padding: 12px 0;
+      }
+
+      .preview-rail i {
+        position: relative;
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 6px;
+        color: var(--muted);
+        font-size: 10px;
+        font-style: normal;
+        font-weight: 760;
+      }
+
+      .preview-rail i.is-active {
+        background: var(--teal-soft);
+        color: #126f5d;
+      }
+
+      .preview-rail i.is-active::after {
+        position: absolute;
+        top: 5px;
+        right: -9px;
+        width: 3px;
+        height: 18px;
+        border-radius: 2px;
+        background: var(--teal);
+        content: "";
+      }
+
+      .preview-nav {
+        border-right: 1px solid var(--line);
+        background: #eef2f5;
+        padding: 14px 10px;
+      }
+
+      .preview-nav strong {
+        display: block;
+        margin-bottom: 13px;
+        font-size: 11px;
+      }
+
+      .preview-nav span {
+        display: block;
+        height: 29px;
+        margin-bottom: 4px;
+        border-radius: 5px;
+        padding: 7px 8px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 620;
+      }
+
+      .preview-nav span.is-active {
+        background: var(--surface-strong);
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgb(31 48 64 / 9%);
+      }
+
+      .preview-content {
+        min-width: 0;
+        background: var(--surface);
+        padding: 14px;
+      }
+
+      .preview-heading {
+        display: flex;
+        height: 30px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .preview-heading strong {
+        font-size: 12px;
+      }
+
+      .preview-heading span {
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--surface-strong);
+        padding: 5px 8px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .preview-search {
+        display: flex;
+        height: 32px;
+        align-items: center;
+        margin-bottom: 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface-strong);
+        padding: 0 10px;
+        color: #7a8792;
+        font-size: 9px;
+      }
+
+      .group-bar {
+        display: grid;
+        height: 32px;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        margin-top: 8px;
+        border-radius: 5px 5px 0 0;
+        padding: 0 10px;
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 760;
+      }
+
+      .group-bar.is-coral {
+        background: #d76722;
+      }
+
+      .group-bar.is-blue {
+        background: #35567f;
+      }
+
+      .resource-row {
+        display: grid;
+        height: 31px;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-strong);
+        padding: 0 10px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .resource-row i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+
+      .sleep-stack {
+        display: grid;
+        gap: 8px;
+        padding-top: 3px;
+      }
+
+      .sleep-level {
+        display: grid;
+        min-height: 52px;
+        grid-template-columns: 32px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        padding: 4px 2px 8px;
+      }
+
+      .sleep-level:last-child {
+        border-bottom: 0;
+      }
+
+      .level-number {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface-strong);
+        color: var(--blue);
+        font-size: 10px;
+        font-weight: 780;
+      }
+
+      .sleep-level:last-child .level-number {
+        border-color: #8ed8c9;
+        background: var(--teal-soft);
+        color: #126f5d;
+      }
+
+      .sleep-copy strong,
+      .sleep-copy span {
+        display: block;
+      }
+
+      .sleep-copy strong {
+        font-size: 10px;
+      }
+
+      .sleep-copy span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 8px;
+      }
+
+      .sleep-level b {
+        color: var(--line-strong);
+        font-size: 14px;
+      }
+
+      .product-note {
+        margin: 12px 0 0 54px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .signal-band {
+        border-bottom: 1px solid var(--line);
+        background: var(--charcoal);
+        color: #ffffff;
+      }
+
+      .signal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .signal-item {
+        min-height: 124px;
+        border-right: 1px solid rgb(255 255 255 / 14%);
+        padding: 28px 32px;
+      }
+
+      .signal-item:last-child {
+        border-right: 0;
+      }
+
+      .signal-item strong {
+        display: block;
+        font-size: 26px;
+      }
+
+      .signal-item span {
+        display: block;
+        margin-top: 6px;
+        color: #bdc8d1;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .content-section {
+        padding: 96px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .section-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+        gap: 70px;
+        align-items: end;
+      }
+
+      .section-label {
+        color: var(--teal);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      h2 {
+        max-width: 520px;
+        margin: 10px 0 0;
+        font-size: clamp(32px, 4vw, 48px);
+        line-height: 1.12;
+        letter-spacing: 0;
+      }
+
+      .section-heading p {
+        max-width: 620px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.8;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 64px;
+        border-top: 1px solid var(--line-strong);
+      }
+
+      .feature-item {
+        min-height: 210px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        padding: 28px 26px 30px 0;
+      }
+
+      .feature-item:nth-child(3n + 2),
+      .feature-item:nth-child(3n + 3) {
+        padding-left: 26px;
+      }
+
+      .feature-item:nth-child(3n) {
+        border-right: 0;
+      }
+
+      .feature-index {
+        color: var(--coral);
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .feature-item h3 {
+        margin: 24px 0 10px;
+        font-size: 18px;
+      }
+
+      .feature-item p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.75;
+      }
+
+      .privacy-section {
+        background: var(--surface-strong);
+      }
+
+      .privacy-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr);
+        gap: 90px;
+        align-items: center;
+      }
+
+      .privacy-copy p {
+        max-width: 640px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.85;
+      }
+
+      .privacy-list {
+        border-top: 1px solid var(--line-strong);
+      }
+
+      .privacy-list div {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 20px;
+        min-height: 58px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+        font-weight: 680;
+      }
+
+      .privacy-list span {
+        color: var(--teal);
+        font-size: 12px;
+      }
+
+      .final-cta {
+        padding: 74px 0;
+        background: var(--coral-soft);
+      }
+
+      .final-cta .section-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 40px;
+      }
+
+      .final-cta h2 {
+        margin: 0;
+        color: #4c2923;
+      }
+
+      .final-cta p {
+        margin: 10px 0 0;
+        color: #75534d;
+      }
+
+      .site-footer {
+        background: var(--charcoal);
+        color: #ffffff;
+      }
+
+      .footer-inner {
+        display: flex;
+        min-height: 94px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 30px;
+      }
+
+      .footer-inner span {
+        color: #aebac4;
+        font-size: 12px;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 20px;
+        font-size: 12px;
+        font-weight: 680;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #10161c;
+          --surface: #151d25;
+          --surface-strong: #1b252f;
+          --surface-muted: #26313b;
+          --ink: #f2f5f7;
+          --muted: #a8b3bd;
+          --line: #34404b;
+          --line-strong: #4b5966;
+          --charcoal: #0c1218;
+          --teal: #4fd2b7;
+          --teal-soft: #163b35;
+          --coral: #ff7c68;
+          --coral-soft: #39231f;
+          --blue: #80a9df;
+          --shadow: 0 24px 60px rgb(0 0 0 / 36%);
+        }
+
+        .site-header {
+          background: rgb(21 29 37 / 94%);
+        }
+
+        .preview-nav {
+          background: #131b22;
+        }
+
+        .primary-action {
+          background: #f2f5f7;
+          color: #17222d;
+        }
+
+        .primary-action:hover {
+          background: #dfe6eb;
+        }
+
+        .final-cta h2 {
+          color: #ffd6cf;
+        }
+
+        .final-cta p {
+          color: #d7aaa2;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .header-inner,
+        .section-inner,
+        .hero-inner {
+          width: min(100% - 32px, 680px);
+        }
+
+        .header-nav a:not(.header-action) {
+          display: none;
+        }
+
+        .hero {
+          height: 82svh;
+          min-height: 520px;
+        }
+
+        .hero-copy {
+          width: 100%;
+          justify-content: flex-start;
+          padding-top: 42px;
+        }
+
+        .hero-brand svg {
+          width: 58px;
+          height: 58px;
+        }
+
+        h1 {
+          font-size: clamp(44px, 12vw, 64px);
+        }
+
+        .hero-summary {
+          max-width: 520px;
+          padding-right: 64px;
+          font-size: 16px;
+        }
+
+        .product-stage {
+          top: auto;
+          right: -34px;
+          bottom: -86px;
+          width: min(700px, 86vw);
+          transform: none;
+          opacity: 0.92;
+        }
+
+        .mode-switch,
+        .product-note {
+          display: none;
+        }
+
+        .signal-grid,
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .signal-item {
+          min-height: auto;
+          border-right: 0;
+          border-bottom: 1px solid rgb(255 255 255 / 14%);
+          padding: 22px 0;
+        }
+
+        .signal-item:last-child {
+          border-bottom: 0;
+        }
+
+        .section-heading,
+        .privacy-layout {
+          grid-template-columns: 1fr;
+          gap: 30px;
+        }
+
+        .feature-grid {
+          margin-top: 42px;
+        }
+
+        .feature-item,
+        .feature-item:nth-child(3n + 2),
+        .feature-item:nth-child(3n + 3) {
+          min-height: auto;
+          border-right: 0;
+          padding: 24px 0;
+        }
+
+        .final-cta .section-inner,
+        .footer-inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .site-header {
+          height: 56px;
+        }
+
+        .brand-link small {
+          display: none;
+        }
+
+        .header-nav {
+          gap: 10px;
+        }
+
+        .hero {
+          height: 82svh;
+          min-height: 480px;
+        }
+
+        .hero-copy {
+          padding-top: 26px;
+        }
+
+        .hero-brand {
+          gap: 12px;
+        }
+
+        .hero-brand svg {
+          width: 48px;
+          height: 48px;
+        }
+
+        h1 {
+          font-size: clamp(40px, 13vw, 54px);
+        }
+
+        .hero-kicker {
+          margin-top: 16px;
+        }
+
+        .hero-summary {
+          max-width: 370px;
+          padding-right: 0;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        .hero-actions {
+          margin-top: 16px;
+        }
+
+        .primary-action,
+        .secondary-action {
+          min-height: 38px;
+          padding: 8px 13px;
+          font-size: 12px;
+        }
+
+        .trust-line {
+          margin-top: 12px;
+          font-size: 10px;
+        }
+
+        .product-stage {
+          right: -108px;
+          bottom: -58px;
+          width: 560px;
+          opacity: 0.72;
+        }
+
+        .content-section {
+          padding: 72px 0;
+        }
+
+        .section-heading p {
+          font-size: 15px;
+        }
+
+        .privacy-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .final-cta {
+          padding: 58px 0;
+        }
+
+        .footer-links {
+          flex-wrap: wrap;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg class="svg-defs" aria-hidden="true">
+      <symbol id="tab-vault-mark" viewBox="0 0 128 128">
+        <rect x="4" y="4" width="120" height="120" rx="27" fill="#172534" />
+        <path
+          d="M28 25h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H28c-7.7 0-14-6.3-14-14V39c0-7.7 6.3-14 14-14Z"
+          fill="#ff735f"
+        />
+        <path
+          d="M33 32h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H33c-7.7 0-14-6.3-14-14V46c0-7.7 6.3-14 14-14Z"
+          fill="#37c8aa"
+        />
+        <path
+          d="M37 40h22.5c3 0 4.6 1.5 6.4 4l4.3 6H94c7.7 0 14 6.3 14 14v34c0 7.7-6.3 14-14 14H37c-7.7 0-14-6.3-14-14V54c0-7.7 6.3-14 14-14Z"
+          fill="#f8fafc"
+        />
+        <circle cx="67" cy="81" r="22" fill="#172534" />
+        <circle
+          cx="67"
+          cy="81"
+          r="12"
+          fill="none"
+          stroke="#f8fafc"
+          stroke-width="5"
+        />
+        <path
+          d="M67 65v10M53.1 89l8.7-5M80.9 89l-8.7-5"
+          fill="none"
+          stroke="#f8fafc"
+          stroke-width="4.5"
+          stroke-linecap="round"
+        />
+        <circle cx="67" cy="81" r="4.5" fill="#37c8aa" />
+      </symbol>
+    </svg>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand-link" href="#top" aria-label="Tab Vault 首页">
+          <svg aria-hidden="true"><use href="#tab-vault-mark"></use></svg>
+          <span>Tab Vault <small>标签资产库</small></span>
+        </a>
+        <nav class="header-nav" aria-label="主导航">
+          <a href="#features">能力</a>
+          <a href="#privacy">隐私</a>
+          <a href="https://github.com/theZmemo/tab-vault-extension">GitHub</a>
+          <a
+            class="header-action"
+            href="https://github.com/theZmemo/tab-vault-extension/releases/latest"
+          >
+            下载扩展
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-inner">
+          <div class="hero-copy">
+            <div class="hero-brand">
+              <svg aria-hidden="true"><use href="#tab-vault-mark"></use></svg>
+              <h1 id="hero-title">Tab Vault</h1>
+            </div>
+            <p class="hero-kicker">本地优先的标签资产库</p>
+            <p class="hero-summary">
+              把散落的浏览器标签变成可搜索、可分组、可恢复的长期资料，同时按需释放页面内存。
+            </p>
+            <div class="hero-actions">
+              <a
+                class="primary-action"
+                href="https://github.com/theZmemo/tab-vault-extension/releases/latest"
+              >
+                获取最新版
+              </a>
+              <a
+                class="secondary-action"
+                href="https://github.com/theZmemo/tab-vault-extension"
+              >
+                查看源代码
+              </a>
+            </div>
+            <div class="trust-line" aria-label="产品属性">
+              <span>数据仅存本机</span>
+              <span>无需账号</span>
+              <span>无遥测</span>
+            </div>
+          </div>
+
+          <div class="product-stage" aria-label="Tab Vault 产品界面预览">
+            <div class="mode-switch" role="tablist" aria-label="界面预览">
+              <button
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="organize-preview"
+                data-preview="organize"
+              >
+                整理
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="sleep-preview"
+                data-preview="sleep"
+              >
+                休眠
+              </button>
+            </div>
+            <div class="product-window">
+              <div class="window-bar">
+                <div class="window-controls" aria-hidden="true">
+                  <i></i><i></i><i></i>
+                </div>
+                <span class="window-title">Tab Vault · Side Panel</span>
+                <span class="window-title">本地</span>
+              </div>
+              <div class="app-preview">
+                <div class="preview-rail" aria-hidden="true">
+                  <i class="is-active">组</i>
+                  <i>全</i>
+                  <i>眠</i>
+                  <i>档</i>
+                  <i>规</i>
+                </div>
+                <div class="preview-nav" aria-hidden="true">
+                  <strong>标签资产库</strong>
+                  <span class="is-active">永久分组</span>
+                  <span>全部资源</span>
+                  <span>已休眠</span>
+                  <span>已归档</span>
+                  <span>未分类</span>
+                </div>
+                <div class="preview-content" id="organize-preview" role="tabpanel">
+                  <div class="preview-heading">
+                    <strong>永久分组</strong>
+                    <span>手动排序</span>
+                  </div>
+                  <div class="preview-search">搜索标题、URL、域名或备注</div>
+                  <div class="group-bar is-coral">
+                    <span>治理资料</span><span>3</span>
+                  </div>
+                  <div class="resource-row">
+                    <span>数据治理工作台</span><i></i>
+                  </div>
+                  <div class="resource-row">
+                    <span>治理任务校验 SQL</span><i></i>
+                  </div>
+                  <div class="resource-row">
+                    <span>周会结论汇总</span><i></i>
+                  </div>
+                  <div class="group-bar is-blue">
+                    <span>待处理</span><span>2</span>
+                  </div>
+                  <div class="resource-row">
+                    <span>分析结果复核</span><i></i>
+                  </div>
+                  <div class="resource-row">
+                    <span>产品需求记录</span><i></i>
+                  </div>
+                </div>
+                <div
+                  class="preview-content"
+                  id="sleep-preview"
+                  role="tabpanel"
+                  hidden
+                >
+                  <div class="preview-heading">
+                    <strong>批量休眠标签</strong>
+                    <span>4 个级别</span>
+                  </div>
+                  <div class="sleep-stack">
+                    <div class="sleep-level">
+                      <span class="level-number">1</span>
+                      <div class="sleep-copy">
+                        <strong>休眠当前窗口</strong>
+                        <span>保留全部安全条件</span>
+                      </div>
+                      <b>›</b>
+                    </div>
+                    <div class="sleep-level">
+                      <span class="level-number">2</span>
+                      <div class="sleep-copy">
+                        <strong>休眠所有窗口</strong>
+                        <span>扩大到全部窗口</span>
+                      </div>
+                      <b>›</b>
+                    </div>
+                    <div class="sleep-level">
+                      <span class="level-number">3</span>
+                      <div class="sleep-copy">
+                        <strong>强力休眠</strong>
+                        <span>处理更多后台页面</span>
+                      </div>
+                      <b>›</b>
+                    </div>
+                    <div class="sleep-level">
+                      <span class="level-number">4</span>
+                      <div class="sleep-copy">
+                        <strong>深度休眠</strong>
+                        <span>本地占位页与双重 URL 恢复</span>
+                      </div>
+                      <b>›</b>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="product-note">Chrome / Edge · 自动跟随系统深浅色</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="signal-band" aria-label="产品概要">
+        <div class="section-inner signal-grid">
+          <div class="signal-item">
+            <strong>100% 本地</strong>
+            <span>标签、分组和快照保存在浏览器 IndexedDB。</span>
+          </div>
+          <div class="signal-item">
+            <strong>4 级休眠</strong>
+            <span>从原生卸载到本地占位，按需逐级释放内存。</span>
+          </div>
+          <div class="signal-item">
+            <strong>10 种语言</strong>
+            <span>自动适配主流语言以及系统深色、浅色模式。</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section" id="features">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <span class="section-label">CORE CAPABILITIES</span>
+              <h2>标签可以关闭，工作现场不用消失</h2>
+            </div>
+            <p>
+              Tab Vault 把浏览器中的临时标签与长期保存的页面资产分开管理。你可以释放内存、关闭窗口或整理会话，同时保留原 URL、标题、分组和恢复结构。
+            </p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-item">
+              <span class="feature-index">01 · ORGANIZE</span>
+              <h3>永久分组</h3>
+              <p>使用 20 种颜色、手动排序和确定性规则整理长期资料，页面关闭后成员关系仍然保留。</p>
+            </article>
+            <article class="feature-item">
+              <span class="feature-index">02 · RETRIEVE</span>
+              <h3>快速搜索</h3>
+              <p>搜索自定义名称、网页标题、URL、域名和备注；手动命名结果拥有最高权重。</p>
+            </article>
+            <article class="feature-item">
+              <span class="feature-index">03 · REDUCE</span>
+              <h3>渐进式休眠</h3>
+              <p>四级模式覆盖不同影响范围，深度休眠会在替换页面前双重保存原始 URL。</p>
+            </article>
+            <article class="feature-item">
+              <span class="feature-index">04 · RECOVER</span>
+              <h3>会话快照</h3>
+              <p>按窗口、顺序、固定状态和 Chrome 原生标签组重建工作现场。</p>
+            </article>
+            <article class="feature-item">
+              <span class="feature-index">05 · DEDUPE</span>
+              <h3>精确去重</h3>
+              <p>移除常见跟踪参数造成的重复记录，同时保留真正不同的查询条件与页面状态。</p>
+            </article>
+            <article class="feature-item">
+              <span class="feature-index">06 · PORTABLE</span>
+              <h3>完整备份</h3>
+              <p>导出结构化 JSON，在本地校验后合并导入，不依赖账号或第三方同步服务。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section privacy-section" id="privacy">
+        <div class="section-inner privacy-layout">
+          <div class="privacy-copy">
+            <span class="section-label">PRIVACY BY DEFAULT</span>
+            <h2>你的浏览记录，不需要离开浏览器</h2>
+            <p>
+              扩展不采集网页正文、Cookie、密码或表单内容，不包含广告、分析 SDK、跟踪 SDK
+              和远程代码。备份由你主动导出并自行保管。
+            </p>
+          </div>
+          <div class="privacy-list" aria-label="隐私边界">
+            <div><strong>标签元数据</strong><span>仅本地</span></div>
+            <div><strong>账号系统</strong><span>无</span></div>
+            <div><strong>遥测与广告</strong><span>无</span></div>
+            <div><strong>主机权限</strong><span>无</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="final-cta">
+        <div class="section-inner">
+          <div>
+            <h2>把标签变成真正可管理的资产</h2>
+            <p>支持 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器。</p>
+          </div>
+          <a
+            class="primary-action"
+            href="https://github.com/theZmemo/tab-vault-extension/releases/latest"
+          >
+            下载 Tab Vault
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="section-inner footer-inner">
+        <span>© <span id="year">2026</span> Tab Vault</span>
+        <div class="footer-links">
+          <a href="https://github.com/theZmemo/tab-vault-extension">GitHub</a>
+          <a
+            href="https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md"
+          >
+            隐私政策
+          </a>
+          <a href="#top">返回顶部</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const previewButtons = document.querySelectorAll("[data-preview]");
+      const previewPanels = {
+        organize: document.querySelector("#organize-preview"),
+        sleep: document.querySelector("#sleep-preview"),
+      };
+
+      previewButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const selected = button.dataset.preview;
+          previewButtons.forEach((item) => {
+            item.setAttribute(
+              "aria-selected",
+              String(item.dataset.preview === selected),
+            );
+          });
+          Object.entries(previewPanels).forEach(([name, panel]) => {
+            panel.hidden = name !== selected;
+          });
+        });
+      });
+
+      document.querySelector("#year").textContent = String(
+        new Date().getFullYear(),
+      );
+    </script>
+  </body>
+</html>

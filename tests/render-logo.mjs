@@ -43,22 +43,36 @@ try {
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Tab Vault"
     >
-      <rect x="4" y="4" width="120" height="120" rx="27" fill="#1d5fc4" />
+      <rect x="4" y="4" width="120" height="120" rx="27" fill="#172534" />
       <path
-        d="M27 29c0-4.4 3.6-8 8-8h24l8 8h26c4.4 0 8 3.6 8 8v13H27V29Z"
-        fill="#ffffff"
+        d="M28 25h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H28c-7.7 0-14-6.3-14-14V39c0-7.7 6.3-14 14-14Z"
+        fill="#ff735f"
       />
-      <rect x="27" y="54" width="74" height="13" rx="5" fill="#d9e8ff" />
-      <rect x="27" y="71" width="74" height="11" rx="5" fill="#a8c8f6" />
       <path
-        d="M29 76 64 104 99 76"
+        d="M33 32h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H33c-7.7 0-14-6.3-14-14V46c0-7.7 6.3-14 14-14Z"
+        fill="#37c8aa"
+      />
+      <path
+        d="M37 40h22.5c3 0 4.6 1.5 6.4 4l4.3 6H94c7.7 0 14 6.3 14 14v34c0 7.7-6.3 14-14 14H37c-7.7 0-14-6.3-14-14V54c0-7.7 6.3-14 14-14Z"
+        fill="#f8fafc"
+      />
+      <circle cx="67" cy="81" r="22" fill="#172534" />
+      <circle
+        cx="67"
+        cy="81"
+        r="12"
         fill="none"
-        stroke="#58d5be"
-        stroke-width="10"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        stroke="#f8fafc"
+        stroke-width="5"
       />
-      <circle cx="64" cy="86" r="5" fill="#ffffff" />
+      <path
+        d="M67 65v10M53.1 89l8.7-5M80.9 89l-8.7-5"
+        fill="none"
+        stroke="#f8fafc"
+        stroke-width="4.5"
+        stroke-linecap="round"
+      />
+      <circle cx="67" cy="81" r="4.5" fill="#37c8aa" />
     </svg>
   `);
   await page.locator("#logo").screenshot({

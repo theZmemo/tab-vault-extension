@@ -1,6 +1,8 @@
 # 标签资产库
 
-面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.8。
+面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.9。
+
+产品简介页：[https://tidr.dev/xxx](https://tidr.dev/xxx)。部署源文件为 [`site/xxx/index.html`](./site/xxx/index.html)。
 
 ## 已实现
 
@@ -15,7 +17,7 @@
 - 页面自定义显示名称，网页刷新后仍然保留。
 - 自动跟随浏览器 UI 语言，支持简体中文、繁体中文、英语、日语、韩语、西班牙语、法语、德语、葡萄牙语和俄语。
 - 根据系统外观自动切换浅色或深色界面。
-- 正式扩展 Logo 与 16/32/48/128px 浏览器图标。
+- “标签堆叠 + 保险库转盘”品牌 Logo 与 16/32/48/128px 浏览器图标。
 - 当前打开、已休眠、已归档、重复页面和未分类视图。
 - 大资源库采用每批 80 条的渐进渲染，滚动时继续加载。
 - 手动休眠、归档、恢复及批量操作。
@@ -115,7 +117,7 @@ Edge 使用 `edge://extensions`，其余步骤相同。
 
 休眠只卸载页面进程并保留标签；归档会关闭真实标签，两者不会合并为同一级操作。
 
-深度休眠恢复记录独立保存在 IndexedDB 中。更新或重新加载扩展导致本地占位页被 Chrome 关闭时，扩展会在下次启动时自动重建页面及 Chrome 原生标签组；v0.0.8 还会从旧版事件日志和最近有效快照恢复组名、颜色、折叠状态与组内关系，并保证并发刷新不会重复创建同一恢复页面。
+深度休眠恢复记录独立保存在 IndexedDB 中。更新或重新加载扩展导致本地占位页被 Chrome 关闭时，扩展会在下次启动时自动重建页面及 Chrome 原生标签组；当前版本还会从旧版事件日志和最近有效快照恢复组名、颜色、折叠状态与组内关系，并保证并发刷新不会重复创建同一恢复页面。
 
 ## 开发命令
 
@@ -126,6 +128,7 @@ npm test
 npm run test:extension
 npm run test:recovery
 npm run test:locale
+npm run test:landing
 npm run test:performance
 npm run verify:store
 npm run render:store
@@ -134,6 +137,8 @@ npm run generate:locales
 ```
 
 `npm run test:extension` 会启动临时 Chromium 配置，验证自动捕获、去重、永久分组、规则、四级休眠、占位页自动恢复、归档恢复和会话快照，不会使用日常浏览器配置。
+
+`npm run test:landing` 会在桌面浅色和手机深色视口检查简介页交互、链接、首屏构图、文字和横向溢出，并生成验收截图。
 
 `npm run test:performance` 会构造 2,000 条本地资源，验证“全部资源”首屏只渲染 80 条、点击响应不超过 200ms，并确认滚动后继续加载。
 

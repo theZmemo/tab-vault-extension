@@ -88,6 +88,10 @@ assert(
   "Chrome 121+ is required because automatic sleep uses tabs.lastAccessed",
 );
 assert(
+  manifest.homepage_url === "https://tidr.dev/xxx",
+  "Manifest homepage must point to the current product introduction page",
+);
+assert(
   manifest.incognito === "not_allowed",
   "Incognito access must remain disabled",
 );

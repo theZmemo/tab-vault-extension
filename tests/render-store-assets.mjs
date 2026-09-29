@@ -161,7 +161,7 @@ try {
       title: "标签资产，一搜即达",
       detail: "关闭标签也不丢记录，用永久分组整理长期工作资料。",
       points: ["中文与 URL 搜索", "20 色永久分组", "规范化去重与会话快照"],
-      accent: "#2463c7",
+      accent: "#168b76",
     }),
   );
   await page.screenshot({
@@ -174,8 +174,8 @@ try {
       eyebrow: "PROGRESSIVE TAB SLEEP",
       title: "按需释放标签内存",
       detail: "四级模式从原生卸载到本地占位页，按需逐级增强内存释放。",
-      points: ["活动和固定标签始终跳过", "原 URL 双重保存", "选中深睡标签自动恢复"],
-      accent: "#9a6819",
+      points: ["覆盖所有可操作网页", "原 URL 双重保存", "选中深睡标签自动恢复"],
+      accent: "#d85f4d",
     }),
   );
   await page.screenshot({
@@ -195,7 +195,7 @@ try {
             height: 280px;
             margin: 0;
             overflow: hidden;
-            background: #2463c7;
+            background: #172534;
             color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
               "Microsoft YaHei", sans-serif;
@@ -203,6 +203,7 @@ try {
           body {
             display: grid;
             place-items: center;
+            border-bottom: 8px solid #ff735f;
             text-align: center;
           }
           img {
@@ -218,7 +219,7 @@ try {
           span {
             display: block;
             margin-top: 8px;
-            color: #dce9ff;
+            color: #b8c4ce;
             font-size: 15px;
           }
         </style>

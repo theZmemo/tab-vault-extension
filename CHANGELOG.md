@@ -2,6 +2,23 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.9] - 2026-09-29
+
+### Added
+
+- Self-contained responsive product introduction page for the provisional
+  `https://tidr.dev/xxx` address, with light/dark themes and a live interface
+  preview.
+- Automated desktop and mobile landing-page checks for overflow, first-viewport
+  composition, links, and preview interaction.
+
+### Changed
+
+- Redesigned the extension mark as stacked browser tabs with a vault dial,
+  improving product identity while retaining 16px legibility.
+- Updated the extension homepage and Chrome Web Store artwork to use the new
+  brand and current Level 4 deep-sleep behavior.
+
 ## [0.0.8] - 2026-09-29
 
 ### Fixed
@@ -123,6 +140,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.9]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.9
 [0.0.8]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.8
 [0.0.7]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.7
 [0.0.6]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.6
