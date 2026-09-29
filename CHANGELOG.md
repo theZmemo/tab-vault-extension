@@ -2,6 +2,15 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.11] - 2026-09-29
+
+### Changed
+
+- Adopted the selected TV monogram: a white `T` and teal `V` sharing one
+  centerline on a dark rounded-square field.
+- Synchronized the approved mark across extension icons, the side panel,
+  product page, product screenshot, and Chrome Web Store artwork.
+
 ## [0.0.10] - 2026-09-29
 
 ### Changed
@@ -151,6 +160,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.11]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.11
 [0.0.10]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.10
 [0.0.9]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.9
 [0.0.8]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.8

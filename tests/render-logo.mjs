@@ -44,17 +44,22 @@ try {
       aria-label="Tab Vault"
     >
       <rect x="4" y="4" width="120" height="120" rx="27" fill="#151e27" />
-      <rect x="20" y="23" width="88" height="86" rx="14" fill="#f7f9fa" />
       <path
-        d="M20 52h88"
+        d="M31 39h66M64 39v28"
         fill="none"
-        stroke="#151e27"
-        stroke-width="7"
+        stroke="#f7f9fa"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
       />
-      <rect x="31" y="34" width="28" height="8" rx="4" fill="#43c6aa" />
-      <circle cx="64" cy="78" r="15" fill="#151e27" />
-      <circle cx="64" cy="75" r="5.5" fill="#43c6aa" />
-      <path d="M60 80h8l4 16H56l4-16Z" fill="#43c6aa" />
+      <path
+        d="M38 65 64 94 90 65"
+        fill="none"
+        stroke="#43c6aa"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
     </svg>
   `);
   await page.locator("#logo").screenshot({
