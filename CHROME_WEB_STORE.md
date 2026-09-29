@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.4
+版本：0.0.5
 
 ## 单一用途
 
@@ -35,7 +35,7 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 安全归档，在本地写入成功后才关闭真实标签。
 - 自动及手动会话快照，并按窗口、顺序和标签组恢复。
 - JSON 备份导出、校验和合并导入。
-- 自动适配浏览器语言和系统深浅色模式。
+- 自动适配简中、繁中、英、日、韩、西、法、德、葡、俄语及系统深浅色模式。
 
 隐私说明：
 
@@ -64,7 +64,8 @@ Key features:
 - Safe archiving that persists data before closing live tabs.
 - Automatic and manual session snapshots with window and tab-group restoration.
 - Validated JSON backup export, import, and merge.
-- Browser-language localization and automatic light or dark appearance.
+- Browser-language localization for ten languages and automatic light or dark
+  appearance.
 
 Privacy:
 
@@ -128,6 +129,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.4 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.5 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

@@ -17,6 +17,18 @@ const expectedIcons = new Map([
   ["48", 48],
   ["128", 128],
 ]);
+const expectedLocales = [
+  "de",
+  "en",
+  "es",
+  "fr",
+  "ja",
+  "ko",
+  "pt_BR",
+  "ru",
+  "zh_CN",
+  "zh_TW",
+];
 const expectedStoreAssets = new Map([
   ["store-assets/screenshot-groups-1280x800.png", [1280, 800]],
   ["store-assets/screenshot-sleep-1280x800.png", [1280, 800]],
@@ -56,11 +68,14 @@ async function readPngDimensions(path) {
   };
 }
 
-const [manifest, packageJson, enMessages, zhMessages] = await Promise.all([
+const [manifest, packageJson, localeMessages] = await Promise.all([
   readJson(join(distRoot, "manifest.json")),
   readJson(join(projectRoot, "package.json")),
-  readJson(join(distRoot, "_locales/en/messages.json")),
-  readJson(join(distRoot, "_locales/zh_CN/messages.json")),
+  Promise.all(
+    expectedLocales.map((locale) =>
+      readJson(join(distRoot, "_locales", locale, "messages.json")),
+    ),
+  ),
 ]);
 
 assert(manifest.manifest_version === 3, "Manifest V3 is required");
@@ -119,7 +134,7 @@ assert(
   "Privacy policy must include the Chrome Web Store Limited Use statement",
 );
 
-for (const messages of [enMessages, zhMessages]) {
+for (const messages of localeMessages) {
   const description = messages.appDescription?.message;
   assert(
     typeof description === "string" &&
@@ -178,6 +193,7 @@ console.log(
       remoteCode: false,
       incognito: manifest.incognito,
       storeAssets: expectedStoreAssets.size,
+      locales: expectedLocales,
       privacyPolicy: true,
     },
     null,

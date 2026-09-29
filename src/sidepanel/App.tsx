@@ -978,9 +978,7 @@ export function App() {
           >
             <Menu size={18} />
           </IconButton>
-          <div className="brand-mark">
-            <Layers3 size={17} />
-          </div>
+          <img className="brand-mark" src="./icons/icon-32.png" alt="" />
           <div>
             <h1>{t("appName")}</h1>
             <span>{t("resourceCount", { count: counts.all })}</span>

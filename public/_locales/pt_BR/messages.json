@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Tab Vault"
+  },
+  "appShortName": {
+    "message": "Tab Vault"
+  },
+  "appDescription": {
+    "message": "Salve, organize, pesquise, suspenda e restaure abas localmente."
+  },
+  "actionTitle": {
+    "message": "Abrir o Tab Vault"
+  }
+}

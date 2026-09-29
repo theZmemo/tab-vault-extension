@@ -1,3 +1,12 @@
+import deMessages from "./locales/de.json";
+import esMessages from "./locales/es.json";
+import frMessages from "./locales/fr.json";
+import jaMessages from "./locales/ja.json";
+import koMessages from "./locales/ko.json";
+import ptBrMessages from "./locales/pt-BR.json";
+import ruMessages from "./locales/ru.json";
+import zhTwMessages from "./locales/zh-TW.json";
+
 const en = {
   appName: "Tab Vault",
   appShortName: "Tab Vault",
@@ -266,6 +275,7 @@ const en = {
 
 type MessageKey = keyof typeof en;
 type MessageParams = Record<string, string | number>;
+export const englishMessages = en;
 
 const zh: Record<MessageKey, string> = {
   appName: "标签资产库",
@@ -518,10 +528,61 @@ const zh: Record<MessageKey, string> = {
   deepSleepPageRecoveryUnavailable: "恢复地址不可用，请从标签资产库恢复此页面。",
 };
 
-export type UiLocale = "zh-CN" | "en";
+export const SUPPORTED_UI_LOCALES = [
+  "en",
+  "zh-CN",
+  "zh-TW",
+  "ja",
+  "ko",
+  "es",
+  "fr",
+  "de",
+  "pt-BR",
+  "ru",
+] as const;
+
+export type UiLocale = (typeof SUPPORTED_UI_LOCALES)[number];
+
+const dictionaries: Record<UiLocale, Record<MessageKey, string>> = {
+  en,
+  "zh-CN": zh,
+  "zh-TW": zhTwMessages,
+  ja: jaMessages,
+  ko: koMessages,
+  es: esMessages,
+  fr: frMessages,
+  de: deMessages,
+  "pt-BR": ptBrMessages,
+  ru: ruMessages,
+};
 
 export function resolveUiLocale(locale: string): UiLocale {
-  return locale.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
+  const normalized = locale.trim().replaceAll("_", "-").toLowerCase();
+  if (normalized.startsWith("zh")) {
+    return /^zh-(tw|hk|mo|hant)/.test(normalized) ? "zh-TW" : "zh-CN";
+  }
+  if (normalized.startsWith("ja")) {
+    return "ja";
+  }
+  if (normalized.startsWith("ko")) {
+    return "ko";
+  }
+  if (normalized.startsWith("es")) {
+    return "es";
+  }
+  if (normalized.startsWith("fr")) {
+    return "fr";
+  }
+  if (normalized.startsWith("de")) {
+    return "de";
+  }
+  if (normalized.startsWith("pt")) {
+    return "pt-BR";
+  }
+  if (normalized.startsWith("ru")) {
+    return "ru";
+  }
+  return "en";
 }
 
 export function getBrowserLocale(): UiLocale {
@@ -539,7 +600,7 @@ export function translateForLocale(
   key: MessageKey,
   params: MessageParams = {},
 ): string {
-  const dictionary = resolveUiLocale(locale) === "zh-CN" ? zh : en;
+  const dictionary = dictionaries[resolveUiLocale(locale)];
   return dictionary[key].replace(/\{(\w+)\}/g, (_match, name: string) =>
     String(params[name] ?? `{${name}}`),
   );

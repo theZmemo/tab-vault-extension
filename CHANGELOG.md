@@ -2,6 +2,22 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.5] - 2026-09-29
+
+### Added
+
+- Redesigned Tab Vault logo with a tab-stack and vault-mark silhouette that
+  remains legible at 16, 32, 48, and 128 pixels.
+- Complete in-product and manifest localization for Traditional Chinese,
+  Japanese, Korean, Spanish, French, German, Brazilian Portuguese, and Russian.
+- Region-aware locale fallback and automated interpolation-placeholder checks
+  across all ten supported UI languages.
+
+### Changed
+
+- The side-panel brand mark and Chrome Web Store assets now use the new logo.
+- Locale smoke tests cover Japanese, Korean, and Traditional Chinese layouts.
+
 ## [0.0.4] - 2026-09-28
 
 ### Changed
@@ -76,6 +92,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.5]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.5
 [0.0.4]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.4
 [0.0.3]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.3
 [0.0.2]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.2

@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "タブ保管庫"
+  },
+  "appShortName": {
+    "message": "タブ保管庫"
+  },
+  "appDescription": {
+    "message": "ブラウザのタブをローカルで保存、整理、検索、スリープ、復元します。"
+  },
+  "actionTitle": {
+    "message": "タブ保管庫を開く"
+  }
+}

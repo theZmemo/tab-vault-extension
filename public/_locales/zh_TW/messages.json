@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "標籤資產庫"
+  },
+  "appShortName": {
+    "message": "標籤資產庫"
+  },
+  "appDescription": {
+    "message": "在本機儲存、分組、搜尋、休眠及還原瀏覽器分頁。"
+  },
+  "actionTitle": {
+    "message": "開啟標籤資產庫"
+  }
+}

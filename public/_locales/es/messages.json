@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Tab Vault"
+  },
+  "appShortName": {
+    "message": "Tab Vault"
+  },
+  "appDescription": {
+    "message": "Guarda, organiza, busca, suspende y restaura pestañas localmente."
+  },
+  "actionTitle": {
+    "message": "Abrir Tab Vault"
+  }
+}

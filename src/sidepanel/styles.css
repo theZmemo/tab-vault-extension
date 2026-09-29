@@ -83,14 +83,11 @@ input:disabled {
 }
 
 .brand-mark {
-  display: grid;
   width: 30px;
   height: 30px;
   flex: 0 0 auto;
-  place-items: center;
   border-radius: 7px;
-  background: #245ec7;
-  color: #fff;
+  object-fit: cover;
 }
 
 .brand h1 {
@@ -1393,28 +1390,10 @@ body {
 }
 
 .brand-mark {
-  position: relative;
   width: 30px;
   height: 30px;
-  border: 1px solid #1d55b7;
   border-radius: 7px;
-  background: #2865ca;
   box-shadow: 0 2px 5px rgb(35 90 187 / 14%);
-}
-
-.brand-mark svg {
-  transform: translateY(-2px);
-}
-
-.brand-mark::after {
-  position: absolute;
-  bottom: 5px;
-  width: 12px;
-  height: 4px;
-  border: 1.5px solid #fff;
-  border-top: 0;
-  border-radius: 0 0 3px 3px;
-  content: "";
 }
 
 .brand h1 {

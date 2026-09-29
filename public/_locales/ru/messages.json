@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Tab Vault"
+  },
+  "appShortName": {
+    "message": "Tab Vault"
+  },
+  "appDescription": {
+    "message": "Локально сохраняйте, группируйте, ищите, усыпляйте и восстанавливайте вкладки."
+  },
+  "actionTitle": {
+    "message": "Открыть Tab Vault"
+  }
+}

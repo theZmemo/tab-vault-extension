@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Tab Vault"
+  },
+  "appShortName": {
+    "message": "Tab Vault"
+  },
+  "appDescription": {
+    "message": "Tabs lokal speichern, organisieren, durchsuchen, pausieren und wiederherstellen."
+  },
+  "actionTitle": {
+    "message": "Tab Vault öffnen"
+  }
+}

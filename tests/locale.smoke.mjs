@@ -6,9 +6,86 @@ import { chromium, expect } from "@playwright/test";
 const projectRoot = resolve(import.meta.dirname, "..");
 const extensionPath = join(projectRoot, "dist");
 const artifactsPath = join(projectRoot, "artifacts");
+const requestedLocale = process.env.TAB_VAULT_TEST_LOCALE ?? "en-US";
+const localeKey = requestedLocale.toLowerCase().replaceAll("-", "_");
+const expectations = {
+  "en-US": {
+    appName: "Tab Vault",
+    searchPlaceholder: "Search title, URL, domain, or notes",
+    noPermanentGroups: "No permanent groups",
+    settings: "Settings",
+    browserPanelSide: "Browser side panel",
+    privacyAndData: "Privacy and data",
+    localDataDisclosure:
+      "Tab URLs, titles, visit times, and groups stay in this browser and are not transmitted.",
+  },
+  "ja-JP": {
+    appName: "タブ保管庫",
+    searchPlaceholder: "タイトル、URL、ドメイン、またはメモを検索します",
+    noPermanentGroups: "永続的なグループはありません",
+    settings: "設定",
+    browserPanelSide: "ブラウザのサイドパネル",
+    privacyAndData: "プライバシーとデータ",
+    localDataDisclosure:
+      "タブ URL、タイトル、訪問時間、およびグループはこのブラウザ内に留まり、送信されません。",
+  },
+  "ko-KR": {
+    appName: "탭 보관함",
+    searchPlaceholder: "제목, URL, 도메인, 메모 검색",
+    noPermanentGroups: "영구 그룹 없음",
+    settings: "설정",
+    browserPanelSide: "브라우저 측면 패널",
+    privacyAndData: "개인정보 보호 및 데이터",
+    localDataDisclosure:
+      "탭 URL, 제목, 방문 시간 및 그룹은 이 브라우저에 유지되며 전송되지 않습니다.",
+  },
+  "zh-TW": {
+    appName: "標籤資產庫",
+    searchPlaceholder: "搜尋標題、URL、網域或備註",
+    noPermanentGroups: "暫無永久分組",
+    settings: "設定",
+    browserPanelSide: "瀏覽器側邊欄",
+    privacyAndData: "隱私與數據",
+    localDataDisclosure:
+      "標籤 URL、標題、存取時間和分組僅保存在目前瀏覽器中，不會對外傳輸。",
+  },
+  "de-DE": {
+    appName: "Tab Vault",
+    searchPlaceholder: "Suchen Sie nach Titel, URL, Domäne oder Notizen",
+    noPermanentGroups: "Keine festen Gruppen",
+    settings: "Einstellungen",
+    browserPanelSide: "Seitenbereich des Browsers",
+    privacyAndData: "Privatsphäre und Daten",
+    localDataDisclosure:
+      "Tab URLs, Titel, Besuchszeiten und Gruppen bleiben in diesem Browser und werden nicht übertragen.",
+  },
+  "fr-FR": {
+    appName: "Tab Vault",
+    searchPlaceholder: "Rechercher un titre, un URL, un domaine ou des notes",
+    noPermanentGroups: "Pas de groupes permanents",
+    settings: "Paramètres",
+    browserPanelSide: "Panneau latéral du navigateur",
+    privacyAndData: "Confidentialité et données",
+    localDataDisclosure:
+      "Les onglets URL, les titres, les heures de visite et les groupes restent dans ce navigateur et ne sont pas transmis.",
+  },
+  "ru-RU": {
+    appName: "Tab Vault",
+    searchPlaceholder: "Поиск по названию, URL, домену или заметкам.",
+    noPermanentGroups: "Нет постоянных групп",
+    settings: "Настройки",
+    browserPanelSide: "Боковая панель браузера",
+    privacyAndData: "Конфиденциальность и данные",
+    localDataDisclosure:
+      "Вкладки URL, заголовки, время посещения и группы остаются в этом браузере и не передаются.",
+  },
+}[requestedLocale];
+if (!expectations) {
+  throw new Error(`Unsupported smoke-test locale: ${requestedLocale}`);
+}
 const profilePath = join(
   tmpdir(),
-  `tab-vault-locale-${Date.now().toString(36)}`,
+  `tab-vault-locale-${localeKey}-${Date.now().toString(36)}`,
 );
 
 await mkdir(artifactsPath, { recursive: true });
@@ -18,7 +95,7 @@ try {
   context = await chromium.launchPersistentContext(profilePath, {
     channel: "chromium",
     headless: true,
-    locale: "en-US",
+    locale: requestedLocale,
     colorScheme: "dark",
     viewport: { width: 480, height: 780 },
     env: {
@@ -47,31 +124,32 @@ try {
   panel.on("pageerror", (error) => runtimeErrors.push(error.message));
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
 
-  await expect(panel.getByText("Tab Vault", { exact: true })).toBeVisible();
   await expect(
-    panel.getByPlaceholder("Search title, URL, domain, or notes"),
+    panel.getByText(expectations.appName, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByPlaceholder(expectations.searchPlaceholder),
   ).toBeVisible();
   await expect(panel.locator(".group-overview")).toBeVisible();
   await expect(
-    panel.getByText("No permanent groups", { exact: true }),
+    panel.getByText(expectations.noPermanentGroups, { exact: true }),
   ).toBeVisible();
   await expect(panel.locator(".navigation-rail")).toHaveCSS("width", "42px");
   await panel.screenshot({
-    path: join(artifactsPath, "group-overview-en-dark.png"),
+    path: join(artifactsPath, `group-overview-${localeKey}-dark.png`),
     fullPage: true,
   });
-  await panel.getByTitle("Settings").click();
+  await panel.getByTitle(expectations.settings).click();
   await expect(panel.getByText("Navigation rail position")).toHaveCount(0);
-  await expect(panel.getByText("Browser side panel")).toBeVisible();
-  await expect(panel.getByText("Privacy and data", { exact: true })).toBeVisible();
+  await expect(panel.getByText(expectations.browserPanelSide)).toBeVisible();
   await expect(
-    panel.getByText(
-      "Tab URLs, titles, visit times, and groups stay in this browser and are not transmitted.",
-      { exact: true },
-    ),
+    panel.getByText(expectations.privacyAndData, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(expectations.localDataDisclosure, { exact: true }),
   ).toBeVisible();
   await panel.screenshot({
-    path: join(artifactsPath, "sidepanel-en-dark.png"),
+    path: join(artifactsPath, `sidepanel-${localeKey}-dark.png`),
     fullPage: true,
   });
 
@@ -82,14 +160,14 @@ try {
   console.log(
     JSON.stringify(
       {
-        locale: "en-US",
+        locale: requestedLocale,
         theme: "dark",
         appName: true,
         groupOverviewDefault: true,
         settings: true,
         privacyDisclosure: true,
-        groupOverviewScreenshot: "artifacts/group-overview-en-dark.png",
-        screenshot: "artifacts/sidepanel-en-dark.png",
+        groupOverviewScreenshot: `artifacts/group-overview-${localeKey}-dark.png`,
+        screenshot: `artifacts/sidepanel-${localeKey}-dark.png`,
       },
       null,
       2,

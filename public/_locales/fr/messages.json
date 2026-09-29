@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Tab Vault"
+  },
+  "appShortName": {
+    "message": "Tab Vault"
+  },
+  "appDescription": {
+    "message": "Enregistrez, classez, recherchez, mettez en veille et restaurez vos onglets localement."
+  },
+  "actionTitle": {
+    "message": "Ouvrir Tab Vault"
+  }
+}
