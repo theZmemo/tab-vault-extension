@@ -45,18 +45,19 @@ try {
     >
       <rect x="4" y="4" width="120" height="120" rx="27" fill="#151e27" />
       <path
-        d="M31 39h66M64 39v28"
-        fill="none"
-        stroke="#f7f9fa"
-        stroke-width="12"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        d="M26 34c0-6 5-11 11-11h54c6 0 11 5 11 11v17H26V34Z"
+        fill="#f7f9fa"
       />
       <path
-        d="M38 65 64 94 90 65"
+        d="M26 60h76v34c0 6-5 11-11 11H37c-6 0-11-5-11-11V60Z"
+        fill="#f7f9fa"
+        opacity="0.9"
+      />
+      <path
+        d="M49 73 64 88 79 73"
         fill="none"
         stroke="#43c6aa"
-        stroke-width="12"
+        stroke-width="10"
         stroke-linecap="round"
         stroke-linejoin="round"
       />

@@ -1,8 +1,10 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.11
+版本：0.0.12
 
 产品主页：`https://tidr.dev/xxx`
+
+发布状态：商店文案、截图、图标和上传包已生成；仓库未记录 Chrome Web Store 条目 ID 或已上线详情页 URL，当前按尚未提交上线处理。
 
 ## 单一用途
 
@@ -106,7 +108,7 @@ Privacy:
 
 ## 商品链接
 
-- 首页：`https://github.com/theZmemo/tab-vault-extension`
+- 首页：`https://tidr.dev/xxx`
 - 支持：`https://github.com/theZmemo/tab-vault-extension/issues`
 - 隐私政策：`https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md`
 
@@ -132,6 +134,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.11 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.12 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。
