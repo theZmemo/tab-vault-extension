@@ -161,7 +161,7 @@ try {
       title: "标签资产，一搜即达",
       detail: "关闭标签也不丢记录，用永久分组整理长期工作资料。",
       points: ["中文与 URL 搜索", "20 色永久分组", "规范化去重与会话快照"],
-      accent: "#168b76",
+      accent: "#1f9d84",
     }),
   );
   await page.screenshot({
@@ -175,7 +175,7 @@ try {
       title: "按需释放标签内存",
       detail: "四级模式从原生卸载到本地占位页，按需逐级增强内存释放。",
       points: ["覆盖所有可操作网页", "原 URL 双重保存", "选中深睡标签自动恢复"],
-      accent: "#d85f4d",
+      accent: "#1f9d84",
     }),
   );
   await page.screenshot({
@@ -203,7 +203,7 @@ try {
           body {
             display: grid;
             place-items: center;
-            border-bottom: 8px solid #ff735f;
+            border-bottom: 6px solid #43c6aa;
             text-align: center;
           }
           img {

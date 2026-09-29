@@ -4,44 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#172534" />
+    <meta name="theme-color" content="#151e27" />
     <meta
       name="description"
-      content="Tab Vault 是一款本地优先的浏览器标签资产库，用永久分组、搜索、会话快照和四级休眠管理长期工作资料。"
+      content="Tab Vault 是一款本地优先的浏览器标签资产库，用分组、搜索、会话快照和四级休眠管理长期工作资料。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Tab Vault · 标签资产库" />
     <meta
       property="og:description"
-      content="在本地保存、整理、搜索、休眠和恢复浏览器标签。"
+      content="标签留在手边，内存留给工作。"
     />
     <meta property="og:url" content="https://tidr.dev/xxx" />
     <link rel="canonical" href="https://tidr.dev/xxx" />
     <title>Tab Vault · 标签资产库</title>
     <style>
       :root {
-        color: #17222d;
-        background: #e9eef2;
+        color: #151e27;
+        background: #edf1f4;
         font-family:
           Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
           "PingFang SC", "Microsoft YaHei", sans-serif;
         font-synthesis: none;
         text-rendering: optimizeLegibility;
-        --page: #e9eef2;
-        --surface: #f8fafb;
+        --page: #edf1f4;
+        --surface: #f9fafb;
         --surface-strong: #ffffff;
-        --surface-muted: #e2e8ed;
-        --ink: #17222d;
-        --muted: #5d6a76;
-        --line: #cdd6de;
-        --line-strong: #aebac5;
-        --charcoal: #172534;
-        --teal: #26a98f;
-        --teal-soft: #d9f3ec;
-        --coral: #ed6a58;
-        --coral-soft: #fbe3df;
-        --blue: #315b91;
-        --shadow: 0 24px 60px rgb(31 48 64 / 16%);
+        --ink: #151e27;
+        --muted: #64717d;
+        --line: #cbd4dc;
+        --dark: #151e27;
+        --accent: #1f9d84;
+        --accent-soft: #d9f1eb;
       }
 
       * {
@@ -60,24 +54,13 @@
         color: var(--ink);
       }
 
-      a,
-      button {
-        color: inherit;
-        font: inherit;
-        letter-spacing: 0;
-      }
-
       a {
+        color: inherit;
         text-decoration: none;
       }
 
-      button {
-        border: 0;
-      }
-
-      a:focus-visible,
-      button:focus-visible {
-        outline: 3px solid rgb(38 169 143 / 38%);
+      a:focus-visible {
+        outline: 3px solid rgb(31 157 132 / 35%);
         outline-offset: 3px;
       }
 
@@ -88,19 +71,19 @@
         overflow: hidden;
       }
 
-      .site-header {
-        position: relative;
-        z-index: 20;
-        height: 64px;
-        border-bottom: 1px solid var(--line);
-        background: rgb(248 250 251 / 92%);
+      .shell {
+        width: min(1160px, calc(100% - 48px));
+        margin: 0 auto;
       }
 
-      .header-inner,
-      .section-inner,
-      .hero-inner {
-        width: min(1180px, calc(100% - 48px));
-        margin: 0 auto;
+      .site-header {
+        position: absolute;
+        z-index: 20;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 64px;
+        border-bottom: 1px solid var(--line);
       }
 
       .header-inner {
@@ -110,7 +93,7 @@
         justify-content: space-between;
       }
 
-      .brand-link {
+      .brand {
         display: inline-flex;
         align-items: center;
         gap: 10px;
@@ -118,34 +101,27 @@
         font-weight: 760;
       }
 
-      .brand-link svg {
-        width: 34px;
-        height: 34px;
-        flex: 0 0 auto;
+      .brand svg {
+        width: 32px;
+        height: 32px;
       }
 
-      .brand-link small {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 560;
-      }
-
-      .header-nav {
+      .header-links {
         display: flex;
         align-items: center;
-        gap: 26px;
+        gap: 22px;
         color: var(--muted);
         font-size: 13px;
-        font-weight: 640;
+        font-weight: 650;
       }
 
-      .header-nav a:hover {
+      .header-links a:hover {
         color: var(--ink);
       }
 
-      .header-nav .header-action {
+      .header-links .download-link {
         min-height: 34px;
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--line);
         border-radius: 6px;
         background: var(--surface-strong);
         padding: 8px 13px;
@@ -154,8 +130,7 @@
 
       .hero {
         position: relative;
-        height: clamp(500px, 82svh, 760px);
-        min-height: 0;
+        height: clamp(560px, 88svh, 790px);
         overflow: hidden;
         border-bottom: 1px solid var(--line);
         background: var(--surface);
@@ -168,56 +143,56 @@
 
       .hero-copy {
         position: relative;
-        z-index: 5;
+        z-index: 3;
         display: flex;
-        width: min(510px, 48%);
+        width: min(520px, 48%);
         height: 100%;
         flex-direction: column;
         justify-content: center;
-        padding-bottom: 28px;
+        padding-top: 34px;
       }
 
-      .hero-brand {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-
-      .hero-brand svg {
+      .hero-logo {
         width: 72px;
         height: 72px;
-        flex: 0 0 auto;
-        filter: drop-shadow(0 10px 18px rgb(23 37 52 / 16%));
+        margin-bottom: 22px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
       }
 
       h1 {
-        margin: 0;
-        font-size: clamp(48px, 6vw, 76px);
+        margin-bottom: 14px;
+        font-size: clamp(58px, 6vw, 82px);
         font-weight: 790;
-        line-height: 0.98;
+        line-height: 0.96;
         letter-spacing: 0;
       }
 
-      .hero-kicker {
-        margin: 24px 0 0;
-        color: var(--teal);
-        font-size: 14px;
-        font-weight: 780;
+      .hero-tagline {
+        margin-bottom: 14px;
+        color: var(--accent);
+        font-size: clamp(21px, 2vw, 27px);
+        font-weight: 720;
+        line-height: 1.35;
       }
 
       .hero-summary {
-        max-width: 500px;
-        margin: 12px 0 0;
+        max-width: 470px;
+        margin-bottom: 24px;
         color: var(--muted);
-        font-size: 18px;
-        line-height: 1.7;
+        font-size: 16px;
+        line-height: 1.75;
       }
 
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 26px;
       }
 
       .primary-action,
@@ -233,684 +208,311 @@
       }
 
       .primary-action {
-        background: var(--charcoal);
+        background: var(--dark);
         color: #ffffff;
-      }
-
-      .primary-action:hover {
-        background: #26394c;
       }
 
       .secondary-action {
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--line);
         background: var(--surface-strong);
       }
 
+      .primary-action:hover,
       .secondary-action:hover {
-        border-color: var(--teal);
+        transform: translateY(-1px);
       }
 
-      .trust-line {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 16px;
-        margin-top: 18px;
+      .hero-note {
+        margin-top: 16px;
         color: var(--muted);
         font-size: 12px;
-        font-weight: 620;
       }
 
-      .trust-line span {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-      }
-
-      .trust-line span::before {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--teal);
-        content: "";
-      }
-
-      .product-stage {
+      .product-visual {
         position: absolute;
-        top: 50%;
-        right: -72px;
-        width: min(720px, 60vw);
-        transform: translateY(-48%);
+        z-index: 2;
+        top: 104px;
+        right: 18px;
+        width: min(400px, 36vw);
+        margin: 0;
       }
 
-      .mode-switch {
-        display: inline-flex;
-        height: 34px;
-        align-items: center;
-        margin: 0 0 10px 54px;
-        border: 1px solid var(--line);
-        border-radius: 7px;
-        background: var(--surface-muted);
-        padding: 3px;
-      }
-
-      .mode-switch button {
-        min-width: 72px;
-        height: 26px;
-        cursor: pointer;
-        border-radius: 5px;
-        background: transparent;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      .mode-switch button[aria-selected="true"] {
-        background: var(--surface-strong);
-        color: var(--ink);
-        box-shadow: 0 1px 3px rgb(31 48 64 / 14%);
-      }
-
-      .product-window {
-        position: relative;
-        aspect-ratio: 16 / 10.2;
-        overflow: hidden;
-        border: 1px solid var(--line-strong);
-        border-radius: 8px;
-        background: var(--surface-strong);
-        box-shadow: var(--shadow);
-      }
-
-      .window-bar {
-        display: flex;
-        height: 38px;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: 1px solid var(--line);
-        padding: 0 13px;
-        background: var(--surface);
-      }
-
-      .window-controls {
-        display: flex;
-        gap: 6px;
-      }
-
-      .window-controls i {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--line-strong);
-      }
-
-      .window-controls i:first-child {
-        background: var(--coral);
-      }
-
-      .window-controls i:nth-child(2) {
-        background: #e5ad4b;
-      }
-
-      .window-controls i:last-child {
-        background: var(--teal);
-      }
-
-      .window-title {
-        color: var(--muted);
-        font-size: 10px;
-        font-weight: 650;
-      }
-
-      .app-preview {
-        display: grid;
-        height: calc(100% - 38px);
-        grid-template-columns: 44px 154px minmax(0, 1fr);
-      }
-
-      .preview-rail {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        border-right: 1px solid var(--line);
-        background: var(--surface);
-        padding: 12px 0;
-      }
-
-      .preview-rail i {
-        position: relative;
-        display: grid;
-        width: 28px;
-        height: 28px;
-        place-items: center;
-        border-radius: 6px;
-        color: var(--muted);
-        font-size: 10px;
-        font-style: normal;
-        font-weight: 760;
-      }
-
-      .preview-rail i.is-active {
-        background: var(--teal-soft);
-        color: #126f5d;
-      }
-
-      .preview-rail i.is-active::after {
-        position: absolute;
-        top: 5px;
-        right: -9px;
-        width: 3px;
-        height: 18px;
-        border-radius: 2px;
-        background: var(--teal);
-        content: "";
-      }
-
-      .preview-nav {
-        border-right: 1px solid var(--line);
-        background: #eef2f5;
-        padding: 14px 10px;
-      }
-
-      .preview-nav strong {
+      .product-visual img {
         display: block;
-        margin-bottom: 13px;
-        font-size: 11px;
-      }
-
-      .preview-nav span {
-        display: block;
-        height: 29px;
-        margin-bottom: 4px;
-        border-radius: 5px;
-        padding: 7px 8px;
-        color: var(--muted);
-        font-size: 10px;
-        font-weight: 620;
-      }
-
-      .preview-nav span.is-active {
-        background: var(--surface-strong);
-        color: var(--ink);
-        box-shadow: 0 1px 3px rgb(31 48 64 / 9%);
-      }
-
-      .preview-content {
-        min-width: 0;
-        background: var(--surface);
-        padding: 14px;
-      }
-
-      .preview-heading {
-        display: flex;
-        height: 30px;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-      }
-
-      .preview-heading strong {
-        font-size: 12px;
-      }
-
-      .preview-heading span {
-        border: 1px solid var(--line);
-        border-radius: 5px;
-        background: var(--surface-strong);
-        padding: 5px 8px;
-        color: var(--muted);
-        font-size: 9px;
-      }
-
-      .preview-search {
-        display: flex;
-        height: 32px;
-        align-items: center;
-        margin-bottom: 12px;
+        width: 100%;
+        height: auto;
         border: 1px solid var(--line);
         border-radius: 6px;
-        background: var(--surface-strong);
-        padding: 0 10px;
-        color: #7a8792;
-        font-size: 9px;
+        box-shadow: 0 24px 52px rgb(33 48 62 / 16%);
       }
 
-      .group-bar {
-        display: grid;
-        height: 32px;
-        grid-template-columns: 1fr auto;
-        align-items: center;
-        margin-top: 8px;
-        border-radius: 5px 5px 0 0;
-        padding: 0 10px;
-        color: #ffffff;
-        font-size: 10px;
-        font-weight: 760;
-      }
-
-      .group-bar.is-coral {
-        background: #d76722;
-      }
-
-      .group-bar.is-blue {
-        background: #35567f;
-      }
-
-      .resource-row {
-        display: grid;
-        height: 31px;
-        grid-template-columns: 1fr auto;
-        align-items: center;
-        border-bottom: 1px solid var(--line);
-        background: var(--surface-strong);
-        padding: 0 10px;
-        color: var(--muted);
-        font-size: 9px;
-      }
-
-      .resource-row i {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--teal);
-      }
-
-      .sleep-stack {
-        display: grid;
-        gap: 8px;
-        padding-top: 3px;
-      }
-
-      .sleep-level {
-        display: grid;
-        min-height: 52px;
-        grid-template-columns: 32px 1fr auto;
-        align-items: center;
-        gap: 10px;
-        border-bottom: 1px solid var(--line);
-        padding: 4px 2px 8px;
-      }
-
-      .sleep-level:last-child {
-        border-bottom: 0;
-      }
-
-      .level-number {
-        display: grid;
-        width: 30px;
-        height: 30px;
-        place-items: center;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: var(--surface-strong);
-        color: var(--blue);
-        font-size: 10px;
-        font-weight: 780;
-      }
-
-      .sleep-level:last-child .level-number {
-        border-color: #8ed8c9;
-        background: var(--teal-soft);
-        color: #126f5d;
-      }
-
-      .sleep-copy strong,
-      .sleep-copy span {
-        display: block;
-      }
-
-      .sleep-copy strong {
-        font-size: 10px;
-      }
-
-      .sleep-copy span {
-        margin-top: 3px;
-        color: var(--muted);
-        font-size: 8px;
-      }
-
-      .sleep-level b {
-        color: var(--line-strong);
-        font-size: 14px;
-      }
-
-      .product-note {
-        margin: 12px 0 0 54px;
+      .product-visual figcaption {
+        margin-top: 10px;
         color: var(--muted);
         font-size: 11px;
+        text-align: center;
       }
 
-      .signal-band {
+      .support-band {
         border-bottom: 1px solid var(--line);
-        background: var(--charcoal);
-        color: #ffffff;
+        background: var(--surface-strong);
       }
 
-      .signal-grid {
+      .support-list {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
-      .signal-item {
-        min-height: 124px;
-        border-right: 1px solid rgb(255 255 255 / 14%);
-        padding: 28px 32px;
+      .support-item {
+        min-height: 118px;
+        border-right: 1px solid var(--line);
+        padding: 27px 30px;
       }
 
-      .signal-item:last-child {
+      .support-item:first-child {
+        padding-left: 0;
+      }
+
+      .support-item:last-child {
         border-right: 0;
       }
 
-      .signal-item strong {
+      .support-item strong {
         display: block;
-        font-size: 26px;
+        font-size: 18px;
       }
 
-      .signal-item span {
+      .support-item span {
         display: block;
-        margin-top: 6px;
-        color: #bdc8d1;
+        margin-top: 7px;
+        color: var(--muted);
         font-size: 13px;
-        line-height: 1.6;
+        line-height: 1.55;
       }
 
       .content-section {
-        padding: 96px 0;
+        padding: 92px 0;
         border-bottom: 1px solid var(--line);
       }
 
-      .section-heading {
+      .section-intro {
         display: grid;
-        grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
-        gap: 70px;
-        align-items: end;
+        grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+        gap: 80px;
       }
 
-      .section-label {
-        color: var(--teal);
-        font-size: 12px;
-        font-weight: 800;
-      }
-
-      h2 {
-        max-width: 520px;
-        margin: 10px 0 0;
-        font-size: clamp(32px, 4vw, 48px);
-        line-height: 1.12;
-        letter-spacing: 0;
-      }
-
-      .section-heading p {
-        max-width: 620px;
-        margin: 0;
-        color: var(--muted);
-        font-size: 17px;
-        line-height: 1.8;
-      }
-
-      .feature-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        margin-top: 64px;
-        border-top: 1px solid var(--line-strong);
-      }
-
-      .feature-item {
-        min-height: 210px;
-        border-right: 1px solid var(--line);
-        border-bottom: 1px solid var(--line);
-        padding: 28px 26px 30px 0;
-      }
-
-      .feature-item:nth-child(3n + 2),
-      .feature-item:nth-child(3n + 3) {
-        padding-left: 26px;
-      }
-
-      .feature-item:nth-child(3n) {
-        border-right: 0;
-      }
-
-      .feature-index {
-        color: var(--coral);
+      .eyebrow {
+        display: block;
+        margin-bottom: 12px;
+        color: var(--accent);
         font-size: 11px;
         font-weight: 820;
       }
 
-      .feature-item h3 {
-        margin: 24px 0 10px;
-        font-size: 18px;
+      h2 {
+        max-width: 510px;
+        margin-bottom: 0;
+        font-size: clamp(34px, 4vw, 50px);
+        line-height: 1.12;
+        letter-spacing: 0;
       }
 
-      .feature-item p {
-        margin: 0;
+      .feature-list {
+        border-top: 1px solid var(--line);
+      }
+
+      .feature-row {
+        display: grid;
+        grid-template-columns: 42px 128px minmax(0, 1fr);
+        gap: 18px;
+        align-items: baseline;
+        min-height: 82px;
+        border-bottom: 1px solid var(--line);
+        padding: 22px 0;
+      }
+
+      .feature-row b {
+        color: var(--accent);
+        font-size: 11px;
+      }
+
+      .feature-row h3 {
+        margin-bottom: 0;
+        font-size: 16px;
+      }
+
+      .feature-row p {
+        margin-bottom: 0;
         color: var(--muted);
         font-size: 14px;
-        line-height: 1.75;
+        line-height: 1.65;
       }
 
       .privacy-section {
+        background: var(--dark);
+        color: #ffffff;
+      }
+
+      .privacy-inner {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+        gap: 80px;
+        align-items: center;
+        min-height: 310px;
+      }
+
+      .privacy-inner .eyebrow {
+        color: #57d0b7;
+      }
+
+      .privacy-inner p {
+        max-width: 590px;
+        margin-bottom: 0;
+        color: #bdc7cf;
+        font-size: 17px;
+        line-height: 1.8;
+      }
+
+      .final-section {
         background: var(--surface-strong);
+        padding: 72px 0;
       }
 
-      .privacy-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr);
-        gap: 90px;
-        align-items: center;
-      }
-
-      .privacy-copy p {
-        max-width: 640px;
-        color: var(--muted);
-        font-size: 16px;
-        line-height: 1.85;
-      }
-
-      .privacy-list {
-        border-top: 1px solid var(--line-strong);
-      }
-
-      .privacy-list div {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        align-items: center;
-        gap: 20px;
-        min-height: 58px;
-        border-bottom: 1px solid var(--line);
-        font-size: 14px;
-        font-weight: 680;
-      }
-
-      .privacy-list span {
-        color: var(--teal);
-        font-size: 12px;
-      }
-
-      .final-cta {
-        padding: 74px 0;
-        background: var(--coral-soft);
-      }
-
-      .final-cta .section-inner {
+      .final-inner {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 40px;
       }
 
-      .final-cta h2 {
-        margin: 0;
-        color: #4c2923;
+      .final-inner h2 {
+        font-size: clamp(30px, 4vw, 44px);
       }
 
-      .final-cta p {
+      .final-inner p {
         margin: 10px 0 0;
-        color: #75534d;
+        color: var(--muted);
       }
 
       .site-footer {
-        background: var(--charcoal);
-        color: #ffffff;
+        border-top: 1px solid var(--line);
+        background: var(--surface-strong);
       }
 
       .footer-inner {
         display: flex;
-        min-height: 94px;
+        min-height: 80px;
         align-items: center;
         justify-content: space-between;
-        gap: 30px;
-      }
-
-      .footer-inner span {
-        color: #aebac4;
+        gap: 24px;
+        color: var(--muted);
         font-size: 12px;
       }
 
       .footer-links {
         display: flex;
-        gap: 20px;
-        font-size: 12px;
-        font-weight: 680;
-      }
-
-      [hidden] {
-        display: none !important;
+        gap: 18px;
+        color: var(--ink);
+        font-weight: 650;
       }
 
       @media (prefers-color-scheme: dark) {
         :root {
-          --page: #10161c;
-          --surface: #151d25;
-          --surface-strong: #1b252f;
-          --surface-muted: #26313b;
-          --ink: #f2f5f7;
-          --muted: #a8b3bd;
-          --line: #34404b;
-          --line-strong: #4b5966;
-          --charcoal: #0c1218;
-          --teal: #4fd2b7;
-          --teal-soft: #163b35;
-          --coral: #ff7c68;
-          --coral-soft: #39231f;
-          --blue: #80a9df;
-          --shadow: 0 24px 60px rgb(0 0 0 / 36%);
-        }
-
-        .site-header {
-          background: rgb(21 29 37 / 94%);
-        }
-
-        .preview-nav {
-          background: #131b22;
+          --page: #0f151b;
+          --surface: #121920;
+          --surface-strong: #18212a;
+          --ink: #f4f6f7;
+          --muted: #aab5be;
+          --line: #35414c;
+          --dark: #0b1015;
+          --accent: #4bc9ae;
+          --accent-soft: #173a33;
         }
 
         .primary-action {
-          background: #f2f5f7;
-          color: #17222d;
+          background: #f4f6f7;
+          color: #151e27;
         }
 
-        .primary-action:hover {
-          background: #dfe6eb;
-        }
-
-        .final-cta h2 {
-          color: #ffd6cf;
-        }
-
-        .final-cta p {
-          color: #d7aaa2;
+        .product-visual img {
+          box-shadow: 0 24px 52px rgb(0 0 0 / 36%);
         }
       }
 
-      @media (max-width: 900px) {
-        .header-inner,
-        .section-inner,
-        .hero-inner {
+      @media (max-width: 860px) {
+        .shell {
           width: min(100% - 32px, 680px);
         }
 
-        .header-nav a:not(.header-action) {
+        .header-links a:not(.download-link) {
           display: none;
         }
 
         .hero {
-          height: 82svh;
-          min-height: 520px;
+          height: 86svh;
+          min-height: 560px;
         }
 
         .hero-copy {
           width: 100%;
+          height: auto;
           justify-content: flex-start;
-          padding-top: 42px;
+          padding-top: 104px;
         }
 
-        .hero-brand svg {
-          width: 58px;
-          height: 58px;
+        .hero-logo {
+          width: 54px;
+          height: 54px;
+          margin-bottom: 14px;
         }
 
         h1 {
-          font-size: clamp(44px, 12vw, 64px);
+          font-size: clamp(48px, 13vw, 68px);
+        }
+
+        .hero-tagline {
+          font-size: 20px;
         }
 
         .hero-summary {
           max-width: 520px;
-          padding-right: 64px;
-          font-size: 16px;
+          padding-right: 48px;
+          font-size: 14px;
         }
 
-        .product-stage {
+        .product-visual {
           top: auto;
-          right: -34px;
-          bottom: -86px;
-          width: min(700px, 86vw);
-          transform: none;
-          opacity: 0.92;
+          right: 20px;
+          bottom: -246px;
+          width: 330px;
+          opacity: 0.88;
         }
 
-        .mode-switch,
-        .product-note {
-          display: none;
-        }
-
-        .signal-grid,
-        .feature-grid {
+        .support-list,
+        .section-intro,
+        .privacy-inner {
           grid-template-columns: 1fr;
         }
 
-        .signal-item {
+        .support-item {
           min-height: auto;
           border-right: 0;
-          border-bottom: 1px solid rgb(255 255 255 / 14%);
+          border-bottom: 1px solid var(--line);
           padding: 22px 0;
         }
 
-        .signal-item:last-child {
+        .support-item:last-child {
           border-bottom: 0;
         }
 
-        .section-heading,
-        .privacy-layout {
-          grid-template-columns: 1fr;
-          gap: 30px;
+        .section-intro {
+          gap: 42px;
         }
 
-        .feature-grid {
-          margin-top: 42px;
-        }
-
-        .feature-item,
-        .feature-item:nth-child(3n + 2),
-        .feature-item:nth-child(3n + 3) {
-          min-height: auto;
-          border-right: 0;
-          padding: 24px 0;
-        }
-
-        .final-cta .section-inner,
-        .footer-inner {
-          align-items: flex-start;
-          flex-direction: column;
+        .privacy-inner {
+          min-height: 360px;
+          gap: 26px;
+          align-content: center;
         }
       }
 
@@ -919,49 +521,52 @@
           height: 56px;
         }
 
-        .brand-link small {
-          display: none;
+        .brand {
+          font-size: 14px;
         }
 
-        .header-nav {
-          gap: 10px;
+        .brand svg {
+          width: 28px;
+          height: 28px;
+        }
+
+        .header-links .download-link {
+          min-height: 32px;
+          padding: 7px 11px;
+          font-size: 12px;
         }
 
         .hero {
-          height: 82svh;
-          min-height: 480px;
+          height: 86svh;
+          min-height: 540px;
         }
 
         .hero-copy {
-          padding-top: 26px;
+          padding-top: 82px;
         }
 
-        .hero-brand {
-          gap: 12px;
-        }
-
-        .hero-brand svg {
-          width: 48px;
-          height: 48px;
+        .hero-logo {
+          width: 44px;
+          height: 44px;
         }
 
         h1 {
-          font-size: clamp(40px, 13vw, 54px);
+          font-size: clamp(44px, 14vw, 58px);
         }
 
-        .hero-kicker {
-          margin-top: 16px;
+        .hero-tagline {
+          margin-bottom: 10px;
+          font-size: 18px;
         }
 
         .hero-summary {
-          max-width: 370px;
+          max-width: 360px;
           padding-right: 0;
-          font-size: 14px;
           line-height: 1.6;
         }
 
         .hero-actions {
-          margin-top: 16px;
+          gap: 8px;
         }
 
         .primary-action,
@@ -971,36 +576,52 @@
           font-size: 12px;
         }
 
-        .trust-line {
-          margin-top: 12px;
-          font-size: 10px;
-        }
-
-        .product-stage {
-          right: -108px;
-          bottom: -58px;
-          width: 560px;
+        .product-visual {
+          right: -58px;
+          bottom: -290px;
+          width: 330px;
           opacity: 0.72;
         }
 
-        .content-section {
-          padding: 72px 0;
+        .product-visual figcaption {
+          display: none;
         }
 
-        .section-heading p {
+        .content-section {
+          padding: 68px 0;
+        }
+
+        .feature-row {
+          grid-template-columns: 32px minmax(0, 1fr);
+          gap: 8px 12px;
+          padding: 20px 0;
+        }
+
+        .feature-row p {
+          grid-column: 2;
+        }
+
+        .privacy-inner {
+          min-height: 390px;
+        }
+
+        .privacy-inner p {
           font-size: 15px;
         }
 
-        .privacy-layout {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .final-cta {
+        .final-section {
           padding: 58px 0;
         }
 
-        .footer-links {
-          flex-wrap: wrap;
+        .final-inner,
+        .footer-inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .footer-inner {
+          justify-content: center;
+          padding: 22px 0;
         }
       }
 
@@ -1008,57 +629,40 @@
         html {
           scroll-behavior: auto;
         }
+
       }
     </style>
   </head>
   <body>
     <svg class="svg-defs" aria-hidden="true">
       <symbol id="tab-vault-mark" viewBox="0 0 128 128">
-        <rect x="4" y="4" width="120" height="120" rx="27" fill="#172534" />
+        <rect x="4" y="4" width="120" height="120" rx="27" fill="#151e27" />
+        <rect x="20" y="23" width="88" height="86" rx="14" fill="#f7f9fa" />
         <path
-          d="M28 25h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H28c-7.7 0-14-6.3-14-14V39c0-7.7 6.3-14 14-14Z"
-          fill="#ff735f"
-        />
-        <path
-          d="M33 32h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H33c-7.7 0-14-6.3-14-14V46c0-7.7 6.3-14 14-14Z"
-          fill="#37c8aa"
-        />
-        <path
-          d="M37 40h22.5c3 0 4.6 1.5 6.4 4l4.3 6H94c7.7 0 14 6.3 14 14v34c0 7.7-6.3 14-14 14H37c-7.7 0-14-6.3-14-14V54c0-7.7 6.3-14 14-14Z"
-          fill="#f8fafc"
-        />
-        <circle cx="67" cy="81" r="22" fill="#172534" />
-        <circle
-          cx="67"
-          cy="81"
-          r="12"
+          d="M20 52h88"
           fill="none"
-          stroke="#f8fafc"
-          stroke-width="5"
+          stroke="#151e27"
+          stroke-width="7"
         />
-        <path
-          d="M67 65v10M53.1 89l8.7-5M80.9 89l-8.7-5"
-          fill="none"
-          stroke="#f8fafc"
-          stroke-width="4.5"
-          stroke-linecap="round"
-        />
-        <circle cx="67" cy="81" r="4.5" fill="#37c8aa" />
+        <rect x="31" y="34" width="28" height="8" rx="4" fill="#43c6aa" />
+        <circle cx="64" cy="78" r="15" fill="#151e27" />
+        <circle cx="64" cy="75" r="5.5" fill="#43c6aa" />
+        <path d="M60 80h8l4 16H56l4-16Z" fill="#43c6aa" />
       </symbol>
     </svg>
 
     <header class="site-header">
-      <div class="header-inner">
-        <a class="brand-link" href="#top" aria-label="Tab Vault 首页">
+      <div class="shell header-inner">
+        <a class="brand" href="#top" aria-label="Tab Vault 首页">
           <svg aria-hidden="true"><use href="#tab-vault-mark"></use></svg>
-          <span>Tab Vault <small>标签资产库</small></span>
+          <span>Tab Vault</span>
         </a>
-        <nav class="header-nav" aria-label="主导航">
-          <a href="#features">能力</a>
+        <nav class="header-links" aria-label="主导航">
+          <a href="#features">功能</a>
           <a href="#privacy">隐私</a>
           <a href="https://github.com/theZmemo/tab-vault-extension">GitHub</a>
           <a
-            class="header-action"
+            class="download-link"
             href="https://github.com/theZmemo/tab-vault-extension/releases/latest"
           >
             下载扩展
@@ -1069,15 +673,15 @@
 
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-inner">
+        <div class="shell hero-inner">
           <div class="hero-copy">
-            <div class="hero-brand">
-              <svg aria-hidden="true"><use href="#tab-vault-mark"></use></svg>
-              <h1 id="hero-title">Tab Vault</h1>
-            </div>
-            <p class="hero-kicker">本地优先的标签资产库</p>
+            <svg class="hero-logo" aria-hidden="true">
+              <use href="#tab-vault-mark"></use>
+            </svg>
+            <h1 id="hero-title">Tab Vault</h1>
+            <p class="hero-tagline">标签留在手边，内存留给工作。</p>
             <p class="hero-summary">
-              把散落的浏览器标签变成可搜索、可分组、可恢复的长期资料，同时按需释放页面内存。
+              本地保存、整理、搜索和恢复浏览器标签。无需账号，不上传浏览记录。
             </p>
             <div class="hero-actions">
               <a
@@ -1090,228 +694,85 @@
                 class="secondary-action"
                 href="https://github.com/theZmemo/tab-vault-extension"
               >
-                查看源代码
+                查看源码
               </a>
             </div>
-            <div class="trust-line" aria-label="产品属性">
-              <span>数据仅存本机</span>
-              <span>无需账号</span>
-              <span>无遥测</span>
-            </div>
+            <span class="hero-note">Chrome 121+ · Edge 121+</span>
           </div>
 
-          <div class="product-stage" aria-label="Tab Vault 产品界面预览">
-            <div class="mode-switch" role="tablist" aria-label="界面预览">
-              <button
-                type="button"
-                role="tab"
-                aria-selected="true"
-                aria-controls="organize-preview"
-                data-preview="organize"
-              >
-                整理
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected="false"
-                aria-controls="sleep-preview"
-                data-preview="sleep"
-              >
-                休眠
-              </button>
-            </div>
-            <div class="product-window">
-              <div class="window-bar">
-                <div class="window-controls" aria-hidden="true">
-                  <i></i><i></i><i></i>
-                </div>
-                <span class="window-title">Tab Vault · Side Panel</span>
-                <span class="window-title">本地</span>
-              </div>
-              <div class="app-preview">
-                <div class="preview-rail" aria-hidden="true">
-                  <i class="is-active">组</i>
-                  <i>全</i>
-                  <i>眠</i>
-                  <i>档</i>
-                  <i>规</i>
-                </div>
-                <div class="preview-nav" aria-hidden="true">
-                  <strong>标签资产库</strong>
-                  <span class="is-active">永久分组</span>
-                  <span>全部资源</span>
-                  <span>已休眠</span>
-                  <span>已归档</span>
-                  <span>未分类</span>
-                </div>
-                <div class="preview-content" id="organize-preview" role="tabpanel">
-                  <div class="preview-heading">
-                    <strong>永久分组</strong>
-                    <span>手动排序</span>
-                  </div>
-                  <div class="preview-search">搜索标题、URL、域名或备注</div>
-                  <div class="group-bar is-coral">
-                    <span>治理资料</span><span>3</span>
-                  </div>
-                  <div class="resource-row">
-                    <span>数据治理工作台</span><i></i>
-                  </div>
-                  <div class="resource-row">
-                    <span>治理任务校验 SQL</span><i></i>
-                  </div>
-                  <div class="resource-row">
-                    <span>周会结论汇总</span><i></i>
-                  </div>
-                  <div class="group-bar is-blue">
-                    <span>待处理</span><span>2</span>
-                  </div>
-                  <div class="resource-row">
-                    <span>分析结果复核</span><i></i>
-                  </div>
-                  <div class="resource-row">
-                    <span>产品需求记录</span><i></i>
-                  </div>
-                </div>
-                <div
-                  class="preview-content"
-                  id="sleep-preview"
-                  role="tabpanel"
-                  hidden
-                >
-                  <div class="preview-heading">
-                    <strong>批量休眠标签</strong>
-                    <span>4 个级别</span>
-                  </div>
-                  <div class="sleep-stack">
-                    <div class="sleep-level">
-                      <span class="level-number">1</span>
-                      <div class="sleep-copy">
-                        <strong>休眠当前窗口</strong>
-                        <span>保留全部安全条件</span>
-                      </div>
-                      <b>›</b>
-                    </div>
-                    <div class="sleep-level">
-                      <span class="level-number">2</span>
-                      <div class="sleep-copy">
-                        <strong>休眠所有窗口</strong>
-                        <span>扩大到全部窗口</span>
-                      </div>
-                      <b>›</b>
-                    </div>
-                    <div class="sleep-level">
-                      <span class="level-number">3</span>
-                      <div class="sleep-copy">
-                        <strong>强力休眠</strong>
-                        <span>处理更多后台页面</span>
-                      </div>
-                      <b>›</b>
-                    </div>
-                    <div class="sleep-level">
-                      <span class="level-number">4</span>
-                      <div class="sleep-copy">
-                        <strong>深度休眠</strong>
-                        <span>本地占位页与双重 URL 恢复</span>
-                      </div>
-                      <b>›</b>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p class="product-note">Chrome / Edge · 自动跟随系统深浅色</p>
-          </div>
+          <figure class="product-visual">
+            <img
+              src="./product.png"
+              width="480"
+              height="780"
+              alt="Tab Vault 浏览器侧边栏，显示永久分组和已保存页面"
+            />
+            <figcaption>实际产品界面</figcaption>
+          </figure>
         </div>
       </section>
 
-      <section class="signal-band" aria-label="产品概要">
-        <div class="section-inner signal-grid">
-          <div class="signal-item">
-            <strong>100% 本地</strong>
-            <span>标签、分组和快照保存在浏览器 IndexedDB。</span>
+      <section class="support-band" aria-label="产品特点">
+        <div class="shell support-list">
+          <div class="support-item">
+            <strong>本地保存</strong>
+            <span>数据留在当前浏览器。</span>
           </div>
-          <div class="signal-item">
-            <strong>4 级休眠</strong>
-            <span>从原生卸载到本地占位，按需逐级释放内存。</span>
+          <div class="support-item">
+            <strong>快速找回</strong>
+            <span>搜索、分组和会话快照。</span>
           </div>
-          <div class="signal-item">
-            <strong>10 种语言</strong>
-            <span>自动适配主流语言以及系统深色、浅色模式。</span>
+          <div class="support-item">
+            <strong>按需休眠</strong>
+            <span>四级模式逐步释放内存。</span>
           </div>
         </div>
       </section>
 
       <section class="content-section" id="features">
-        <div class="section-inner">
-          <div class="section-heading">
-            <div>
-              <span class="section-label">CORE CAPABILITIES</span>
-              <h2>标签可以关闭，工作现场不用消失</h2>
-            </div>
-            <p>
-              Tab Vault 把浏览器中的临时标签与长期保存的页面资产分开管理。你可以释放内存、关闭窗口或整理会话，同时保留原 URL、标题、分组和恢复结构。
-            </p>
-          </div>
-          <div class="feature-grid">
-            <article class="feature-item">
-              <span class="feature-index">01 · ORGANIZE</span>
-              <h3>永久分组</h3>
-              <p>使用 20 种颜色、手动排序和确定性规则整理长期资料，页面关闭后成员关系仍然保留。</p>
-            </article>
-            <article class="feature-item">
-              <span class="feature-index">02 · RETRIEVE</span>
-              <h3>快速搜索</h3>
-              <p>搜索自定义名称、网页标题、URL、域名和备注；手动命名结果拥有最高权重。</p>
-            </article>
-            <article class="feature-item">
-              <span class="feature-index">03 · REDUCE</span>
-              <h3>渐进式休眠</h3>
-              <p>四级模式覆盖不同影响范围，深度休眠会在替换页面前双重保存原始 URL。</p>
-            </article>
-            <article class="feature-item">
-              <span class="feature-index">04 · RECOVER</span>
-              <h3>会话快照</h3>
-              <p>按窗口、顺序、固定状态和 Chrome 原生标签组重建工作现场。</p>
-            </article>
-            <article class="feature-item">
-              <span class="feature-index">05 · DEDUPE</span>
-              <h3>精确去重</h3>
-              <p>移除常见跟踪参数造成的重复记录，同时保留真正不同的查询条件与页面状态。</p>
-            </article>
-            <article class="feature-item">
-              <span class="feature-index">06 · PORTABLE</span>
-              <h3>完整备份</h3>
-              <p>导出结构化 JSON，在本地校验后合并导入，不依赖账号或第三方同步服务。</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="content-section privacy-section" id="privacy">
-        <div class="section-inner privacy-layout">
-          <div class="privacy-copy">
-            <span class="section-label">PRIVACY BY DEFAULT</span>
-            <h2>你的浏览记录，不需要离开浏览器</h2>
-            <p>
-              扩展不采集网页正文、Cookie、密码或表单内容，不包含广告、分析 SDK、跟踪 SDK
-              和远程代码。备份由你主动导出并自行保管。
-            </p>
-          </div>
-          <div class="privacy-list" aria-label="隐私边界">
-            <div><strong>标签元数据</strong><span>仅本地</span></div>
-            <div><strong>账号系统</strong><span>无</span></div>
-            <div><strong>遥测与广告</strong><span>无</span></div>
-            <div><strong>主机权限</strong><span>无</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="final-cta">
-        <div class="section-inner">
+        <div class="shell section-intro">
           <div>
-            <h2>把标签变成真正可管理的资产</h2>
-            <p>支持 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器。</p>
+            <span class="eyebrow">核心功能</span>
+            <h2>只做标签管理</h2>
+          </div>
+          <div class="feature-list">
+            <article class="feature-row">
+              <b>01</b>
+              <h3>整理</h3>
+              <p>用永久分组、规则和自定义名称管理长期资料。</p>
+            </article>
+            <article class="feature-row">
+              <b>02</b>
+              <h3>休眠</h3>
+              <p>从原生卸载到本地占位页，按影响范围选择四级模式。</p>
+            </article>
+            <article class="feature-row">
+              <b>03</b>
+              <h3>恢复</h3>
+              <p>保留 URL、窗口顺序、固定状态和 Chrome 原生标签组。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="privacy-section" id="privacy">
+        <div class="shell privacy-inner">
+          <div>
+            <span class="eyebrow">隐私</span>
+            <h2>数据只留在本地</h2>
+          </div>
+          <p>
+            不采集网页正文、Cookie、密码或表单内容；不包含广告、分析 SDK、跟踪
+            SDK 和远程代码。
+          </p>
+        </div>
+      </section>
+
+      <section class="final-section">
+        <div class="shell final-inner">
+          <div>
+            <h2>开始整理标签</h2>
+            <p>支持 Chrome、Edge 及其他 Chromium 浏览器。</p>
           </div>
           <a
             class="primary-action"
@@ -1324,7 +785,7 @@
     </main>
 
     <footer class="site-footer">
-      <div class="section-inner footer-inner">
+      <div class="shell footer-inner">
         <span>© <span id="year">2026</span> Tab Vault</span>
         <div class="footer-links">
           <a href="https://github.com/theZmemo/tab-vault-extension">GitHub</a>
@@ -1339,27 +800,6 @@
     </footer>
 
     <script>
-      const previewButtons = document.querySelectorAll("[data-preview]");
-      const previewPanels = {
-        organize: document.querySelector("#organize-preview"),
-        sleep: document.querySelector("#sleep-preview"),
-      };
-
-      previewButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const selected = button.dataset.preview;
-          previewButtons.forEach((item) => {
-            item.setAttribute(
-              "aria-selected",
-              String(item.dataset.preview === selected),
-            );
-          });
-          Object.entries(previewPanels).forEach(([name, panel]) => {
-            panel.hidden = name !== selected;
-          });
-        });
-      });
-
       document.querySelector("#year").textContent = String(
         new Date().getFullYear(),
       );

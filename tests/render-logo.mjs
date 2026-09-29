@@ -43,36 +43,18 @@ try {
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Tab Vault"
     >
-      <rect x="4" y="4" width="120" height="120" rx="27" fill="#172534" />
+      <rect x="4" y="4" width="120" height="120" rx="27" fill="#151e27" />
+      <rect x="20" y="23" width="88" height="86" rx="14" fill="#f7f9fa" />
       <path
-        d="M28 25h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H28c-7.7 0-14-6.3-14-14V39c0-7.7 6.3-14 14-14Z"
-        fill="#ff735f"
-      />
-      <path
-        d="M33 32h61c7.7 0 14 6.3 14 14v49c0 7.7-6.3 14-14 14H33c-7.7 0-14-6.3-14-14V46c0-7.7 6.3-14 14-14Z"
-        fill="#37c8aa"
-      />
-      <path
-        d="M37 40h22.5c3 0 4.6 1.5 6.4 4l4.3 6H94c7.7 0 14 6.3 14 14v34c0 7.7-6.3 14-14 14H37c-7.7 0-14-6.3-14-14V54c0-7.7 6.3-14 14-14Z"
-        fill="#f8fafc"
-      />
-      <circle cx="67" cy="81" r="22" fill="#172534" />
-      <circle
-        cx="67"
-        cy="81"
-        r="12"
+        d="M20 52h88"
         fill="none"
-        stroke="#f8fafc"
-        stroke-width="5"
+        stroke="#151e27"
+        stroke-width="7"
       />
-      <path
-        d="M67 65v10M53.1 89l8.7-5M80.9 89l-8.7-5"
-        fill="none"
-        stroke="#f8fafc"
-        stroke-width="4.5"
-        stroke-linecap="round"
-      />
-      <circle cx="67" cy="81" r="4.5" fill="#37c8aa" />
+      <rect x="31" y="34" width="28" height="8" rx="4" fill="#43c6aa" />
+      <circle cx="64" cy="78" r="15" fill="#151e27" />
+      <circle cx="64" cy="75" r="5.5" fill="#43c6aa" />
+      <path d="M60 80h8l4 16H56l4-16Z" fill="#43c6aa" />
     </svg>
   `);
   await page.locator("#logo").screenshot({

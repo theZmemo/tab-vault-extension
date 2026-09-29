@@ -48,7 +48,7 @@ try {
 
     const layout = await page.evaluate(() => {
       const hero = document.querySelector(".hero");
-      const signalBand = document.querySelector(".signal-band");
+      const supportBand = document.querySelector(".support-band");
       const textContainers = [
         ...document.querySelectorAll(
           "h1, h2, h3, a, button, .signal-item strong, .privacy-list strong",
@@ -57,8 +57,11 @@ try {
       return {
         viewportWidth: window.innerWidth,
         documentWidth: document.documentElement.scrollWidth,
+        documentHeight: document.documentElement.scrollHeight,
         heroHeight: hero?.getBoundingClientRect().height ?? 0,
-        nextSectionTop: signalBand?.getBoundingClientRect().top ?? Infinity,
+        nextSectionTop: supportBand?.getBoundingClientRect().top ?? Infinity,
+        productImageLoaded:
+          document.querySelector(".product-visual img")?.naturalWidth === 480,
         overflowingText: textContainers
           .filter((element) => element.scrollWidth > element.clientWidth + 1)
           .map((element) => element.textContent?.trim()),
@@ -67,13 +70,16 @@ try {
 
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
     expect(layout.nextSectionTop).toBeLessThan(scenario.viewport.height);
+    expect(layout.documentHeight).toBeLessThan(3_200);
+    expect(layout.productImageLoaded).toBe(true);
     expect(layout.overflowingText).toEqual([]);
     expect(errors).toEqual([]);
 
     if (scenario.name === "desktop") {
-      await page.getByRole("tab", { name: "休眠" }).click();
-      await expect(page.getByText("本地占位页与双重 URL 恢复")).toBeVisible();
-      await expect(page.locator("#organize-preview")).toBeHidden();
+      await page.getByRole("heading", { name: "只做标签管理" }).scrollIntoViewIfNeeded();
+      await expect(
+        page.getByRole("heading", { name: "只做标签管理" }),
+      ).toBeVisible();
     }
 
     const screenshot = resolve(
