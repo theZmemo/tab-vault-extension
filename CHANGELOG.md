@@ -2,6 +2,20 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.17] - 2026-09-29
+
+### Fixed
+
+- Removed an inherited settings-row margin that shifted the automatic-sleep
+  switch knob down and outside its track.
+- Rebuilt the switch with fixed 36x20px track and 16px knob geometry, preserving
+  a consistent 2px inset in both states.
+- Reset native padding on navigation-rail and color-swatch buttons.
+- Extended browser checks across 14 interface states for icon alignment,
+  clipping, accessible labels, and button content overflow.
+- Added exact switch geometry checks for both states across all 10 languages in
+  light and dark modes.
+
 ## [0.0.16] - 2026-09-29
 
 ### Fixed
@@ -227,6 +241,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.17]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.17
 [0.0.16]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.16
 [0.0.15]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.15
 [0.0.14]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.14

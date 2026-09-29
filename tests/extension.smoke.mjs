@@ -33,6 +33,112 @@ await new Promise((resolveServer) =>
 );
 await mkdir(artifactsPath, { recursive: true });
 
+async function expectVisibleIconGeometry(page, checkpoint) {
+  const issues = await page.evaluate(() => {
+    const tolerance = 1;
+    const isVisible = (element) =>
+      element.getClientRects().length > 0 &&
+      getComputedStyle(element).visibility !== "hidden";
+    const issues = [];
+
+    for (const button of document.querySelectorAll("button")) {
+      if (!isVisible(button)) {
+        continue;
+      }
+      const buttonRect = button.getBoundingClientRect();
+      const icons = [...button.querySelectorAll("svg")].filter(isVisible);
+      if (
+        !button.closest(".navigation-rail") &&
+        (button.scrollWidth > button.clientWidth + tolerance ||
+          button.scrollHeight > button.clientHeight + tolerance)
+      ) {
+        issues.push(`${button.ariaLabel || button.className}: content overflow`);
+      }
+      if (
+        button.matches(".icon-button, .navigation-rail button, .color-swatch") &&
+        !button.getAttribute("aria-label")
+      ) {
+        issues.push(`${button.className}: missing accessible label`);
+      }
+      for (const icon of icons) {
+        const iconRect = icon.getBoundingClientRect();
+        if (
+          iconRect.left < buttonRect.left - tolerance ||
+          iconRect.right > buttonRect.right + tolerance ||
+          iconRect.top < buttonRect.top - tolerance ||
+          iconRect.bottom > buttonRect.bottom + tolerance
+        ) {
+          issues.push(`${button.ariaLabel || button.className}: icon outside`);
+        }
+        if (
+          Math.abs(
+            iconRect.top +
+              iconRect.height / 2 -
+              (buttonRect.top + buttonRect.height / 2),
+          ) > tolerance
+        ) {
+          issues.push(`${button.ariaLabel || button.className}: icon vertical`);
+        }
+      }
+
+      if (
+        icons.length === 1 &&
+        button.matches(
+          ".icon-button, .navigation-rail button, .color-swatch",
+        )
+      ) {
+        const iconRect = icons[0].getBoundingClientRect();
+        if (
+          Math.abs(
+            iconRect.left +
+              iconRect.width / 2 -
+              (buttonRect.left + buttonRect.width / 2),
+          ) > tolerance
+        ) {
+          issues.push(`${button.ariaLabel || button.className}: icon horizontal`);
+        }
+      }
+    }
+
+    for (const toggle of document.querySelectorAll(".toggle")) {
+      if (!isVisible(toggle)) {
+        continue;
+      }
+      const toggleTolerance = 0.01;
+      const knob = toggle.querySelector(":scope > span");
+      const toggleRect = toggle.getBoundingClientRect();
+      const knobRect = knob?.getBoundingClientRect();
+      if (
+        !knobRect ||
+        Math.abs(toggleRect.width - 36) > toggleTolerance ||
+        Math.abs(toggleRect.height - 20) > toggleTolerance ||
+        Math.abs(knobRect.width - 16) > toggleTolerance ||
+        Math.abs(knobRect.height - 16) > toggleTolerance ||
+        knobRect.left < toggleRect.left - toggleTolerance ||
+        knobRect.right > toggleRect.right + toggleTolerance ||
+        knobRect.top < toggleRect.top - toggleTolerance ||
+        knobRect.bottom > toggleRect.bottom + toggleTolerance ||
+        Math.abs(
+          knobRect.top +
+            knobRect.height / 2 -
+            (toggleRect.top + toggleRect.height / 2),
+        ) > toggleTolerance ||
+        Math.abs(
+          (toggle.getAttribute("aria-checked") === "true"
+            ? toggleRect.right - knobRect.right
+            : knobRect.left - toggleRect.left) - 2,
+        ) > toggleTolerance
+      ) {
+        issues.push(`${toggle.ariaLabel || "toggle"}: invalid knob`);
+      }
+    }
+
+    return issues;
+  });
+
+  expect(issues, `${checkpoint} icon geometry`).toEqual([]);
+}
+
 let context;
 try {
   context = await chromium.launchPersistentContext(profilePath, {
@@ -46,6 +152,7 @@ try {
     },
     args: [
       "--disable-breakpad",
+      "--disable-crashpad",
       "--disable-crash-reporter",
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
@@ -90,6 +197,7 @@ try {
     path: join(artifactsPath, "group-overview-empty.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "empty group overview");
 
   await panel.getByLabel("搜索资源").fill("任务校验");
   await expect(panel.getByText("治理任务校验 SQL", { exact: true })).toBeVisible(
@@ -118,6 +226,7 @@ try {
     path: join(artifactsPath, "color-picker.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "color picker");
   await panel.getByLabel("分组名称").fill("数据治理");
   await panel.getByLabel("选择橙色").click();
   await panel.getByRole("button", { name: "创建分组" }).click();
@@ -157,6 +266,7 @@ try {
     path: join(artifactsPath, "group-overview.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "group overview");
   const governanceRailButton = panel
     .locator(".navigation-rail")
     .getByRole("button", { name: "治理资料", exact: true });
@@ -169,6 +279,7 @@ try {
     path: join(artifactsPath, "sidepanel-rail-tooltip.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "navigation rail tooltip");
   await governanceRailButton.click();
   await expect(governanceRailButton).toHaveAttribute("aria-current", "page");
   await expect(panel.locator(".resource-row")).toHaveCount(2);
@@ -192,6 +303,7 @@ try {
     path: join(artifactsPath, "group-hover-feedback.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "group hover state");
   await groupOverview.getByLabel("分组排序").selectOption("count");
   await expect(
     groupOverview.locator(".collection-accordion").first(),
@@ -266,6 +378,7 @@ try {
     path: join(artifactsPath, "compact-resource-card.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "compact resource card");
 
   await panel
     .locator(".navigation-rail")
@@ -292,6 +405,7 @@ try {
     path: join(artifactsPath, "sidepanel-smoke.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "side panel default");
 
   const extraGroupNames = Array.from(
     { length: 6 },
@@ -326,6 +440,7 @@ try {
     path: join(artifactsPath, "sidepanel-rail.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "compact navigation rail");
   const collapsedContentBox = await panel.locator(".content").boundingBox();
   await panel.getByTitle("展开导航").click();
   await expect(panel.locator(".navigation")).toBeVisible();
@@ -340,6 +455,7 @@ try {
     path: join(artifactsPath, "sidepanel-wide.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "expanded navigation");
 
   const browserPanelSide = await panel.evaluate(async () => {
     if (!chrome.sidePanel.getLayout) {
@@ -381,6 +497,7 @@ try {
     path: join(artifactsPath, "about-page.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(aboutPage, "packaged about page");
   await aboutPage.close();
   await panel.getByTitle("关闭").press("Escape");
   await expect(panel.locator(".modal")).toHaveCount(0);
@@ -405,6 +522,7 @@ try {
     path: join(artifactsPath, "sidepanel-compact-browser-side.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "browser-side compact panel");
 
   await serviceWorker.evaluate(async () => {
     const tabs = await chrome.tabs.query({});
@@ -443,6 +561,7 @@ try {
     path: join(artifactsPath, "batch-sleep-dialog.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "batch sleep dialog");
   await panel
     .getByRole("button", { name: "休眠当前窗口其他标签" })
     .click();
@@ -504,6 +623,7 @@ try {
     path: join(artifactsPath, "deep-sleep-warning.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(panel, "deep sleep warning");
   await panel
     .getByRole("button", { name: "确认并开始深度休眠" })
     .click();
@@ -517,6 +637,7 @@ try {
     path: join(artifactsPath, "deep-sleep-placeholder.png"),
     fullPage: true,
   });
+  await expectVisibleIconGeometry(deepSleepPage, "deep sleep placeholder");
   const deepSleepState = await panel.evaluate(async () => {
     const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
     return response.data;

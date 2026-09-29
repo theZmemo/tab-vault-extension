@@ -152,6 +152,45 @@ const profilePath = join(
   `tab-vault-locale-${localeKey}-${Date.now().toString(36)}`,
 );
 
+async function readToggleGeometry(page) {
+  return page.locator(".toggle").evaluate((toggle) => {
+    const knob = toggle.querySelector(":scope > span");
+    if (!knob) {
+      return null;
+    }
+    const toggleRect = toggle.getBoundingClientRect();
+    const knobRect = knob.getBoundingClientRect();
+    return {
+      checked: toggle.getAttribute("aria-checked") === "true",
+      trackWidth: toggleRect.width,
+      trackHeight: toggleRect.height,
+      knobWidth: knobRect.width,
+      knobHeight: knobRect.height,
+      topInset: knobRect.top - toggleRect.top,
+      rightInset: toggleRect.right - knobRect.right,
+      bottomInset: toggleRect.bottom - knobRect.bottom,
+      leftInset: knobRect.left - toggleRect.left,
+      verticalCenterOffset:
+        knobRect.top +
+        knobRect.height / 2 -
+        (toggleRect.top + toggleRect.height / 2),
+    };
+  });
+}
+
+function expectToggleGeometry(geometry, checked) {
+  expect(geometry).not.toBeNull();
+  expect(geometry.checked).toBe(checked);
+  expect(geometry.trackWidth).toBe(36);
+  expect(geometry.trackHeight).toBe(20);
+  expect(geometry.knobWidth).toBe(16);
+  expect(geometry.knobHeight).toBe(16);
+  expect(geometry.topInset).toBe(2);
+  expect(geometry.bottomInset).toBe(2);
+  expect(geometry.verticalCenterOffset).toBe(0);
+  expect(checked ? geometry.rightInset : geometry.leftInset).toBe(2);
+}
+
 await mkdir(artifactsPath, { recursive: true });
 
 let context;
@@ -168,6 +207,7 @@ try {
     },
     args: [
       "--disable-breakpad",
+      "--disable-crashpad",
       "--disable-crash-reporter",
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
@@ -343,6 +383,20 @@ try {
     invalidToggle: false,
     footerOverlap: false,
   });
+  const initialToggleGeometry = await readToggleGeometry(panel);
+  expectToggleGeometry(initialToggleGeometry, initialToggleGeometry.checked);
+  await panel.locator(".toggle").click();
+  await panel.waitForTimeout(180);
+  expectToggleGeometry(
+    await readToggleGeometry(panel),
+    !initialToggleGeometry.checked,
+  );
+  await panel.locator(".toggle").click();
+  await panel.waitForTimeout(180);
+  expectToggleGeometry(
+    await readToggleGeometry(panel),
+    initialToggleGeometry.checked,
+  );
   await panel.locator(".form").evaluate((form) => {
     form.scrollTop = 0;
   });

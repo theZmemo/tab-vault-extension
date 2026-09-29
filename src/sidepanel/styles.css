@@ -972,6 +972,7 @@ input[type="checkbox"] {
   cursor: pointer;
   place-items: center;
   border-radius: 6px;
+  padding: 0;
   color: #fff;
 }
 
@@ -1087,34 +1088,28 @@ input[type="checkbox"] {
   font-size: 12px;
 }
 
-.setting-row span {
-  display: block;
-  margin-top: 3px;
-  color: #79838e;
-  font-size: 10px;
-}
-
 .toggle {
   position: relative;
-  display: flex;
-  width: 34px;
+  display: block;
+  width: 36px;
   height: 20px;
   flex: 0 0 auto;
   cursor: pointer;
-  align-items: center;
   border-radius: 10px;
   background: #b7bec6;
-  padding: 2px;
-  line-height: 0;
+  padding: 0;
+  transition: background-color 130ms ease;
 }
 
-.toggle span {
-  display: block;
+.toggle > span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%);
   transition: transform 130ms ease;
 }
 
@@ -1122,8 +1117,8 @@ input[type="checkbox"] {
   background: #2b68cf;
 }
 
-.toggle.is-on span {
-  transform: translateX(14px);
+.toggle.is-on > span {
+  transform: translateX(16px);
 }
 
 .backup-actions {
@@ -1999,6 +1994,7 @@ body {
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
+  padding: 0;
   color: #687584;
   transition:
     transform 100ms ease,
