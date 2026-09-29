@@ -7,8 +7,25 @@ const projectRoot = resolve(import.meta.dirname, "..");
 const extensionPath = join(projectRoot, "dist");
 const artifactsPath = join(projectRoot, "artifacts");
 const requestedLocale = process.env.TAB_VAULT_TEST_LOCALE ?? "en-US";
+const requestedTheme = process.env.TAB_VAULT_TEST_THEME ?? "dark";
 const localeKey = requestedLocale.toLowerCase().replaceAll("-", "_");
+if (!["light", "dark"].includes(requestedTheme)) {
+  throw new Error(`Unsupported smoke-test theme: ${requestedTheme}`);
+}
 const expectations = {
+  "zh-CN": {
+    appName: "标签资产库",
+    searchPlaceholder: "搜索标题、URL、域名或备注",
+    noPermanentGroups: "暂无永久分组",
+    settings: "设置",
+    browserPanelSide: "浏览器侧边栏",
+    privacyAndData: "隐私与数据",
+    localDataDisclosure:
+      "标签 URL、标题、访问时间和分组仅保存在当前浏览器中，不会对外传输。",
+    productIntroduction: "关于标签资产库",
+    viewProductIntroduction: "查看产品介绍",
+    officialWebsite: "访问官网",
+  },
   "en-US": {
     appName: "Tab Vault",
     searchPlaceholder: "Search title, URL, domain, or notes",
@@ -74,6 +91,19 @@ const expectations = {
     viewProductIntroduction: "Produktvorstellung öffnen",
     officialWebsite: "Offizielle Website",
   },
+  "es-ES": {
+    appName: "Tab Vault",
+    searchPlaceholder: "Buscar título, URL, dominio o notas",
+    noPermanentGroups: "Sin grupos permanentes",
+    settings: "Configuración",
+    browserPanelSide: "Panel lateral del navegador",
+    privacyAndData: "Privacidad y datos",
+    localDataDisclosure:
+      "Las pestañas URL, títulos, tiempos de visita y grupos permanecen en este navegador y no se transmiten.",
+    productIntroduction: "Acerca de Tab Vault",
+    viewProductIntroduction: "Ver presentación",
+    officialWebsite: "Sitio web oficial",
+  },
   "fr-FR": {
     appName: "Tab Vault",
     searchPlaceholder: "Rechercher un titre, un URL, un domaine ou des notes",
@@ -86,6 +116,19 @@ const expectations = {
     productIntroduction: "À propos de Tab Vault",
     viewProductIntroduction: "Voir la présentation",
     officialWebsite: "Site officiel",
+  },
+  "pt-BR": {
+    appName: "Tab Vault",
+    searchPlaceholder: "Título de pesquisa, URL, domínio ou notas",
+    noPermanentGroups: "Nenhum grupo permanente",
+    settings: "Configurações",
+    browserPanelSide: "Painel lateral do navegador",
+    privacyAndData: "Privacidade e dados",
+    localDataDisclosure:
+      "Guia URLs, títulos, horários de visita e grupos permanecem neste navegador e não são transmitidos.",
+    productIntroduction: "Sobre o Tab Vault",
+    viewProductIntroduction: "Ver apresentação",
+    officialWebsite: "Site oficial",
   },
   "ru-RU": {
     appName: "Tab Vault",
@@ -117,8 +160,8 @@ try {
     channel: "chromium",
     headless: true,
     locale: requestedLocale,
-    colorScheme: "dark",
-    viewport: { width: 480, height: 780 },
+    colorScheme: requestedTheme,
+    viewport: { width: 390, height: 844 },
     env: {
       ...process.env,
       HOME: profilePath,
@@ -157,7 +200,10 @@ try {
   ).toBeVisible();
   await expect(panel.locator(".navigation-rail")).toHaveCSS("width", "42px");
   await panel.screenshot({
-    path: join(artifactsPath, `group-overview-${localeKey}-dark.png`),
+    path: join(
+      artifactsPath,
+      `group-overview-${localeKey}-${requestedTheme}.png`,
+    ),
     fullPage: true,
   });
   await panel.getByTitle(expectations.settings).click();
@@ -172,6 +218,48 @@ try {
   await expect(
     panel.getByText(expectations.productIntroduction, { exact: true }),
   ).toBeVisible();
+  const settingsLayout = await panel.evaluate(() => {
+    const modal = document.querySelector(".modal");
+    const actions = document.querySelector(".form-actions");
+    const buttons = [...document.querySelectorAll(
+      ".browser-side-setting > .button-secondary",
+    )];
+    const lastSettingButton = buttons.at(-1);
+    const actionsRect = actions?.getBoundingClientRect();
+    const lastButtonRect = lastSettingButton?.getBoundingClientRect();
+    return {
+      modalOverflow: Boolean(
+        modal && modal.scrollWidth > modal.clientWidth + 1,
+      ),
+      buttonOverflow: buttons.some(
+        (button) => button.scrollWidth > button.clientWidth + 1,
+      ),
+      wrappedButtons: buttons.some(
+        (button) => getComputedStyle(button).whiteSpace !== "nowrap",
+      ),
+      footerOverlap: Boolean(
+        actionsRect &&
+          lastButtonRect &&
+          lastButtonRect.bottom > actionsRect.top + 1,
+      ),
+    };
+  });
+  expect(settingsLayout).toEqual({
+    modalOverflow: false,
+    buttonOverflow: false,
+    wrappedButtons: false,
+    footerOverlap: false,
+  });
+  await panel.locator(".form").evaluate((form) => {
+    form.scrollTop = 0;
+  });
+  await panel.screenshot({
+    path: join(
+      artifactsPath,
+      `sidepanel-${localeKey}-${requestedTheme}.png`,
+    ),
+    fullPage: true,
+  });
   const aboutPagePromise = context.waitForEvent("page");
   await panel
     .getByRole("button", { name: expectations.viewProductIntroduction })
@@ -184,11 +272,16 @@ try {
   await expect(
     aboutPage.getByRole("link", { name: expectations.officialWebsite }),
   ).toHaveAttribute("href", "https://tidr.dev/xxx");
-  await aboutPage.close();
-  await panel.screenshot({
-    path: join(artifactsPath, `sidepanel-${localeKey}-dark.png`),
+  expect(
+    await aboutPage.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    ),
+  ).toBe(false);
+  await aboutPage.screenshot({
+    path: join(artifactsPath, `about-${localeKey}-${requestedTheme}.png`),
     fullPage: true,
   });
+  await aboutPage.close();
 
   if (runtimeErrors.length > 0) {
     throw new Error(`English panel errors: ${runtimeErrors.join("; ")}`);
@@ -198,14 +291,14 @@ try {
     JSON.stringify(
       {
         locale: requestedLocale,
-        theme: "dark",
+        theme: requestedTheme,
         appName: true,
         groupOverviewDefault: true,
         settings: true,
         privacyDisclosure: true,
         packagedAboutPage: true,
-        groupOverviewScreenshot: `artifacts/group-overview-${localeKey}-dark.png`,
-        screenshot: `artifacts/sidepanel-${localeKey}-dark.png`,
+        groupOverviewScreenshot: `artifacts/group-overview-${localeKey}-${requestedTheme}.png`,
+        screenshot: `artifacts/sidepanel-${localeKey}-${requestedTheme}.png`,
       },
       null,
       2,

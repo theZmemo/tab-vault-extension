@@ -258,11 +258,13 @@ function Modal({
   children,
   onClose,
   width = "normal",
+  className,
 }: {
   title: string;
   children: ComponentChildren;
   onClose: () => void;
   width?: "normal" | "wide";
+  className?: string;
 }) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -278,7 +280,11 @@ function Modal({
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
-        className={cx("modal", width === "wide" && "modal-wide")}
+        className={cx(
+          "modal",
+          width === "wide" && "modal-wide",
+          className,
+        )}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -2676,7 +2682,11 @@ function SettingsDialog({
   );
 
   return (
-    <Modal title={t("settings")} onClose={onClose}>
+    <Modal
+      title={t("settings")}
+      className="modal-settings"
+      onClose={onClose}
+    >
       <form
         className="form"
         onSubmit={(event) => {

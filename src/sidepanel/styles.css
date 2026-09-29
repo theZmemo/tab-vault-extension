@@ -792,7 +792,7 @@ input[type="checkbox"] {
 .modal {
   display: flex;
   width: min(440px, calc(100vw - 24px));
-  max-height: min(680px, calc(100vh - 24px));
+  max-height: min(680px, calc(100dvh - 24px));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #cdd4db;
@@ -803,6 +803,10 @@ input[type="checkbox"] {
 
 .modal-wide {
   width: min(650px, calc(100vw - 24px));
+}
+
+.modal-settings {
+  max-height: min(820px, calc(100dvh - 24px));
 }
 
 .modal-header {
@@ -2466,6 +2470,7 @@ body {
   margin-top: 3px;
   color: #7a8693;
   font-size: 10px;
+  overflow-wrap: anywhere;
 }
 
 .move-resource-summary {
@@ -2562,6 +2567,17 @@ body {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .browser-side-setting {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .browser-side-setting > .button-secondary {
+    width: 100%;
+    white-space: nowrap;
   }
 
   .resource-list {

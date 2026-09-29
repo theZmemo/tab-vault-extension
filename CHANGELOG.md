@@ -2,6 +2,19 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.15] - 2026-09-29
+
+### Fixed
+
+- Changed narrow settings rows to a stacked layout so action labels no longer
+  wrap or collide with descriptions.
+- Gave the settings dialog its own responsive height and removed the overlaying
+  sticky footer behavior that could cover the product-introduction action in
+  longer locales.
+- Added overflow, button wrapping, footer overlap, and packaged-about-page
+  assertions at a 390px side-panel width.
+- Verified all 10 supported UI languages in both light and dark modes.
+
 ## [0.0.14] - 2026-09-29
 
 ### Added
@@ -200,6 +213,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.15]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.15
 [0.0.14]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.14
 [0.0.13]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.13
 [0.0.12]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.12
