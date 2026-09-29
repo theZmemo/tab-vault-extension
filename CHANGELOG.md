@@ -2,6 +2,20 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.16] - 2026-09-29
+
+### Fixed
+
+- Reset native button padding so top toolbar icons are geometrically centered
+  instead of shifted 1.5px to the right.
+- Centered the automatic-sleep toggle knob and removed its 1px vertical
+  overflow.
+- Added a missing browser-panel icon and standardized the settings actions on
+  dedicated 16px icon slots with 14px Lucide icons.
+- Replaced the generic privacy shield with the clearer shield-check icon.
+- Added automated size, alignment, boundary, and overlap checks for all visible
+  icon buttons in the localized settings flow.
+
 ## [0.0.15] - 2026-09-29
 
 ### Fixed
@@ -213,6 +227,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.16]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.16
 [0.0.15]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.15
 [0.0.14]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.14
 [0.0.13]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.13

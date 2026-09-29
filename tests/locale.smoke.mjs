@@ -224,6 +224,14 @@ try {
     const buttons = [...document.querySelectorAll(
       ".browser-side-setting > .button-secondary",
     )];
+    const topActionButtons = [
+      ...document.querySelectorAll(".top-actions .icon-button"),
+    ];
+    const visibleIconButtons = [
+      ...document.querySelectorAll(".icon-button"),
+    ].filter((button) => button.getClientRects().length > 0);
+    const toggle = document.querySelector(".toggle");
+    const toggleKnob = toggle?.querySelector("span");
     const lastSettingButton = buttons.at(-1);
     const actionsRect = actions?.getBoundingClientRect();
     const lastButtonRect = lastSettingButton?.getBoundingClientRect();
@@ -237,6 +245,86 @@ try {
       wrappedButtons: buttons.some(
         (button) => getComputedStyle(button).whiteSpace !== "nowrap",
       ),
+      missingSettingIcons: buttons.some(
+        (button) =>
+          button.querySelectorAll(".setting-action-icon > svg").length !== 1 ||
+          button.querySelectorAll(".setting-action-label").length !== 1,
+      ),
+      invalidSettingIcons: buttons.some((button) => {
+        const icon = button.querySelector(".setting-action-icon > svg");
+        const label = button.querySelector(".setting-action-label");
+        if (!icon || !label) {
+          return true;
+        }
+        const buttonRect = button.getBoundingClientRect();
+        const iconRect = icon.getBoundingClientRect();
+        const labelRect = label.getBoundingClientRect();
+        return (
+          Math.abs(iconRect.width - 14) > 0.5 ||
+          Math.abs(iconRect.height - 14) > 0.5 ||
+          Math.abs(
+            iconRect.top +
+              iconRect.height / 2 -
+              (buttonRect.top + buttonRect.height / 2),
+          ) > 1 ||
+          iconRect.right + 4 > labelRect.left
+        );
+      }),
+      invalidTopActionIcons: topActionButtons.some((button) => {
+        const icons = button.querySelectorAll("svg");
+        const buttonRect = button.getBoundingClientRect();
+        const iconRect = icons[0]?.getBoundingClientRect();
+        return (
+          icons.length !== 1 ||
+          !iconRect ||
+          Math.abs(
+            iconRect.left +
+              iconRect.width / 2 -
+              (buttonRect.left + buttonRect.width / 2),
+          ) > 1 ||
+          Math.abs(
+            iconRect.top +
+              iconRect.height / 2 -
+              (buttonRect.top + buttonRect.height / 2),
+          ) > 1
+        );
+      }),
+      invalidVisibleIconButtons: visibleIconButtons.some((button) => {
+        const icons = button.querySelectorAll("svg");
+        const buttonRect = button.getBoundingClientRect();
+        const iconRect = icons[0]?.getBoundingClientRect();
+        return (
+          icons.length !== 1 ||
+          !iconRect ||
+          iconRect.left < buttonRect.left ||
+          iconRect.right > buttonRect.right ||
+          iconRect.top < buttonRect.top ||
+          iconRect.bottom > buttonRect.bottom ||
+          Math.abs(
+            iconRect.left +
+              iconRect.width / 2 -
+              (buttonRect.left + buttonRect.width / 2),
+          ) > 1 ||
+          Math.abs(
+            iconRect.top +
+              iconRect.height / 2 -
+              (buttonRect.top + buttonRect.height / 2),
+          ) > 1
+        );
+      }),
+      invalidToggle: (() => {
+        if (!toggle || !toggleKnob) {
+          return true;
+        }
+        const toggleRect = toggle.getBoundingClientRect();
+        const knobRect = toggleKnob.getBoundingClientRect();
+        return (
+          knobRect.left < toggleRect.left ||
+          knobRect.right > toggleRect.right ||
+          knobRect.top < toggleRect.top ||
+          knobRect.bottom > toggleRect.bottom
+        );
+      })(),
       footerOverlap: Boolean(
         actionsRect &&
           lastButtonRect &&
@@ -248,6 +336,11 @@ try {
     modalOverflow: false,
     buttonOverflow: false,
     wrappedButtons: false,
+    missingSettingIcons: false,
+    invalidSettingIcons: false,
+    invalidTopActionIcons: false,
+    invalidVisibleIconButtons: false,
+    invalidToggle: false,
     footerOverlap: false,
   });
   await panel.locator(".form").evaluate((form) => {

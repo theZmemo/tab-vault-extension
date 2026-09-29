@@ -19,6 +19,7 @@ import {
   Menu,
   MoreHorizontal,
   Moon,
+  PanelRight,
   Pencil,
   Plus,
   RefreshCw,
@@ -26,6 +27,7 @@ import {
   Search,
   Settings,
   Shield,
+  ShieldCheck,
   ShieldOff,
   SlidersHorizontal,
   Snowflake,
@@ -2769,7 +2771,12 @@ function SettingsDialog({
               })
             }
           >
-            {t("openAppearanceSettings")}
+            <span className="setting-action-icon" aria-hidden="true">
+              <PanelRight size={14} />
+            </span>
+            <span className="setting-action-label">
+              {t("openAppearanceSettings")}
+            </span>
           </button>
         </div>
         <div className="browser-side-setting">
@@ -2786,8 +2793,12 @@ function SettingsDialog({
               })
             }
           >
-            <Shield size={14} />
-            {t("viewPrivacyPolicy")}
+            <span className="setting-action-icon" aria-hidden="true">
+              <ShieldCheck size={14} />
+            </span>
+            <span className="setting-action-label">
+              {t("viewPrivacyPolicy")}
+            </span>
           </button>
         </div>
         <div className="browser-side-setting">
@@ -2804,8 +2815,12 @@ function SettingsDialog({
               })
             }
           >
-            <Info size={14} />
-            {t("viewProductIntroduction")}
+            <span className="setting-action-icon" aria-hidden="true">
+              <Info size={14} />
+            </span>
+            <span className="setting-action-label">
+              {t("viewProductIntroduction")}
+            </span>
           </button>
         </div>
         <div className="form-actions">

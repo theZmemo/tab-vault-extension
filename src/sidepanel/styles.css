@@ -121,6 +121,7 @@ input:disabled {
   place-items: center;
   border-radius: 6px;
   background: transparent;
+  padding: 0;
   color: #596471;
 }
 
@@ -1095,13 +1096,16 @@ input[type="checkbox"] {
 
 .toggle {
   position: relative;
+  display: flex;
   width: 34px;
   height: 20px;
   flex: 0 0 auto;
   cursor: pointer;
+  align-items: center;
   border-radius: 10px;
   background: #b7bec6;
   padding: 2px;
+  line-height: 0;
 }
 
 .toggle span {
@@ -2457,20 +2461,42 @@ body {
   min-width: 0;
 }
 
-.browser-side-setting strong,
-.browser-side-setting span {
+.browser-side-setting > div > strong,
+.browser-side-setting > div > span {
   display: block;
 }
 
-.browser-side-setting strong {
+.browser-side-setting > div > strong {
   font-size: 11px;
 }
 
-.browser-side-setting span {
+.browser-side-setting > div > span {
   margin-top: 3px;
   color: #7a8693;
   font-size: 10px;
   overflow-wrap: anywhere;
+}
+
+.setting-action-icon {
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  place-items: center;
+}
+
+.setting-action-icon > svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+
+.setting-action-label {
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  line-height: 16px;
 }
 
 .move-resource-summary {
