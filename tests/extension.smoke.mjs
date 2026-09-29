@@ -360,6 +360,28 @@ try {
   await expect(
     panel.getByRole("button", { name: "查看隐私政策" }),
   ).toBeVisible();
+  await expect(
+    panel.getByText("关于标签资产库", { exact: true }),
+  ).toBeVisible();
+  const aboutPagePromise = context.waitForEvent("page");
+  await panel.getByRole("button", { name: "查看产品介绍" }).click();
+  const aboutPage = await aboutPagePromise;
+  await aboutPage.waitForLoadState();
+  expect(aboutPage.url()).toBe(
+    `chrome-extension://${extensionId}/about.html`,
+  );
+  await expect(
+    aboutPage.getByRole("heading", { name: "标签资产库" }),
+  ).toBeVisible();
+  await expect(aboutPage.getByRole("link", { name: "访问官网" })).toHaveAttribute(
+    "href",
+    "https://tidr.dev/xxx",
+  );
+  await aboutPage.screenshot({
+    path: join(artifactsPath, "about-page.png"),
+    fullPage: true,
+  });
+  await aboutPage.close();
   await panel.getByTitle("关闭").press("Escape");
   await expect(panel.locator(".modal")).toHaveCount(0);
   await panel.getByTitle("收起导航").click();
@@ -665,6 +687,7 @@ try {
         groupHoverFeedback: true,
         modalEscapeClose: true,
         privacyDisclosure: true,
+        packagedAboutPage: true,
         locale: "zh-CN",
         navigationFollowsBrowser: true,
         compactRail: true,

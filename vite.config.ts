@@ -15,6 +15,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         sidepanel: resolve(currentDirectory, "sidepanel.html"),
+        about: resolve(currentDirectory, "about.html"),
         suspended: resolve(currentDirectory, "suspended.html"),
         background: resolve(currentDirectory, "src/background/index.ts"),
       },

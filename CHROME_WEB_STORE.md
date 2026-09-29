@@ -1,10 +1,12 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.13
+版本：0.0.14
 
-产品主页：`https://thezmemo.github.io/tab-vault-extension/xxx/`
+插件内产品介绍：`about.html`，从扩展“设置”中打开。
 
-发布状态：商店文案、截图、图标和上传包已生成；仓库未记录 Chrome Web Store 条目 ID 或已上线详情页 URL，当前按尚未提交上线处理。`https://tidr.dev/xxx` 仅作为后续自定义域名目标。
+产品官网目标：`https://tidr.dev/xxx`，当前未解析，商店提交时暂不填写首页字段。
+
+发布状态：商店文案、截图、图标和上传包已生成；仓库未记录 Chrome Web Store 条目 ID 或已上线详情页 URL，当前按尚未提交上线处理。Chrome Web Store 详情页由开发者后台提交生成，与插件内 `about.html` 分开。
 
 ## 单一用途
 
@@ -108,7 +110,7 @@ Privacy:
 
 ## 商品链接
 
-- 首页：`https://thezmemo.github.io/tab-vault-extension/xxx/`
+- 首页：暂不填写；`https://tidr.dev/xxx` 上线后再补充。
 - 支持：`https://github.com/theZmemo/tab-vault-extension/issues`
 - 隐私政策：`https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md`
 
@@ -134,6 +136,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.13 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.14 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

@@ -1,8 +1,8 @@
 # 标签资产库
 
-面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.13。
+面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.14。
 
-产品简介页：[https://thezmemo.github.io/tab-vault-extension/xxx/](https://thezmemo.github.io/tab-vault-extension/xxx/)。部署源文件为 [`site/xxx/index.html`](./site/xxx/index.html)；`https://tidr.dev/xxx` 保留为后续自定义域名目标。
+产品介绍已内置在扩展的 `about.html` 中，从“设置”→“关于标签资产库”打开，无需网络。页面内的“访问官网”链接指向 `https://tidr.dev/xxx`。
 
 ## 已实现
 
@@ -128,7 +128,6 @@ npm test
 npm run test:extension
 npm run test:recovery
 npm run test:locale
-npm run test:landing
 npm run test:performance
 npm run verify:store
 npm run render:store
@@ -136,9 +135,7 @@ npm run render:logo
 npm run generate:locales
 ```
 
-`npm run test:extension` 会启动临时 Chromium 配置，验证自动捕获、去重、永久分组、规则、四级休眠、占位页自动恢复、归档恢复和会话快照，不会使用日常浏览器配置。
-
-`npm run test:landing` 会在桌面浅色和手机深色视口检查简介页交互、链接、首屏构图、文字和横向溢出，并生成验收截图。
+`npm run test:extension` 会启动临时 Chromium 配置，验证自动捕获、去重、永久分组、规则、四级休眠、内置产品介绍页、归档恢复和会话快照，不会使用日常浏览器配置。
 
 `npm run test:performance` 会构造 2,000 条本地资源，验证“全部资源”首屏只渲染 80 条、点击响应不超过 200ms，并确认滚动后继续加载。
 

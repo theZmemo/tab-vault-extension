@@ -2,6 +2,24 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.14] - 2026-09-29
+
+### Added
+
+- Packaged `about.html` product introduction page that works offline inside the
+  installed extension.
+- Explicit Settings entry for opening the product introduction.
+- Official website button in the packaged introduction page, targeting
+  `https://tidr.dev/xxx`.
+
+### Changed
+
+- Removed the external GitHub Pages deployment and its `gh-pages` branch.
+- Removed `homepage_url` from the Manifest so the extension introduction is no
+  longer coupled to an external or unresolved URL.
+- Clarified that Chrome Web Store listing content is prepared separately and
+  has not yet been submitted or published.
+
 ## [0.0.13] - 2026-09-29
 
 ### Fixed
@@ -182,6 +200,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.14]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.14
 [0.0.13]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.13
 [0.0.12]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.12
 [0.0.11]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.11

@@ -1,0 +1,256 @@
+:root {
+  color: #18232d;
+  background: #edf1f4;
+  font-family:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --surface: #f9fafb;
+  --surface-strong: #ffffff;
+  --text: #18232d;
+  --muted: #66737f;
+  --border: #ccd5dd;
+  --accent: #259b84;
+  --button: #18232d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: #edf1f4;
+  color: var(--text);
+}
+
+a {
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0;
+  text-decoration: none;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.about-shell {
+  width: min(760px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 68px 0 40px;
+}
+
+.about-header {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+  padding-bottom: 34px;
+}
+
+.about-logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+}
+
+.about-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 42px;
+}
+
+.about-description {
+  max-width: 560px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.capability-list {
+  border-top: 1px solid var(--border);
+}
+
+.capability-row {
+  display: grid;
+  min-height: 58px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.capability-row span {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.capability-row strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.privacy-section {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 28px;
+  margin-top: 42px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 0;
+}
+
+.privacy-section strong {
+  font-size: 14px;
+}
+
+.privacy-section p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 21px;
+}
+
+.about-footer {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#version-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.about-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.button-primary,
+.button-secondary {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.button-primary {
+  background: var(--button);
+  color: #ffffff;
+}
+
+.button-secondary {
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.button-primary:hover,
+.button-secondary:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 560px) {
+  .about-shell {
+    width: min(100% - 28px, 760px);
+    padding-top: 36px;
+  }
+
+  .about-header {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 14px;
+    padding-bottom: 26px;
+  }
+
+  .about-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 11px;
+  }
+
+  h1 {
+    font-size: 25px;
+    line-height: 32px;
+  }
+
+  .about-description {
+    font-size: 13px;
+    line-height: 21px;
+  }
+
+  .privacy-section {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 32px;
+  }
+
+  .about-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 20px 0;
+  }
+
+  .about-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #eef2f5;
+    background: #171c21;
+    --surface: #171c21;
+    --surface-strong: #262c32;
+    --text: #eef2f5;
+    --muted: #a8b2bc;
+    --border: #3d464f;
+    --accent: #57cbb4;
+    --button: #f1f4f6;
+  }
+
+  body {
+    background: #171c21;
+  }
+
+  .button-primary {
+    color: #18232d;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button-primary:hover,
+  .button-secondary:hover {
+    transform: none;
+  }
+}

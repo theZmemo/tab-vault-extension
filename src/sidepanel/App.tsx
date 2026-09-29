@@ -14,6 +14,7 @@ import {
   FileText,
   GripVertical,
   Inbox,
+  Info,
   Layers3,
   Menu,
   MoreHorizontal,
@@ -2777,6 +2778,24 @@ function SettingsDialog({
           >
             <Shield size={14} />
             {t("viewPrivacyPolicy")}
+          </button>
+        </div>
+        <div className="browser-side-setting">
+          <div>
+            <strong>{t("productIntroduction")}</strong>
+            <span>{t("aboutDescription")}</span>
+          </div>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() =>
+              void chrome.tabs.create({
+                url: chrome.runtime.getURL("about.html"),
+              })
+            }
+          >
+            <Info size={14} />
+            {t("viewProductIntroduction")}
           </button>
         </div>
         <div className="form-actions">

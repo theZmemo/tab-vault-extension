@@ -88,9 +88,8 @@ assert(
   "Chrome 121+ is required because automatic sleep uses tabs.lastAccessed",
 );
 assert(
-  manifest.homepage_url ===
-    "https://thezmemo.github.io/tab-vault-extension/xxx/",
-  "Manifest homepage must point to the current product introduction page",
+  !manifest.homepage_url,
+  "The extension must use its packaged about page instead of a homepage URL",
 );
 assert(
   manifest.incognito === "not_allowed",
@@ -150,6 +149,10 @@ for (const messages of localeMessages) {
 }
 
 const distFiles = await listFiles(distRoot);
+assert(
+  distFiles.some((path) => relative(distRoot, path) === "about.html"),
+  "Release must include the packaged product introduction page",
+);
 const disallowedFiles = distFiles.filter((path) =>
   /\.(map|ts|tsx|md|log)$/i.test(path),
 );
