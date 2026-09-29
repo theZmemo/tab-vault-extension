@@ -128,16 +128,20 @@ try {
     },
   );
 
-  const refreshResponse = await panel.evaluate(async () =>
-    chrome.runtime.sendMessage({ type: "REFRESH_TABS" }),
+  const refreshResponses = await panel.evaluate(async () =>
+    Promise.all(
+      Array.from({ length: 4 }, () =>
+        chrome.runtime.sendMessage({ type: "REFRESH_TABS" }),
+      ),
+    ),
   );
-  expect(refreshResponse.ok).toBe(true);
+  expect(refreshResponses.every((response) => response.ok)).toBe(true);
   await expect
     .poll(
       () =>
         worker.evaluate(async (targetUrl) => {
           const tabs = await chrome.tabs.query({});
-          const tab = tabs.find((candidate) => {
+          return tabs.filter((candidate) => {
             try {
               const url = new URL(candidate.url ?? "");
               if (!url.pathname.endsWith("/suspended.html")) {
@@ -150,12 +154,11 @@ try {
             } catch {
               return false;
             }
-          });
-          return tab?.id ?? null;
+          }).length;
         }, originalUrl),
       { timeout: 15_000 },
     )
-    .not.toBeNull();
+    .toBe(1);
 
   const recoveryState = await panel.evaluate(
     () =>
@@ -202,6 +205,44 @@ try {
     color: "cyan",
     collapsed: true,
   });
+  await worker.evaluate(async (tabId) => {
+    const tab = await chrome.tabs.get(tabId);
+    await Promise.all([
+      chrome.tabs.create({
+        windowId: tab.windowId,
+        url: tab.url,
+        active: false,
+      }),
+      chrome.tabs.create({
+        windowId: tab.windowId,
+        url: tab.url,
+        active: false,
+      }),
+    ]);
+  }, rebuiltTabId);
+  const cleanupResponse = await panel.evaluate(async () =>
+    chrome.runtime.sendMessage({ type: "REFRESH_TABS" }),
+  );
+  expect(cleanupResponse.ok).toBe(true);
+  await expect
+    .poll(() =>
+      worker.evaluate(async (targetUrl) => {
+        const tabs = await chrome.tabs.query({});
+        return tabs.filter((candidate) => {
+          try {
+            const url = new URL(candidate.url ?? "");
+            const payload = JSON.parse(decodeURIComponent(url.hash.slice(1)));
+            return (
+              url.pathname.endsWith("/suspended.html") &&
+              payload.url === targetUrl
+            );
+          } catch {
+            return false;
+          }
+        }).length;
+      }, originalUrl),
+    )
+    .toBe(1);
   await worker.evaluate(async (tabId) => chrome.tabs.remove(tabId), rebuiltTabId);
   await expect
     .poll(() =>
@@ -231,6 +272,8 @@ try {
         originalUrlPreserved: true,
         independentRecoveryRecord: true,
         nativeTabGroupRestored: true,
+        concurrentRefreshDeduplicated: true,
+        staleDuplicateCleanup: true,
         manualCloseCleanup: true,
       },
       null,

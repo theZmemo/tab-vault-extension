@@ -41,6 +41,7 @@ const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
 const captureQueue = new Map<number, Promise<void>>();
 let bootstrapPromise: Promise<void> | null = null;
+let deepSleepRebuildPromise: Promise<void> | null = null;
 
 async function broadcastChange(): Promise<void> {
   try {
@@ -950,12 +951,15 @@ async function restoreDeepSleepingTab(
   return true;
 }
 
-async function rebuildMissingDeepSleepingTabs(): Promise<void> {
+async function rebuildMissingDeepSleepingTabsInternal(): Promise<void> {
   const recoveries = await db.deepSleepRecoveries.toArray();
   if (recoveries.length === 0) {
     return;
   }
 
+  const recoveryResourceIds = new Set(
+    recoveries.map((recovery) => recovery.resourceId),
+  );
   const tabs = await chrome.tabs.query({});
   const deepSleepingTabs = new Map<string, chrome.tabs.Tab[]>();
   const resolvedTabs: Array<{
@@ -1043,6 +1047,21 @@ async function rebuildMissingDeepSleepingTabs(): Promise<void> {
     });
   }
 
+  const duplicateTabIds = [...deepSleepingTabs]
+    .filter(([resourceId]) => recoveryResourceIds.has(resourceId))
+    .flatMap(([, matchingTabs]) =>
+      matchingTabs.flatMap((tab) =>
+        tab.id !== undefined && !tab.active ? [tab.id] : [],
+      ),
+    );
+  for (const tabId of duplicateTabIds) {
+    try {
+      await chrome.tabs.remove(tabId);
+    } catch {
+      // The duplicate may have closed while recovery was reconciling tabs.
+    }
+  }
+
   const newGroups = new Map<
     string,
     Array<{
@@ -1090,6 +1109,22 @@ async function rebuildMissingDeepSleepingTabs(): Promise<void> {
       color: sample.recovery.groupColor,
       collapsed: sample.recovery.groupCollapsed,
     });
+  }
+}
+
+async function rebuildMissingDeepSleepingTabs(): Promise<void> {
+  if (deepSleepRebuildPromise) {
+    return deepSleepRebuildPromise;
+  }
+
+  const rebuildPromise = rebuildMissingDeepSleepingTabsInternal();
+  deepSleepRebuildPromise = rebuildPromise;
+  try {
+    await rebuildPromise;
+  } finally {
+    if (deepSleepRebuildPromise === rebuildPromise) {
+      deepSleepRebuildPromise = null;
+    }
   }
 }
 

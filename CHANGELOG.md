@@ -2,6 +2,16 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.8] - 2026-09-29
+
+### Fixed
+
+- Deep-sleep reconstruction is now serialized, so overlapping refresh requests
+  cannot create multiple placeholder tabs for the same recovery record.
+- Refresh now removes inactive placeholder duplicates left by earlier recovery
+  races while preserving intentional duplicate tabs with independent recovery
+  records.
+
 ## [0.0.7] - 2026-09-29
 
 ### Fixed
@@ -113,6 +123,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.8]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.8
 [0.0.7]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.7
 [0.0.6]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.6
 [0.0.5]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.5
