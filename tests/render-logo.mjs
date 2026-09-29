@@ -43,18 +43,11 @@ try {
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Tab Vault"
     >
-      <rect x="4" y="4" width="120" height="120" rx="27" fill="#151e27" />
+      <rect x="22" y="14" width="92" height="70" rx="17" fill="#668096" />
+      <rect x="10" y="40" width="108" height="76" rx="18" fill="#e5ebef" />
+      <rect x="22" y="52" width="84" height="50" rx="10" fill="#f9fbfc" />
       <path
-        d="M26 34c0-6 5-11 11-11h54c6 0 11 5 11 11v17H26V34Z"
-        fill="#f7f9fa"
-      />
-      <path
-        d="M26 60h76v34c0 6-5 11-11 11H37c-6 0-11-5-11-11V60Z"
-        fill="#f7f9fa"
-        opacity="0.9"
-      />
-      <path
-        d="M49 73 64 88 79 73"
+        d="M46 70 64 88 82 70"
         fill="none"
         stroke="#43c6aa"
         stroke-width="10"

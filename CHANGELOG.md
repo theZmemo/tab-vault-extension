@@ -2,6 +2,18 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.19] - 2026-09-29
+
+### Changed
+
+- Removed the dark rounded-square background from the extension logo.
+- Rebuilt the 16px, 32px, 48px, and 128px icons as a transparent open-page
+  mark using slate, soft white, and teal.
+- Removed rectangular image shadows from the side-panel header and deep-sleep
+  confirmation page.
+- Regenerated Chrome Web Store screenshots and promotional artwork with the new
+  transparent icon.
+
 ## [0.0.18] - 2026-09-29
 
 ### Changed
@@ -256,6 +268,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.19]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.19
 [0.0.18]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.18
 [0.0.17]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.17
 [0.0.16]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.16
