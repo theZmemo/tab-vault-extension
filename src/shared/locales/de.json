@@ -89,7 +89,7 @@
   "noTabsToSleepCurrent": "In diesem Fenster sind keine geeigneten Tabs vorhanden. Probieren Sie Level 2 für alle Fenster aus.",
   "noTabsToSleepSafe": "Keine Registerkarten entsprechen den sicheren Ebenen. Versuchen Sie es mit Stufe 3 für eine breitere Abdeckung.",
   "noTabsToSleep": "Keine geeigneten Tabs zum Ruhen",
-  "deepSleepTabsPutToSleep": "{count}-Registerkarten befinden sich im Tiefschlaf und werden bei Auswahl wiederhergestellt",
+  "deepSleepTabsPutToSleep": "{count} Tabs befinden sich im Tiefschlaf; wählen Sie einen Tab aus und bestätigen Sie die Wiederherstellung",
   "noTabsToDeepSleep": "Keine geeigneten Tabs für Tiefschlaf",
   "deepSleepWarningTitle": "Vor dem Tiefschlaf",
   "deepSleepWarningBody": "Deep Sleep ersetzt jede bedienbare Web-Registerkarte durch einen einfachen lokalen Platzhalter, nachdem der ursprüngliche URL, Titel und die ursprüngliche Gruppe gespeichert wurden.",
@@ -242,8 +242,8 @@
   "unsupportedBackup": "Nicht unterstütztes Sicherungsformat",
   "invalidBackup": "Dies ist kein gültiges Tab Vault-Backup",
   "deepSleepPageTitle": "Tiefschlaf",
-  "deepSleepPageState": "Dieser Tab befindet sich im Tiefschlaf",
+  "deepSleepPageState": "Die ursprüngliche Seite bleibt im Tiefschlaf, bis Sie die Wiederherstellung bestätigen",
   "deepSleepPageRestoring": "Seite wird wiederhergestellt...",
-  "deepSleepPageRestore": "Jetzt wiederherstellen",
+  "deepSleepPageRestore": "Wiederherstellung bestätigen",
   "deepSleepPageRecoveryUnavailable": "Die Wiederherstellungsadresse ist nicht verfügbar. Stellen Sie diese Seite von Tab Vault wieder her."
 }

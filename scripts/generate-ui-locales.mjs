@@ -33,10 +33,11 @@ const overrides = {
     sleeping: "已休眠",
     sleepLevelDeep: "第 4 級 · 深度休眠",
     deepSleepAllTabs: "深度休眠所有可操作網頁標籤",
+    deepSleepTabsPutToSleep: "已深度休眠 {count} 個標籤；選取後需確認恢復",
     statusDeepSleeping: "深度休眠",
     deepSleepPageTitle: "深度休眠",
-    deepSleepPageState: "此標籤正在深度休眠",
-    deepSleepPageRestore: "立即恢復",
+    deepSleepPageState: "原頁面仍在休眠，確認後才會恢復",
+    deepSleepPageRestore: "確認恢復",
     confirmDeepSleep: "確認並開始深度休眠",
     privacyAndData: "隱私與資料",
   },
@@ -52,13 +53,16 @@ const overrides = {
     batchSleepTabs: "タブをスリープ",
     sleepLevelDeep: "レベル 4 · ディープスリープ",
     deepSleepAllTabs: "操作可能なすべてのウェブタブをディープスリープ",
+    deepSleepTabsPutToSleep:
+      "{count} 個のタブはディープスリープ中です。選択後、復元を確認してください",
     statusSleeping: "スリープ中",
     statusDeepSleeping: "ディープスリープ",
     deepSleepWarningTitle: "ディープスリープの確認",
     deepSleepPageTitle: "ディープスリープ",
-    deepSleepPageState: "このタブはディープスリープ中です",
+    deepSleepPageState:
+      "復元を確認するまで、元のページはディープスリープのままです",
     deepSleepPageRestoring: "ページを復元しています...",
-    deepSleepPageRestore: "今すぐ復元",
+    deepSleepPageRestore: "復元を確認",
     confirmDeepSleep: "確認してディープスリープを開始",
     moreItems: "あと {count} 件",
     idleMinutes: "アイドル状態が続いた後にスリープする時間（分）",
@@ -77,13 +81,16 @@ const overrides = {
     batchSleepTabs: "탭 절전",
     sleepLevelDeep: "4단계 · 딥 슬립",
     deepSleepAllTabs: "작업 가능한 모든 웹 탭 딥 슬립",
+    deepSleepTabsPutToSleep:
+      "{count}개 탭이 딥 슬립 상태입니다. 선택한 후 복원을 확인하세요.",
     statusSleeping: "절전 중",
     statusDeepSleeping: "딥 슬립",
     deepSleepWarningTitle: "딥 슬립 확인",
     deepSleepPageTitle: "딥 슬립",
-    deepSleepPageState: "이 탭은 딥 슬립 상태입니다",
+    deepSleepPageState:
+      "복원을 확인할 때까지 원래 페이지는 딥 슬립 상태로 유지됩니다",
     deepSleepPageRestoring: "페이지 복원 중...",
-    deepSleepPageRestore: "지금 복원",
+    deepSleepPageRestore: "복원 확인",
     confirmDeepSleep: "확인 후 딥 슬립 시작",
     restoreConcurrency: "동시에 복원할 페이지 수",
   },
@@ -93,10 +100,14 @@ const overrides = {
     batchSleepTabs: "Suspender pestañas",
     sleepLevelDeep: "Nivel 4 · Suspensión profunda",
     deepSleepAllTabs: "Suspender profundamente todas las pestañas web",
+    deepSleepTabsPutToSleep:
+      "{count} pestañas están en suspensión profunda; selecciona una y confirma para restaurarla",
     statusDeepSleeping: "Suspensión profunda",
     deepSleepWarningTitle: "Antes de la suspensión profunda",
     deepSleepPageTitle: "Suspensión profunda",
-    deepSleepPageRestore: "Restaurar ahora",
+    deepSleepPageState:
+      "La página original seguirá suspendida hasta que confirmes la restauración",
+    deepSleepPageRestore: "Confirmar restauración",
     confirmDeepSleep: "Confirmar e iniciar la suspensión profunda",
   },
   fr: {
@@ -105,10 +116,14 @@ const overrides = {
     batchSleepTabs: "Mettre les onglets en veille",
     sleepLevelDeep: "Niveau 4 · Veille profonde",
     deepSleepAllTabs: "Mettre tous les onglets web en veille profonde",
+    deepSleepTabsPutToSleep:
+      "{count} onglets sont en veille profonde ; sélectionnez-en un et confirmez sa restauration",
     statusDeepSleeping: "Veille profonde",
     deepSleepWarningTitle: "Avant la veille profonde",
     deepSleepPageTitle: "Veille profonde",
-    deepSleepPageRestore: "Restaurer maintenant",
+    deepSleepPageState:
+      "La page d'origine reste en veille jusqu'à la confirmation de sa restauration",
+    deepSleepPageRestore: "Confirmer la restauration",
     confirmDeepSleep: "Confirmer et lancer la veille profonde",
   },
   de: {
@@ -117,10 +132,14 @@ const overrides = {
     batchSleepTabs: "Tabs in Ruhezustand versetzen",
     sleepLevelDeep: "Stufe 4 · Tiefschlaf",
     deepSleepAllTabs: "Alle Web-Tabs in den Tiefschlaf versetzen",
+    deepSleepTabsPutToSleep:
+      "{count} Tabs befinden sich im Tiefschlaf; wählen Sie einen Tab aus und bestätigen Sie die Wiederherstellung",
     statusDeepSleeping: "Tiefschlaf",
     deepSleepWarningTitle: "Vor dem Tiefschlaf",
     deepSleepPageTitle: "Tiefschlaf",
-    deepSleepPageRestore: "Jetzt wiederherstellen",
+    deepSleepPageState:
+      "Die ursprüngliche Seite bleibt im Tiefschlaf, bis Sie die Wiederherstellung bestätigen",
+    deepSleepPageRestore: "Wiederherstellung bestätigen",
     confirmDeepSleep: "Bestätigen und Tiefschlaf starten",
   },
   "pt-BR": {
@@ -129,10 +148,14 @@ const overrides = {
     batchSleepTabs: "Suspender abas",
     sleepLevelDeep: "Nível 4 · Suspensão profunda",
     deepSleepAllTabs: "Suspender profundamente todas as abas da web",
+    deepSleepTabsPutToSleep:
+      "{count} abas estão em suspensão profunda; selecione uma e confirme para restaurá-la",
     statusDeepSleeping: "Suspensão profunda",
     deepSleepWarningTitle: "Antes da suspensão profunda",
     deepSleepPageTitle: "Suspensão profunda",
-    deepSleepPageRestore: "Restaurar agora",
+    deepSleepPageState:
+      "A página original continuará suspensa até você confirmar a restauração",
+    deepSleepPageRestore: "Confirmar restauração",
     confirmDeepSleep: "Confirmar e iniciar a suspensão profunda",
   },
   ru: {
@@ -141,10 +164,14 @@ const overrides = {
     batchSleepTabs: "Усыпить вкладки",
     sleepLevelDeep: "Уровень 4 · Глубокий сон",
     deepSleepAllTabs: "Перевести все веб-вкладки в глубокий сон",
+    deepSleepTabsPutToSleep:
+      "{count} вкладок находятся в глубоком сне; выберите вкладку и подтвердите восстановление",
     statusDeepSleeping: "Глубокий сон",
     deepSleepWarningTitle: "Перед глубоким сном",
     deepSleepPageTitle: "Глубокий сон",
-    deepSleepPageRestore: "Восстановить сейчас",
+    deepSleepPageState:
+      "Исходная страница останется в глубоком сне, пока вы не подтвердите восстановление",
+    deepSleepPageRestore: "Подтвердить восстановление",
     confirmDeepSleep: "Подтвердить и запустить глубокий сон",
     hoursAgo: "{count} ч назад",
   },

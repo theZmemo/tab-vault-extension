@@ -890,10 +890,7 @@ async function restoreResources(resourceIds: string[]): Promise<void> {
   await broadcastChange();
 }
 
-async function restoreDeepSleepingTab(
-  tabId: number,
-  activate = false,
-): Promise<boolean> {
+async function restoreDeepSleepingTab(tabId: number): Promise<boolean> {
   const tab = await chrome.tabs.get(tabId);
   const rawUrl = tab.url ?? tab.pendingUrl ?? "";
   const isPlaceholder = isDeepSleepPageUrl(rawUrl, SUSPENDED_PAGE_URL);
@@ -927,7 +924,7 @@ async function restoreDeepSleepingTab(
     await db.deepSleepRecoveries.delete(recovery.id);
   }
   try {
-    await chrome.tabs.update(tabId, { url: targetUrl, active: activate });
+    await chrome.tabs.update(tabId, { url: targetUrl });
   } catch (error) {
     if (recovery) {
       await db.deepSleepRecoveries.put(recovery);
@@ -1251,11 +1248,7 @@ async function focusResource(resourceId: string): Promise<void> {
 
   try {
     await chrome.windows.update(instance.windowId, { focused: true });
-    if (instance.deepSleeping) {
-      await restoreDeepSleepingTab(instance.browserTabId, true);
-    } else {
-      await chrome.tabs.update(instance.browserTabId, { active: true });
-    }
+    await chrome.tabs.update(instance.browserTabId, { active: true });
   } catch {
     await db.tabInstances.delete(instance.browserTabId);
     await restoreResources([resourceId]);
@@ -1962,28 +1955,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 });
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
-  void (async () => {
-    try {
-      await ensureBootstrapped();
-      const [instance, tab] = await Promise.all([
-        db.tabInstances.get(tabId),
-        chrome.tabs.get(tabId),
-      ]);
-      if (
-        instance?.deepSleeping ||
-        isDeepSleepPageUrl(
-          tab.url ?? tab.pendingUrl ?? "",
-          SUSPENDED_PAGE_URL,
-        )
-      ) {
-        await restoreDeepSleepingTab(tabId);
-        return;
-      }
-    } catch {
-      // The tab may have closed or navigated while activation was handled.
-    }
-    queueTabCapture(tabId);
-  })();
+  queueTabCapture(tabId);
 });
 
 chrome.tabs.onMoved.addListener((tabId) => {

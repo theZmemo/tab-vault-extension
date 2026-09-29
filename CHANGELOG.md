@@ -2,6 +2,21 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.18] - 2026-09-29
+
+### Changed
+
+- Selecting a deep-sleeping tab now keeps the local placeholder open instead of
+  restoring the original page automatically.
+- Focusing a deep-sleeping resource from the side panel follows the same
+  confirmation flow.
+- The original page is restored only after the user clicks the confirmation
+  button on the placeholder page.
+- Updated all 10 UI languages and Chrome Web Store materials to describe the
+  explicit restore behavior.
+- Added browser regression coverage for selection without restoration and
+  confirmation-based restoration.
+
 ## [0.0.17] - 2026-09-29
 
 ### Fixed
@@ -241,6 +256,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.18]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.18
 [0.0.17]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.17
 [0.0.16]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.16
 [0.0.15]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.15

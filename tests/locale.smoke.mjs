@@ -25,6 +25,8 @@ const expectations = {
     productIntroduction: "关于标签资产库",
     viewProductIntroduction: "查看产品介绍",
     officialWebsite: "访问官网",
+    deepSleepPageState: "原页面仍在休眠，确认后才会恢复",
+    deepSleepPageRestore: "确认恢复",
   },
   "en-US": {
     appName: "Tab Vault",
@@ -38,6 +40,9 @@ const expectations = {
     productIntroduction: "About Tab Vault",
     viewProductIntroduction: "View introduction",
     officialWebsite: "Official website",
+    deepSleepPageState:
+      "The original page remains asleep until you confirm restoration",
+    deepSleepPageRestore: "Confirm restore",
   },
   "ja-JP": {
     appName: "タブ保管庫",
@@ -51,6 +56,9 @@ const expectations = {
     productIntroduction: "タブ保管庫について",
     viewProductIntroduction: "製品紹介を見る",
     officialWebsite: "公式サイト",
+    deepSleepPageState:
+      "復元を確認するまで、元のページはディープスリープのままです",
+    deepSleepPageRestore: "復元を確認",
   },
   "ko-KR": {
     appName: "탭 보관함",
@@ -64,6 +72,9 @@ const expectations = {
     productIntroduction: "탭 보관함 정보",
     viewProductIntroduction: "제품 소개 보기",
     officialWebsite: "공식 웹사이트",
+    deepSleepPageState:
+      "복원을 확인할 때까지 원래 페이지는 딥 슬립 상태로 유지됩니다",
+    deepSleepPageRestore: "복원 확인",
   },
   "zh-TW": {
     appName: "標籤資產庫",
@@ -77,6 +88,8 @@ const expectations = {
     productIntroduction: "關於標籤資產庫",
     viewProductIntroduction: "查看產品介紹",
     officialWebsite: "前往官網",
+    deepSleepPageState: "原頁面仍在休眠，確認後才會恢復",
+    deepSleepPageRestore: "確認恢復",
   },
   "de-DE": {
     appName: "Tab Vault",
@@ -90,6 +103,9 @@ const expectations = {
     productIntroduction: "Über Tab Vault",
     viewProductIntroduction: "Produktvorstellung öffnen",
     officialWebsite: "Offizielle Website",
+    deepSleepPageState:
+      "Die ursprüngliche Seite bleibt im Tiefschlaf, bis Sie die Wiederherstellung bestätigen",
+    deepSleepPageRestore: "Wiederherstellung bestätigen",
   },
   "es-ES": {
     appName: "Tab Vault",
@@ -103,6 +119,9 @@ const expectations = {
     productIntroduction: "Acerca de Tab Vault",
     viewProductIntroduction: "Ver presentación",
     officialWebsite: "Sitio web oficial",
+    deepSleepPageState:
+      "La página original seguirá suspendida hasta que confirmes la restauración",
+    deepSleepPageRestore: "Confirmar restauración",
   },
   "fr-FR": {
     appName: "Tab Vault",
@@ -116,6 +135,9 @@ const expectations = {
     productIntroduction: "À propos de Tab Vault",
     viewProductIntroduction: "Voir la présentation",
     officialWebsite: "Site officiel",
+    deepSleepPageState:
+      "La page d'origine reste en veille jusqu'à la confirmation de sa restauration",
+    deepSleepPageRestore: "Confirmer la restauration",
   },
   "pt-BR": {
     appName: "Tab Vault",
@@ -129,6 +151,9 @@ const expectations = {
     productIntroduction: "Sobre o Tab Vault",
     viewProductIntroduction: "Ver apresentação",
     officialWebsite: "Site oficial",
+    deepSleepPageState:
+      "A página original continuará suspensa até você confirmar a restauração",
+    deepSleepPageRestore: "Confirmar restauração",
   },
   "ru-RU": {
     appName: "Tab Vault",
@@ -142,6 +167,9 @@ const expectations = {
     productIntroduction: "О Tab Vault",
     viewProductIntroduction: "Открыть описание",
     officialWebsite: "Официальный сайт",
+    deepSleepPageState:
+      "Исходная страница останется в глубоком сне, пока вы не подтвердите восстановление",
+    deepSleepPageRestore: "Подтвердить восстановление",
   },
 }[requestedLocale];
 if (!expectations) {
@@ -430,8 +458,45 @@ try {
   });
   await aboutPage.close();
 
+  const suspendedPayload = encodeURIComponent(
+    JSON.stringify({
+      version: 1,
+      resourceId: `locale-confirmation-${localeKey}`,
+      url: "https://example.com/restore-confirmation",
+      title: "Restore confirmation",
+    }),
+  );
+  const suspendedPage = await context.newPage();
+  await suspendedPage.goto(
+    `chrome-extension://${extensionId}/suspended.html#${suspendedPayload}`,
+  );
+  await expect(
+    suspendedPage.getByText(expectations.deepSleepPageState, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    suspendedPage.getByRole("button", {
+      name: expectations.deepSleepPageRestore,
+    }),
+  ).toBeVisible();
+  await suspendedPage.waitForTimeout(300);
+  expect(suspendedPage.url()).toContain(
+    `chrome-extension://${extensionId}/suspended.html`,
+  );
+  expect(
+    await suspendedPage.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    ),
+  ).toBe(false);
+  await suspendedPage.screenshot({
+    path: join(artifactsPath, `suspended-${localeKey}-${requestedTheme}.png`),
+    fullPage: true,
+  });
+  await suspendedPage.close();
+
   if (runtimeErrors.length > 0) {
-    throw new Error(`English panel errors: ${runtimeErrors.join("; ")}`);
+    throw new Error(
+      `${requestedLocale} panel errors: ${runtimeErrors.join("; ")}`,
+    );
   }
 
   console.log(
@@ -444,8 +509,10 @@ try {
         settings: true,
         privacyDisclosure: true,
         packagedAboutPage: true,
+        deepSleepRequiresConfirmation: true,
         groupOverviewScreenshot: `artifacts/group-overview-${localeKey}-${requestedTheme}.png`,
         screenshot: `artifacts/sidepanel-${localeKey}-${requestedTheme}.png`,
+        suspendedScreenshot: `artifacts/suspended-${localeKey}-${requestedTheme}.png`,
       },
       null,
       2,

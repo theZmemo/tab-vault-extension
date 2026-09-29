@@ -89,7 +89,7 @@
   "noTabsToSleepCurrent": "No hay pestañas elegibles en esta ventana. Pruebe el Nivel 2 para todas las ventanas.",
   "noTabsToSleepSafe": "Ninguna pestaña coincide con los niveles seguros. Pruebe el Nivel 3 para una cobertura más amplia.",
   "noTabsToSleep": "No hay pestañas elegibles para dormir",
-  "deepSleepTabsPutToSleep": "Las pestañas {count} están en suspensión profunda y se restaurarán cuando se seleccionen",
+  "deepSleepTabsPutToSleep": "{count} pestañas están en suspensión profunda; selecciona una y confirma para restaurarla",
   "noTabsToDeepSleep": "No hay pestañas elegibles para el sueño profundo",
   "deepSleepWarningTitle": "Antes de la suspensión profunda",
   "deepSleepWarningBody": "El sueño profundo reemplaza cada pestaña web operable con un marcador de posición local liviano después de guardar su URL, título y grupo originales.",
@@ -242,8 +242,8 @@
   "unsupportedBackup": "Formato de copia de seguridad no compatible",
   "invalidBackup": "Esta no es una copia de seguridad válida de Tab Vault",
   "deepSleepPageTitle": "Suspensión profunda",
-  "deepSleepPageState": "Esta pestaña está en sueño profundo.",
+  "deepSleepPageState": "La página original seguirá suspendida hasta que confirmes la restauración",
   "deepSleepPageRestoring": "Restaurando página...",
-  "deepSleepPageRestore": "Restaurar ahora",
+  "deepSleepPageRestore": "Confirmar restauración",
   "deepSleepPageRecoveryUnavailable": "La dirección de recuperación no está disponible. Restaura esta página desde Tab Vault."
 }

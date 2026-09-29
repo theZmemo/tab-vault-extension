@@ -106,7 +106,7 @@ const en = {
     "No tabs match the safe levels. Try Level 3 for broader coverage.",
   noTabsToSleep: "No eligible tabs to sleep",
   deepSleepTabsPutToSleep:
-    "{count} tabs are in deep sleep and will restore when selected",
+    "{count} tabs are in deep sleep; select one and confirm to restore it",
   noTabsToDeepSleep: "No eligible tabs for deep sleep",
   deepSleepWarningTitle: "Before deep sleep",
   deepSleepWarningBody:
@@ -271,9 +271,10 @@ const en = {
   unsupportedBackup: "Unsupported backup format",
   invalidBackup: "This is not a valid Tab Vault backup",
   deepSleepPageTitle: "Deep sleeping",
-  deepSleepPageState: "This tab is in deep sleep",
+  deepSleepPageState:
+    "The original page remains asleep until you confirm restoration",
   deepSleepPageRestoring: "Restoring page...",
-  deepSleepPageRestore: "Restore now",
+  deepSleepPageRestore: "Confirm restore",
   deepSleepPageRecoveryUnavailable:
     "The recovery address is unavailable. Restore this page from Tab Vault.",
 } as const;
@@ -374,7 +375,7 @@ const zh: Record<MessageKey, string> = {
   noTabsToSleepCurrent: "当前窗口没有可休眠标签，可尝试第 2 级处理所有窗口。",
   noTabsToSleepSafe: "安全级别没有可休眠标签，可尝试第 3 级扩大覆盖。",
   noTabsToSleep: "没有可休眠的标签",
-  deepSleepTabsPutToSleep: "已深度休眠 {count} 个标签；选中时会自动恢复",
+  deepSleepTabsPutToSleep: "已深度休眠 {count} 个标签；选中后需确认恢复",
   noTabsToDeepSleep: "没有可深度休眠的标签",
   deepSleepWarningTitle: "深度休眠前确认",
   deepSleepWarningBody:
@@ -532,9 +533,9 @@ const zh: Record<MessageKey, string> = {
   unsupportedBackup: "不支持的备份文件格式",
   invalidBackup: "不是有效的标签资产库备份",
   deepSleepPageTitle: "深度休眠",
-  deepSleepPageState: "此标签正在深度休眠",
+  deepSleepPageState: "原页面仍在休眠，确认后才会恢复",
   deepSleepPageRestoring: "正在恢复页面…",
-  deepSleepPageRestore: "立即恢复",
+  deepSleepPageRestore: "确认恢复",
   deepSleepPageRecoveryUnavailable: "恢复地址不可用，请从标签资产库恢复此页面。",
 };
 

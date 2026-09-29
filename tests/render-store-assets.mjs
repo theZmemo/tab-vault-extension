@@ -174,7 +174,7 @@ try {
       eyebrow: "PROGRESSIVE TAB SLEEP",
       title: "按需释放标签内存",
       detail: "四级模式从原生卸载到本地占位页，按需逐级增强内存释放。",
-      points: ["覆盖所有可操作网页", "原 URL 双重保存", "选中深睡标签自动恢复"],
+      points: ["覆盖所有可操作网页", "原 URL 双重保存", "选中后确认恢复"],
       accent: "#1f9d84",
     }),
   );

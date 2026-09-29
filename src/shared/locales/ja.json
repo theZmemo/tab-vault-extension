@@ -89,7 +89,7 @@
   "noTabsToSleepCurrent": "このウィンドウには対象となるタブがありません。すべてのウィンドウでレベル 2 を試してください。",
   "noTabsToSleepSafe": "安全なレベルに一致するタブはありません。より広範囲をカバーするにはレベル 3 をお試しください。",
   "noTabsToSleep": "スリープ対象のタブがありません",
-  "deepSleepTabsPutToSleep": "{count} タブはディープ スリープ状態にあり、選択すると復元されます",
+  "deepSleepTabsPutToSleep": "{count} 個のタブはディープスリープ中です。選択後、復元を確認してください",
   "noTabsToDeepSleep": "ディープスリープに適したタブがありません",
   "deepSleepWarningTitle": "ディープスリープの確認",
   "deepSleepWarningBody": "ディープ スリープでは、元の URL、タイトル、グループを保存した後、操作可能なすべての Web タブが軽量のローカル プレースホルダーに置き換えられます。",
@@ -242,8 +242,8 @@
   "unsupportedBackup": "サポートされていないバックアップ形式です",
   "invalidBackup": "これは有効な Tab Vault バックアップではありません",
   "deepSleepPageTitle": "ディープスリープ",
-  "deepSleepPageState": "このタブはディープスリープ中です",
+  "deepSleepPageState": "復元を確認するまで、元のページはディープスリープのままです",
   "deepSleepPageRestoring": "ページを復元しています...",
-  "deepSleepPageRestore": "今すぐ復元",
+  "deepSleepPageRestore": "復元を確認",
   "deepSleepPageRecoveryUnavailable": "回復アドレスは使用できません。このページを Tab Vault から復元します。"
 }

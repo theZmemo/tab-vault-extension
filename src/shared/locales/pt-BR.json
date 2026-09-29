@@ -89,7 +89,7 @@
   "noTabsToSleepCurrent": "Nenhuma guia qualificada nesta janela. Experimente o nível 2 para todas as janelas.",
   "noTabsToSleepSafe": "Nenhuma guia corresponde aos níveis seguros. Experimente o Nível 3 para uma cobertura mais ampla.",
   "noTabsToSleep": "Nenhuma guia qualificada para dormir",
-  "deepSleepTabsPutToSleep": "As guias {count} estão em suspensão profunda e serão restauradas quando selecionadas",
+  "deepSleepTabsPutToSleep": "{count} abas estão em suspensão profunda; selecione uma e confirme para restaurá-la",
   "noTabsToDeepSleep": "Nenhuma guia qualificada para sono profundo",
   "deepSleepWarningTitle": "Antes da suspensão profunda",
   "deepSleepWarningBody": "O sono profundo substitui todas as guias da web operáveis por um espaço reservado local leve depois de salvar seu URL, título e grupo originais.",
@@ -242,8 +242,8 @@
   "unsupportedBackup": "Formato de backup não suportado",
   "invalidBackup": "Este não é um backup Tab Vault válido",
   "deepSleepPageTitle": "Suspensão profunda",
-  "deepSleepPageState": "Esta guia está em suspensão profunda",
+  "deepSleepPageState": "A página original continuará suspensa até você confirmar a restauração",
   "deepSleepPageRestoring": "Restaurando página...",
-  "deepSleepPageRestore": "Restaurar agora",
+  "deepSleepPageRestore": "Confirmar restauração",
   "deepSleepPageRecoveryUnavailable": "O endereço de recuperação não está disponível. Restaure esta página de Tab Vault."
 }

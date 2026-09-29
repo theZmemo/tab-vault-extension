@@ -89,7 +89,7 @@
   "noTabsToSleepCurrent": "目前視窗沒有可休眠標籤，可嘗試第 2 級處理所有視窗。",
   "noTabsToSleepSafe": "安全等級沒有可休眠標籤，可嘗試第 3 級擴大覆蓋。",
   "noTabsToSleep": "沒有可休眠的標籤",
-  "deepSleepTabsPutToSleep": "已深度休眠 {count} 個標籤；選取時會自動恢復",
+  "deepSleepTabsPutToSleep": "已深度休眠 {count} 個標籤；選取後需確認恢復",
   "noTabsToDeepSleep": "沒有可深度休眠的標籤",
   "deepSleepWarningTitle": "深度休眠前確認",
   "deepSleepWarningBody": "深度休眠會先保存原 URL、標題和分組，再把所有可操作網頁標籤替換為輕量本機佔位頁。",
@@ -242,8 +242,8 @@
   "unsupportedBackup": "不支援的備份檔案格式",
   "invalidBackup": "不是有效的標籤資產庫備份",
   "deepSleepPageTitle": "深度休眠",
-  "deepSleepPageState": "此標籤正在深度休眠",
+  "deepSleepPageState": "原頁面仍在休眠，確認後才會恢復",
   "deepSleepPageRestoring": "正在恢復頁面…",
-  "deepSleepPageRestore": "立即恢復",
+  "deepSleepPageRestore": "確認恢復",
   "deepSleepPageRecoveryUnavailable": "恢復位址不可用，請從標籤資產庫還原此頁面。"
 }

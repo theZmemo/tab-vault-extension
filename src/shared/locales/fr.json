@@ -89,7 +89,7 @@
   "noTabsToSleepCurrent": "Aucun onglet éligible dans cette fenêtre. Essayez le niveau 2 pour toutes les fenêtres.",
   "noTabsToSleepSafe": "Aucun onglet ne correspond aux niveaux de sécurité. Essayez le niveau 3 pour une couverture plus large.",
   "noTabsToSleep": "Aucun onglet éligible pour dormir",
-  "deepSleepTabsPutToSleep": "Les onglets {count} sont en veille profonde et seront restaurés une fois sélectionnés",
+  "deepSleepTabsPutToSleep": "{count} onglets sont en veille profonde ; sélectionnez-en un et confirmez sa restauration",
   "noTabsToDeepSleep": "Aucun onglet éligible pour le sommeil profond",
   "deepSleepWarningTitle": "Avant la veille profonde",
   "deepSleepWarningBody": "La veille profonde remplace chaque onglet Web utilisable par un espace réservé local léger après avoir enregistré son URL, son titre et son groupe d'origine.",
@@ -242,8 +242,8 @@
   "unsupportedBackup": "Format de sauvegarde non pris en charge",
   "invalidBackup": "Ce n'est pas une sauvegarde Tab Vault valide",
   "deepSleepPageTitle": "Veille profonde",
-  "deepSleepPageState": "Cet onglet est en veille profonde",
+  "deepSleepPageState": "La page d'origine reste en veille jusqu'à la confirmation de sa restauration",
   "deepSleepPageRestoring": "Restauration de la page...",
-  "deepSleepPageRestore": "Restaurer maintenant",
+  "deepSleepPageRestore": "Confirmer la restauration",
   "deepSleepPageRecoveryUnavailable": "L'adresse de récupération n'est pas disponible. Restaurez cette page à partir de Tab Vault."
 }

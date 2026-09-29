@@ -628,7 +628,7 @@ try {
     .getByRole("button", { name: "确认并开始深度休眠" })
     .click();
   await expect(
-    panel.getByText(/已深度休眠 \d+ 个标签；选中时会自动恢复/),
+    panel.getByText(/已深度休眠 \d+ 个标签；选中后需确认恢复/),
   ).toBeVisible({ timeout: 10_000 });
   await expect
     .poll(() => deepSleepPage.url())
@@ -662,9 +662,29 @@ try {
     ),
   ).toBe(true);
 
-  await serviceWorker.evaluate(async (tabId) => {
-    await chrome.tabs.update(tabId, { active: true });
-  }, deepSleepInstance.browserTabId);
+  const focusResponse = await panel.evaluate(async (resourceId) => {
+    return chrome.runtime.sendMessage({ type: "FOCUS_RESOURCE", resourceId });
+  }, deepSleepInstance.resourceId);
+  expect(focusResponse.ok).toBe(true);
+  await deepSleepPage.waitForTimeout(300);
+  await expect
+    .poll(() => deepSleepPage.url())
+    .toContain(`chrome-extension://${extensionId}/suspended.html`);
+  await expect(
+    deepSleepPage.getByRole("button", { name: "确认恢复" }),
+  ).toBeVisible();
+  const selectedDeepSleepState = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data;
+  });
+  expect(
+    selectedDeepSleepState.instances.some(
+      (instance) =>
+        instance.browserTabId === deepSleepInstance.browserTabId &&
+        instance.deepSleeping,
+    ),
+  ).toBe(true);
+  await deepSleepPage.getByRole("button", { name: "确认恢复" }).click();
   await expect
     .poll(() => deepSleepPage.url(), { timeout: 10_000 })
     .toBe(deepSleepOriginalUrl);
@@ -715,9 +735,9 @@ try {
     .poll(() => activeDeepSleepPage.url())
     .toContain(`chrome-extension://${extensionId}/suspended.html`);
   await expect(
-    activeDeepSleepPage.getByRole("button", { name: "立即恢复" }),
+    activeDeepSleepPage.getByRole("button", { name: "确认恢复" }),
   ).toBeVisible();
-  await activeDeepSleepPage.getByRole("button", { name: "立即恢复" }).click();
+  await activeDeepSleepPage.getByRole("button", { name: "确认恢复" }).click();
   await expect
     .poll(() => activeDeepSleepPage.url(), { timeout: 10_000 })
     .toBe(activeDeepSleepUrl);
@@ -794,7 +814,7 @@ try {
           "artifacts/deep-sleep-placeholder.png",
         deepSleepPlaceholder: true,
         deepSleepSnapshotOriginalUrl: true,
-        deepSleepAutomaticRestore: true,
+        deepSleepRequiresConfirmation: true,
         deepSleepWakeCleanup: true,
         deepSleepActiveTab: true,
         deepSleepWarningPersisted: true,
