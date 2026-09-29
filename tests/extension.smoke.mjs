@@ -538,6 +538,25 @@ try {
         instance.deepSleeping,
     ),
   ).toBe(false);
+  const restoredRecoveryCount = await panel.evaluate(
+    (resourceId) =>
+      new Promise((resolveRecovery, rejectRecovery) => {
+        const request = indexedDB.open("tab-vault");
+        request.onerror = () => rejectRecovery(request.error);
+        request.onsuccess = () => {
+          const recoveries = request.result
+            .transaction("deepSleepRecoveries", "readonly")
+            .objectStore("deepSleepRecoveries")
+            .index("resourceId")
+            .getAll(resourceId);
+          recoveries.onerror = () => rejectRecovery(recoveries.error);
+          recoveries.onsuccess = () =>
+            resolveRecovery(recoveries.result.length);
+        };
+      }),
+    deepSleepInstance.resourceId,
+  );
+  expect(restoredRecoveryCount).toBe(0);
 
   const activeDeepSleepPage = await context.newPage();
   await activeDeepSleepPage.goto(
@@ -633,6 +652,7 @@ try {
         deepSleepPlaceholder: true,
         deepSleepSnapshotOriginalUrl: true,
         deepSleepAutomaticRestore: true,
+        deepSleepWakeCleanup: true,
         deepSleepActiveTab: true,
         deepSleepWarningPersisted: true,
         groupOverviewDefault: true,

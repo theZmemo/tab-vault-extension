@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS: VaultSettings = {
   collectionSort: "manual",
   deepSleepWarningAccepted: false,
   deepSleepWarningVersion: 0,
+  deepSleepLegacyRecoveryVersion: 0,
 };
 
 const COLLECTION_SORT_MODES = new Set<VaultSettings["collectionSort"]>([
@@ -81,6 +82,12 @@ export function normalizeSettings(
     deepSleepWarningVersion: boundedNumber(
       input?.deepSleepWarningVersion,
       DEFAULT_SETTINGS.deepSleepWarningVersion,
+      0,
+      100,
+    ),
+    deepSleepLegacyRecoveryVersion: boundedNumber(
+      input?.deepSleepLegacyRecoveryVersion,
+      DEFAULT_SETTINGS.deepSleepLegacyRecoveryVersion,
       0,
       100,
     ),

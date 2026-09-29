@@ -38,6 +38,20 @@ export interface TabInstance {
   lastSeenAt: number;
 }
 
+export interface DeepSleepRecovery {
+  id: string;
+  browserTabId?: number;
+  resourceId: string;
+  originalUrl: string;
+  title: string;
+  windowId: number;
+  index: number;
+  pinned: boolean;
+  groupId: number;
+  createdAt: number;
+  pendingRemovalAt?: number;
+}
+
 export type CollectionColor =
   | "blue"
   | "navy"
@@ -149,6 +163,7 @@ export interface VaultSettings {
   collectionSort: "manual" | "name" | "count" | "recent";
   deepSleepWarningAccepted: boolean;
   deepSleepWarningVersion: number;
+  deepSleepLegacyRecoveryVersion: number;
 }
 
 export interface VaultState {

@@ -1,13 +1,14 @@
 {
   "name": "tab-vault-extension",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "test:extension": "node tests/extension.smoke.mjs",
+    "test:recovery": "node tests/deep-sleep-upgrade.mjs",
     "test:locale": "node tests/locale.smoke.mjs",
     "test:performance": "node tests/all-resources-performance.mjs",
     "verify:store": "npm run build && node tests/store-readiness.mjs",

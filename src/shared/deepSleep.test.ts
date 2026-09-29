@@ -14,7 +14,6 @@ describe("deep sleep payload", () => {
       resourceId: "resource_42",
       url: "https://example.com/report?id=42#结果",
       title: "治理结果 · 第四级",
-      initiallyActive: true,
     };
     const url = createDeepSleepUrl(suspendedPageUrl, payload);
 

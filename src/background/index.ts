@@ -20,6 +20,7 @@ import { isEligibleForDeepSleep, isSafeToDiscard } from "../shared/tabs";
 import type {
   Collection,
   CollectionMembership,
+  DeepSleepRecovery,
   Resource,
   Rule,
   Snapshot,
@@ -37,6 +38,7 @@ const CONTEXT_MENU_ROOT = "tab-vault:add-to-group";
 const CONTEXT_MENU_OPEN = "tab-vault:open";
 const CONTEXT_MENU_COLLECTION_PREFIX = "tab-vault:collection:";
 const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
+const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
 const captureQueue = new Map<number, Promise<void>>();
 let bootstrapPromise: Promise<void> | null = null;
 
@@ -400,6 +402,29 @@ async function removeTabInstance(tabId: number): Promise<void> {
   await broadcastChange();
 }
 
+async function handleTabRemoved(tabId: number): Promise<void> {
+  const recovery = await db.deepSleepRecoveries
+    .where("browserTabId")
+    .equals(tabId)
+    .first();
+  if (recovery) {
+    const pendingRemovalAt = Date.now();
+    await db.deepSleepRecoveries.put({
+      ...recovery,
+      pendingRemovalAt,
+    });
+    setTimeout(() => {
+      void db.deepSleepRecoveries.get(recovery.id).then((current) => {
+        if (current?.pendingRemovalAt === pendingRemovalAt) {
+          return db.deepSleepRecoveries.delete(recovery.id);
+        }
+        return undefined;
+      });
+    }, DEEP_SLEEP_CLOSE_CONFIRMATION_MS);
+  }
+  await removeTabInstance(tabId);
+}
+
 async function getTabGroups(): Promise<Map<number, chrome.tabGroups.TabGroup>> {
   try {
     const groups = await chrome.tabGroups.query({});
@@ -619,17 +644,42 @@ async function deepSleepTab(
     resourceId: resource.id,
     url: resource.originalUrl,
     title: resource.customTitle || resource.title,
-    initiallyActive: tab.active,
   });
-  await appendEvent({
-    type: "TAB_DEEP_SLEEP_PREPARED",
-    resourceId: resource.id,
+  const recovery: DeepSleepRecovery = {
+    id: `${resource.id}:${tab.id}`,
     browserTabId: tab.id,
-    payload: { originalUrl: resource.originalUrl },
+    resourceId: resource.id,
+    originalUrl: resource.originalUrl,
+    title: resource.customTitle || resource.title,
+    windowId: tab.windowId,
+    index: tab.index,
+    pinned: tab.pinned,
+    groupId: tab.groupId,
     createdAt: Date.now(),
-  });
+    pendingRemovalAt: undefined,
+  };
+  await db.transaction(
+    "rw",
+    db.deepSleepRecoveries,
+    db.events,
+    async () => {
+      await db.deepSleepRecoveries.put(recovery);
+      await db.events.add({
+        type: "TAB_DEEP_SLEEP_PREPARED",
+        resourceId: resource.id,
+        browserTabId: tab.id,
+        payload: { originalUrl: resource.originalUrl },
+        createdAt: recovery.createdAt,
+      });
+    },
+  );
 
-  await chrome.tabs.update(tab.id, { url: placeholderUrl });
+  try {
+    await chrome.tabs.update(tab.id, { url: placeholderUrl });
+  } catch (error) {
+    await db.deepSleepRecoveries.delete(recovery.id);
+    throw error;
+  }
   await db.tabInstances.update(tab.id, {
     discarded: false,
     deepSleeping: true,
@@ -699,6 +749,10 @@ async function archiveResources(resourceIds: string[]): Promise<void> {
 
   for (const instance of liveInstances) {
     try {
+      await db.deepSleepRecoveries
+        .where("browserTabId")
+        .equals(instance.browserTabId)
+        .delete();
       await chrome.tabs.remove(instance.browserTabId);
       await appendEvent({
         type: "ARCHIVE_COMMITTED",
@@ -757,6 +811,7 @@ async function deleteResources(resourceIds: string[]): Promise<number> {
     db.memberships,
     db.events,
     db.snapshots,
+    db.deepSleepRecoveries,
     async () => {
       await db.resources.bulkDelete(deletableIds);
       await db.memberships
@@ -764,6 +819,10 @@ async function deleteResources(resourceIds: string[]): Promise<number> {
         .anyOf(deletableIds)
         .delete();
       await db.events.where("resourceId").anyOf(deletableIds).delete();
+      await db.deepSleepRecoveries
+        .where("resourceId")
+        .anyOf(deletableIds)
+        .delete();
       for (const snapshot of snapshotUpdates) {
         if (snapshot) {
           if (snapshot.tabs.length === 0) {
@@ -844,12 +903,27 @@ async function restoreDeepSleepingTab(
     ? await db.resources.get(instance.resourceId)
     : undefined;
   const payload = parseDeepSleepPayload(rawUrl, SUSPENDED_PAGE_URL);
-  const targetUrl = resource?.originalUrl ?? payload?.url;
+  const recovery = await db.deepSleepRecoveries
+    .where("browserTabId")
+    .equals(tabId)
+    .first();
+  const targetUrl =
+    resource?.originalUrl ?? recovery?.originalUrl ?? payload?.url;
   if (!targetUrl || normalizeUrl(targetUrl) === null) {
     return false;
   }
 
-  await chrome.tabs.update(tabId, { url: targetUrl, active: activate });
+  if (recovery) {
+    await db.deepSleepRecoveries.delete(recovery.id);
+  }
+  try {
+    await chrome.tabs.update(tabId, { url: targetUrl, active: activate });
+  } catch (error) {
+    if (recovery) {
+      await db.deepSleepRecoveries.put(recovery);
+    }
+    throw error;
+  }
   if (instance) {
     await db.tabInstances.update(tabId, {
       deepSleeping: false,
@@ -865,6 +939,169 @@ async function restoreDeepSleepingTab(
   });
   await broadcastChange();
   return true;
+}
+
+async function rebuildMissingDeepSleepingTabs(): Promise<void> {
+  const recoveries = await db.deepSleepRecoveries.toArray();
+  if (recoveries.length === 0) {
+    return;
+  }
+
+  const tabs = await chrome.tabs.query({});
+  const deepSleepingTabs = new Map<string, chrome.tabs.Tab[]>();
+  for (const tab of tabs) {
+    const payload = parseDeepSleepPayload(
+      tab.url ?? tab.pendingUrl ?? "",
+      SUSPENDED_PAGE_URL,
+    );
+    if (payload) {
+      const matchingTabs = deepSleepingTabs.get(payload.resourceId) ?? [];
+      matchingTabs.push(tab);
+      deepSleepingTabs.set(payload.resourceId, matchingTabs);
+    }
+  }
+
+  for (const recovery of recoveries) {
+    const matchingTabs = deepSleepingTabs.get(recovery.resourceId) ?? [];
+    const existingIndex = Math.max(
+      0,
+      matchingTabs.findIndex((tab) => tab.id === recovery.browserTabId),
+    );
+    const [existing] = matchingTabs.splice(existingIndex, 1);
+    if (existing?.id !== undefined) {
+      await db.deepSleepRecoveries.put({
+        ...recovery,
+        browserTabId: existing.id,
+        windowId: existing.windowId,
+        index: existing.index,
+        pendingRemovalAt: undefined,
+      });
+      await captureDeepSleepingTab(
+        existing as chrome.tabs.Tab & { id: number },
+        existing.url ?? existing.pendingUrl ?? "",
+      );
+      continue;
+    }
+
+    const placeholderUrl = createDeepSleepUrl(SUSPENDED_PAGE_URL, {
+      version: 1,
+      resourceId: recovery.resourceId,
+      url: recovery.originalUrl,
+      title: recovery.title,
+    });
+    let created: chrome.tabs.Tab;
+    try {
+      created = await chrome.tabs.create({
+        windowId: recovery.windowId,
+        url: placeholderUrl,
+        active: false,
+        pinned: recovery.pinned,
+        index: recovery.index,
+      });
+    } catch {
+      created = await chrome.tabs.create({
+        url: placeholderUrl,
+        active: false,
+        pinned: recovery.pinned,
+      });
+    }
+    if (created.id === undefined) {
+      continue;
+    }
+
+    await db.deepSleepRecoveries.put({
+      ...recovery,
+      browserTabId: created.id,
+      windowId: created.windowId,
+      index: created.index,
+      pendingRemovalAt: undefined,
+    });
+    await captureDeepSleepingTab(
+      created as chrome.tabs.Tab & { id: number },
+      placeholderUrl,
+    );
+  }
+}
+
+async function migrateLegacyDeepSleepRecoveries(): Promise<void> {
+  const settings = await ensureDatabaseDefaults();
+  if (settings.deepSleepLegacyRecoveryVersion >= 1) {
+    return;
+  }
+
+  const [events, instances, resources] = await Promise.all([
+    db.events.orderBy("createdAt").toArray(),
+    db.tabInstances.toArray(),
+    db.resources.toArray(),
+  ]);
+  const latestDeepSleepState = new Map<
+    number,
+    { resourceId: string; sleeping: boolean; createdAt: number }
+  >();
+  for (const event of events) {
+    if (
+      event.browserTabId === undefined ||
+      event.resourceId === undefined ||
+      ![
+        "TAB_DEEP_SLEEP_COMMITTED",
+        "TAB_DEEP_SLEEP_RESTORED",
+        "ARCHIVE_COMMITTED",
+      ].includes(event.type)
+    ) {
+      continue;
+    }
+    latestDeepSleepState.set(event.browserTabId, {
+      resourceId: event.resourceId,
+      sleeping: event.type === "TAB_DEEP_SLEEP_COMMITTED",
+      createdAt: event.createdAt,
+    });
+  }
+
+  const instanceByTabId = new Map(
+    instances.map((instance) => [instance.browserTabId, instance]),
+  );
+  const resourceById = new Map(
+    resources.map((resource) => [resource.id, resource]),
+  );
+  const recoveries: DeepSleepRecovery[] = [];
+  for (const [browserTabId, state] of latestDeepSleepState) {
+    if (!state.sleeping) {
+      continue;
+    }
+    const resource = resourceById.get(state.resourceId);
+    if (!resource) {
+      continue;
+    }
+    const instance = instanceByTabId.get(browserTabId);
+    recoveries.push({
+      id: `${resource.id}:${browserTabId}`,
+      browserTabId,
+      resourceId: resource.id,
+      originalUrl: resource.originalUrl,
+      title: resource.customTitle || resource.title,
+      windowId: instance?.windowId ?? chrome.windows.WINDOW_ID_NONE,
+      index: instance?.index ?? 0,
+      pinned: instance?.pinned ?? false,
+      groupId: instance?.groupId ?? chrome.tabGroups.TAB_GROUP_ID_NONE,
+      createdAt: state.createdAt,
+      pendingRemovalAt: undefined,
+    });
+  }
+
+  await db.transaction(
+    "rw",
+    db.deepSleepRecoveries,
+    db.settings,
+    async () => {
+      if (recoveries.length > 0) {
+        await db.deepSleepRecoveries.bulkPut(recoveries);
+      }
+      await db.settings.put({
+        ...settings,
+        deepSleepLegacyRecoveryVersion: 1,
+      });
+    },
+  );
 }
 
 async function focusResource(resourceId: string): Promise<void> {
@@ -1414,6 +1651,8 @@ async function bootstrap(): Promise<void> {
   }
   await scheduleMaintenance();
   await rebuildContextMenus();
+  await migrateLegacyDeepSleepRecoveries();
+  await rebuildMissingDeepSleepingTabs();
   await syncOpenTabs();
   await createSnapshot("automatic");
 }
@@ -1436,6 +1675,8 @@ async function handleCommand(
     case "GET_STATE":
       return getVaultState();
     case "REFRESH_TABS":
+      await migrateLegacyDeepSleepRecoveries();
+      await rebuildMissingDeepSleepingTabs();
       await syncOpenTabs();
       return getVaultState();
     case "DISCARD_RESOURCES":
@@ -1618,12 +1859,12 @@ chrome.tabs.onAttached.addListener((tabId) => {
 });
 
 chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
-  void removeTabInstance(removedTabId);
+  void handleTabRemoved(removedTabId);
   queueTabCapture(addedTabId);
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  void removeTabInstance(tabId);
+  void handleTabRemoved(tabId);
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

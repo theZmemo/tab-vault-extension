@@ -2,6 +2,18 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.6] - 2026-09-29
+
+### Fixed
+
+- Deep-sleep recovery metadata is now persisted independently from extension
+  placeholder tabs, so reloading or upgrading the extension can rebuild tabs
+  that Chrome closes during the reload.
+- A one-time migration reconstructs deep-sleep records created by v0.0.2 through
+  v0.0.5 from their local event journal and restores missing placeholders.
+- Normal wake and manual tab-close flows clean up their recovery records to
+  avoid reopening intentionally closed pages in later sessions.
+
 ## [0.0.5] - 2026-09-29
 
 ### Added
@@ -92,6 +104,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.6]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.6
 [0.0.5]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.5
 [0.0.4]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.4
 [0.0.3]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.3

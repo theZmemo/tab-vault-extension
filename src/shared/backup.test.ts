@@ -55,6 +55,7 @@ function makeBackup(): VaultExport {
       collectionSort: "manual",
       deepSleepWarningAccepted: false,
       deepSleepWarningVersion: 0,
+      deepSleepLegacyRecoveryVersion: 0,
     },
   };
 }
@@ -82,6 +83,7 @@ describe("parseVaultExport", () => {
     };
     delete backup.settings.deepSleepWarningAccepted;
     delete backup.settings.deepSleepWarningVersion;
+    delete backup.settings.deepSleepLegacyRecoveryVersion;
     expect(parseVaultExport(backup).settings.deepSleepWarningAccepted).toBe(
       undefined,
     );

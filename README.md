@@ -1,6 +1,6 @@
 # 标签资产库
 
-面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.5。
+面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.6。
 
 ## 已实现
 
@@ -115,6 +115,8 @@ Edge 使用 `edge://extensions`，其余步骤相同。
 
 休眠只卸载页面进程并保留标签；归档会关闭真实标签，两者不会合并为同一级操作。
 
+深度休眠恢复记录独立保存在 IndexedDB 中。更新或重新加载扩展导致本地占位页被 Chrome 关闭时，扩展会在下次启动时自动重建；v0.0.6 还会一次性恢复旧版本事件日志中仍处于深度休眠状态的页面。
+
 ## 开发命令
 
 ```bash
@@ -122,6 +124,7 @@ npm install
 npm run build
 npm test
 npm run test:extension
+npm run test:recovery
 npm run test:locale
 npm run test:performance
 npm run verify:store

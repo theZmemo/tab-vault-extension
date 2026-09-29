@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from "dexie";
 import type {
   Collection,
   CollectionMembership,
+  DeepSleepRecovery,
   Resource,
   Rule,
   Snapshot,
@@ -22,6 +23,7 @@ export class TabVaultDatabase extends Dexie {
   events!: EntityTable<VaultEvent, "sequence">;
   snapshots!: EntityTable<Snapshot, "id">;
   settings!: EntityTable<VaultSettings, "key">;
+  deepSleepRecoveries!: EntityTable<DeepSleepRecovery, "id">;
 
   constructor() {
     super("tab-vault");
@@ -37,6 +39,21 @@ export class TabVaultDatabase extends Dexie {
       events: "++sequence,type,resourceId,browserTabId,createdAt",
       snapshots: "&id,type,createdAt,checksum",
       settings: "&key",
+    });
+    this.version(2).stores({
+      resources:
+        "&id,&dedupeKey,domain,createdAt,updatedAt,lastVisitedAt,trashedAt",
+      tabInstances:
+        "&browserTabId,resourceId,windowId,discarded,lastAccessed,lastSeenAt",
+      collections: "&id,name,createdAt",
+      memberships:
+        "&id,collectionId,resourceId,[collectionId+resourceId],ruleId,createdAt",
+      rules: "&id,collectionId,priority,createdAt",
+      events: "++sequence,type,resourceId,browserTabId,createdAt",
+      snapshots: "&id,type,createdAt,checksum",
+      settings: "&key",
+      deepSleepRecoveries:
+        "&id,browserTabId,resourceId,windowId,createdAt",
     });
   }
 }
@@ -74,7 +91,9 @@ export async function ensureDatabaseDefaults(): Promise<VaultSettings> {
       existing.collectionSort !== merged.collectionSort ||
       existing.deepSleepWarningAccepted !==
         merged.deepSleepWarningAccepted ||
-      existing.deepSleepWarningVersion !== merged.deepSleepWarningVersion
+      existing.deepSleepWarningVersion !== merged.deepSleepWarningVersion ||
+      existing.deepSleepLegacyRecoveryVersion !==
+        merged.deepSleepLegacyRecoveryVersion
     ) {
       await db.settings.put(merged);
     }

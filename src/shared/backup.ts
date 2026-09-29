@@ -196,7 +196,9 @@ function isSettings(value: unknown): value is VaultSettings {
     (value.deepSleepWarningAccepted === undefined ||
       typeof value.deepSleepWarningAccepted === "boolean") &&
     (value.deepSleepWarningVersion === undefined ||
-      isFiniteNumber(value.deepSleepWarningVersion))
+      isFiniteNumber(value.deepSleepWarningVersion)) &&
+    (value.deepSleepLegacyRecoveryVersion === undefined ||
+      isFiniteNumber(value.deepSleepLegacyRecoveryVersion))
   );
 }
 
