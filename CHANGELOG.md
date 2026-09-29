@@ -2,6 +2,17 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.13] - 2026-09-29
+
+### Fixed
+
+- Deployed the product introduction page to GitHub Pages instead of treating a
+  local file preview as a public page.
+- Replaced the unresolved `https://tidr.dev/xxx` homepage with the live
+  `https://thezmemo.github.io/tab-vault-extension/xxx/` URL in the extension,
+  product page metadata, documentation, and Chrome Web Store materials.
+- Kept `https://tidr.dev/xxx` documented only as a future custom-domain target.
+
 ## [0.0.12] - 2026-09-29
 
 ### Changed
@@ -171,6 +182,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.13]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.13
 [0.0.12]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.12
 [0.0.11]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.11
 [0.0.10]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.10

@@ -1,8 +1,8 @@
 # 标签资产库
 
-面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.12。
+面向 Chrome 121+、Edge 121+ 及其他 Chromium 浏览器的本地标签管理扩展。当前正式版本为 0.0.13。
 
-产品简介页：[https://tidr.dev/xxx](https://tidr.dev/xxx)。部署源文件为 [`site/xxx/index.html`](./site/xxx/index.html)。
+产品简介页：[https://thezmemo.github.io/tab-vault-extension/xxx/](https://thezmemo.github.io/tab-vault-extension/xxx/)。部署源文件为 [`site/xxx/index.html`](./site/xxx/index.html)；`https://tidr.dev/xxx` 保留为后续自定义域名目标。
 
 ## 已实现
 

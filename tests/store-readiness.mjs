@@ -88,7 +88,8 @@ assert(
   "Chrome 121+ is required because automatic sleep uses tabs.lastAccessed",
 );
 assert(
-  manifest.homepage_url === "https://tidr.dev/xxx",
+  manifest.homepage_url ===
+    "https://thezmemo.github.io/tab-vault-extension/xxx/",
   "Manifest homepage must point to the current product introduction page",
 );
 assert(
