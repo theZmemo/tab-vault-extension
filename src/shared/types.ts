@@ -11,6 +11,8 @@ export interface Resource {
   normalizedUrl: string;
   dedupeKey: string;
   title: string;
+  savedTitle?: string;
+  savedTitleAt?: number;
   customTitle?: string;
   domain: string;
   createdAt: number;
@@ -169,6 +171,7 @@ export interface VaultSettings {
   deepSleepWarningAccepted: boolean;
   deepSleepWarningVersion: number;
   deepSleepLegacyRecoveryVersion: number;
+  savedTitleMigrationVersion: number;
 }
 
 export interface VaultState {

@@ -2,6 +2,23 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.20] - 2026-10-08
+
+### Fixed
+
+- Added an immutable saved-page title so later tab refreshes, restores, and
+  temporary site titles no longer replace the name captured when a page was
+  saved.
+- Display names now consistently prefer a manual name, then the saved title,
+  then the latest live page title.
+- Saving to a permanent group, creating a snapshot, sleeping, deep sleeping,
+  archiving, or closing a tab now preserves the current title.
+- Added a one-time migration that reconstructs existing saved titles from
+  historical capture events, permanent-group timestamps, recovery records, and
+  session snapshots.
+- Updated search, title rules, backups, and all 10 UI languages for saved-title
+  support.
+
 ## [0.0.19] - 2026-09-29
 
 ### Changed
@@ -268,6 +285,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.20]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.20
 [0.0.19]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.19
 [0.0.18]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.18
 [0.0.17]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.17

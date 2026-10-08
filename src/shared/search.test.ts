@@ -8,6 +8,7 @@ const resource: Resource = {
   normalizedUrl: "https://data.example.com/report",
   dedupeKey: "dedupe-1",
   title: "「G1」GMV/CPO兑换比样例",
+  savedTitle: "保存时治理周报",
   customTitle: "治理兑换参考",
   domain: "data.example.com",
   createdAt: 1,
@@ -25,6 +26,10 @@ describe("matchesResourceSubstring", () => {
 
   it("matches custom titles and multiple terms across fields", () => {
     expect(matchesResourceSubstring(resource, "治理 季度")).toBe(true);
+  });
+
+  it("matches the saved title after the live page title changes", () => {
+    expect(matchesResourceSubstring(resource, "保存时治理")).toBe(true);
   });
 
   it("returns false when no indexed field contains the query", () => {

@@ -54,7 +54,11 @@ export function matchesRule(resource: Resource, rule: Rule): boolean {
   }
 
   if (rule.titleKeywords.length > 0) {
-    checks.push(includesAny(resource.title, rule.titleKeywords));
+    checks.push(
+      [resource.customTitle, resource.savedTitle, resource.title]
+        .filter((title): title is string => Boolean(title))
+        .some((title) => includesAny(title, rule.titleKeywords)),
+    );
   }
 
   if (rule.urlKeywords.length > 0) {

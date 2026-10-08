@@ -66,14 +66,20 @@ try {
   await sourcePage.close();
 
   await panel.evaluate(
-    async ({ resourceId, targetUrl, title }) => {
+    async ({ resource, resourceId, targetUrl, title }) => {
       const database = await new Promise((resolveDatabase, rejectDatabase) => {
         const request = indexedDB.open("tab-vault");
         request.onerror = () => rejectDatabase(request.error);
         request.onsuccess = () => resolveDatabase(request.result);
       });
       const transaction = database.transaction(
-        ["events", "settings", "snapshots", "deepSleepRecoveries"],
+        [
+          "resources",
+          "events",
+          "settings",
+          "snapshots",
+          "deepSleepRecoveries",
+        ],
         "readwrite",
       );
       const settingsStore = transaction.objectStore("settings");
@@ -85,6 +91,34 @@ try {
       settingsStore.put({
         ...settings,
         deepSleepLegacyRecoveryVersion: 0,
+        savedTitleMigrationVersion: 0,
+      });
+      transaction.objectStore("resources").put({
+        ...resource,
+        title: "飞书云文档",
+        savedTitle: undefined,
+        savedTitleAt: undefined,
+      });
+      const titleBase = Date.now() + 1_000;
+      transaction.objectStore("events").add({
+        type: "TAB_CAPTURED",
+        resourceId,
+        browserTabId: 987_654_321,
+        payload: { title },
+        createdAt: titleBase,
+      });
+      transaction.objectStore("events").add({
+        type: "ARCHIVE_PREPARED",
+        resourceId,
+        browserTabId: 987_654_321,
+        createdAt: titleBase + 100,
+      });
+      transaction.objectStore("events").add({
+        type: "TAB_CAPTURED",
+        resourceId,
+        browserTabId: 987_654_321,
+        payload: { title: "飞书云文档" },
+        createdAt: titleBase + 200,
       });
       transaction.objectStore("deepSleepRecoveries").clear();
       transaction.objectStore("events").add({
@@ -122,6 +156,7 @@ try {
       database.close();
     },
     {
+      resource: capturedResource,
       resourceId: capturedResource.id,
       targetUrl: originalUrl,
       title: capturedResource.title,
@@ -136,6 +171,20 @@ try {
     ),
   );
   expect(refreshResponses.every((response) => response.ok)).toBe(true);
+  const migratedTitle = await panel.evaluate(async (resourceId) => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    const resource = response.data.resources.find(
+      (item) => item.id === resourceId,
+    );
+    return {
+      latestTitle: resource?.title,
+      savedTitle: resource?.savedTitle,
+    };
+  }, capturedResource.id);
+  expect(migratedTitle).toEqual({
+    latestTitle: "飞书云文档",
+    savedTitle: capturedResource.title,
+  });
   await expect
     .poll(
       () =>
@@ -275,6 +324,7 @@ try {
         concurrentRefreshDeduplicated: true,
         staleDuplicateCleanup: true,
         manualCloseCleanup: true,
+        savedTitleMigrated: true,
       },
       null,
       2,

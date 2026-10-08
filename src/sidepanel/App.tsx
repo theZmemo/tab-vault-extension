@@ -43,6 +43,10 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { exportVaultData } from "../shared/db";
 import { sortCollections } from "../shared/collections";
 import { t, uiLocale } from "../shared/i18n";
+import {
+  getResourceDisplayTitle,
+  getResourceSavedTitle,
+} from "../shared/resources";
 import { matchesResourceSubstring } from "../shared/search";
 import type {
   Collection,
@@ -713,12 +717,19 @@ export function App() {
 
   const searchIndex = useMemo(() => {
     const index = new MiniSearch<Resource>({
-      fields: ["customTitle", "title", "originalUrl", "domain", "notes"],
+      fields: [
+        "customTitle",
+        "savedTitle",
+        "title",
+        "originalUrl",
+        "domain",
+        "notes",
+      ],
       storeFields: ["id"],
       searchOptions: {
         prefix: true,
         fuzzy: 0.18,
-        boost: { customTitle: 5, title: 3, domain: 2 },
+        boost: { customTitle: 6, savedTitle: 5, title: 3, domain: 2 },
       },
     });
     index.addAll(resourceViews.map((item) => item.resource));
@@ -778,8 +789,8 @@ export function App() {
         }
       }
       if (sortMode === "title") {
-        const leftTitle = left.resource.customTitle || left.resource.title;
-        const rightTitle = right.resource.customTitle || right.resource.title;
+        const leftTitle = getResourceDisplayTitle(left.resource);
+        const rightTitle = getResourceDisplayTitle(right.resource);
         return leftTitle.localeCompare(rightTitle, uiLocale);
       }
       if (sortMode === "visits") {
@@ -1336,9 +1347,7 @@ export function App() {
                       if (
                         window.confirm(
                           t("confirmDeleteResource", {
-                            name:
-                              item.resource.customTitle ||
-                              item.resource.title,
+                            name: getResourceDisplayTitle(item.resource),
                           }),
                         )
                       ) {
@@ -2078,8 +2087,7 @@ function CollectionAccordion({
       {expanded && (
         <div className="collection-accordion-content">
           {visibleResources.map((item) => {
-            const displayTitle =
-              item.resource.customTitle || item.resource.title;
+            const displayTitle = getResourceDisplayTitle(item.resource);
             return (
               <div className="collection-resource-row" key={item.resource.id}>
                 <button
@@ -2160,7 +2168,7 @@ function ResourceRow({
 }) {
   const { resource, instances, state, collectionIds } = item;
   const initial = (resource.domain || resource.title).slice(0, 1).toUpperCase();
-  const displayTitle = resource.customTitle || resource.title;
+  const displayTitle = getResourceDisplayTitle(resource);
   const domainTone = getDomainTone(resource.domain);
 
   return (
@@ -2307,7 +2315,7 @@ function RenameResourceDialog({
   onSave: (customTitle: string) => void;
 }) {
   const [customTitle, setCustomTitle] = useState(
-    resource.customTitle || resource.title,
+    getResourceDisplayTitle(resource),
   );
 
   return (
@@ -2334,7 +2342,7 @@ function RenameResourceDialog({
         </label>
         <div className="resource-origin">
           <span>{t("originalTitle")}</span>
-          <strong>{resource.title}</strong>
+          <strong>{getResourceSavedTitle(resource)}</strong>
           <code>{resource.originalUrl}</code>
         </div>
         <div className="form-actions">
@@ -2933,7 +2941,7 @@ function MoveResourceDialog({
   const targetCollections = collections.filter(
     (collection) => collection.id !== sourceCollection?.id,
   );
-  const displayTitle = resource.customTitle || resource.title;
+  const displayTitle = getResourceDisplayTitle(resource);
 
   return (
     <Modal title={t("manageResourceGroups")} onClose={onClose}>

@@ -13,7 +13,9 @@ const profilePath = join(
 );
 
 const server = createServer((request, response) => {
-  const title = request.url?.startsWith("/delete")
+  const title = request.url?.includes("utm_title=generic")
+    ? "飞书云文档"
+    : request.url?.startsWith("/delete")
     ? "待删除页面"
     : request.url?.startsWith("/new")
       ? "数据治理工作台"
@@ -360,6 +362,39 @@ try {
   await expect(resourceRow.getByText("已打开", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
+  const refreshedPage = context
+    .pages()
+    .find((page) => page.url().includes("/report?id=42"));
+  await refreshedPage?.goto(
+    "http://127.0.0.1:4178/report?id=42&utm_title=generic",
+  );
+  await expect(refreshedPage).toHaveTitle("飞书云文档");
+  await panel.evaluate(async () => {
+    await chrome.runtime.sendMessage({ type: "REFRESH_TABS" });
+  });
+  await expect
+    .poll(() =>
+      panel.evaluate(async () => {
+        const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+        const resource = response.data.resources.find((item) =>
+          item.originalUrl.includes("/report?id=42"),
+        );
+        return {
+          latestTitle: resource?.title,
+          savedTitle: resource?.savedTitle,
+        };
+      }),
+    )
+    .toEqual({
+      latestTitle: "飞书云文档",
+      savedTitle: "治理任务校验 SQL",
+    });
+  await expect(
+    resourceRow.getByText("治理任务校验 SQL", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    resourceRow.getByText("飞书云文档", { exact: true }),
+  ).toHaveCount(0);
 
   await resourceRow.getByTitle("重命名页面").click();
   await panel.getByLabel("页面名称").fill("治理 SQL · 自定义");
@@ -367,9 +402,6 @@ try {
   await expect(
     panel.locator("main").getByText("治理 SQL · 自定义", { exact: true }),
   ).toBeVisible();
-  const refreshedPage = context
-    .pages()
-    .find((page) => page.url().includes("/report?id=42"));
   await refreshedPage?.reload();
   await expect(
     panel.locator("main").getByText("治理 SQL · 自定义", { exact: true }),
@@ -797,6 +829,7 @@ try {
         collection: true,
         collectionEdited: true,
         customTitlePersisted: true,
+        savedTitlePersisted: true,
         collectionColorCount: 20,
         collectionSort: true,
         collectionMoveAndRemove: true,

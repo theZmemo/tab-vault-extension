@@ -14,6 +14,12 @@ import {
   parseDeepSleepPayload,
 } from "../shared/deepSleep";
 import { t } from "../shared/i18n";
+import {
+  getResourceDisplayTitle,
+  getResourceSavedTitle,
+  selectHistoricalSavedTitle,
+  type ResourceTitleCandidate,
+} from "../shared/resources";
 import { matchesRule } from "../shared/rules";
 import { normalizeSettings } from "../shared/settings";
 import { isEligibleForDeepSleep, isSafeToDiscard } from "../shared/tabs";
@@ -39,6 +45,7 @@ const CONTEXT_MENU_OPEN = "tab-vault:open";
 const CONTEXT_MENU_COLLECTION_PREFIX = "tab-vault:collection:";
 const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
+const SAVED_TITLE_MIGRATION_VERSION = 1;
 const captureQueue = new Map<number, Promise<void>>();
 let bootstrapPromise: Promise<void> | null = null;
 let deepSleepRebuildPromise: Promise<void> | null = null;
@@ -134,6 +141,48 @@ async function openSidePanel(tab?: chrome.tabs.Tab): Promise<void> {
   if (currentWindow.id !== undefined) {
     await chrome.sidePanel.open({ windowId: currentWindow.id });
   }
+}
+
+async function preserveResourceTitles(
+  resourceIds: Iterable<string>,
+  savedAt = Date.now(),
+): Promise<void> {
+  const uniqueIds = [...new Set(resourceIds)];
+  if (uniqueIds.length === 0) {
+    return;
+  }
+
+  await db.transaction("rw", db.resources, async () => {
+    const resources = await db.resources.bulkGet(uniqueIds);
+    for (const resource of resources) {
+      if (!resource || resource.savedTitle?.trim()) {
+        continue;
+      }
+      await db.resources.update(resource.id, {
+        savedTitle: resource.title.trim() || resource.domain,
+        savedTitleAt: savedAt,
+        updatedAt: Math.max(resource.updatedAt, savedAt),
+      });
+    }
+  });
+}
+
+async function refreshAndPreserveResourceTitles(
+  resourceIds: Iterable<string>,
+): Promise<void> {
+  const selected = new Set(resourceIds);
+  const instances = await db.tabInstances
+    .filter((instance) => selected.has(instance.resourceId))
+    .toArray();
+  for (const instance of instances) {
+    try {
+      const tab = await chrome.tabs.get(instance.browserTabId);
+      await captureTab(tab, "TAB_CAPTURED", false);
+    } catch {
+      // The latest captured title remains the fallback if the tab closed.
+    }
+  }
+  await preserveResourceTitles(selected);
 }
 
 async function captureDeepSleepingTab(
@@ -374,11 +423,15 @@ async function syncOpenTabs(): Promise<void> {
   }
 
   const savedInstances = await db.tabInstances.toArray();
-  const staleIds = savedInstances
-    .filter((instance) => !liveIds.has(instance.browserTabId))
-    .map((instance) => instance.browserTabId);
+  const staleInstances = savedInstances.filter(
+    (instance) => !liveIds.has(instance.browserTabId),
+  );
+  const staleIds = staleInstances.map((instance) => instance.browserTabId);
 
   if (staleIds.length > 0) {
+    await preserveResourceTitles(
+      staleInstances.map((instance) => instance.resourceId),
+    );
     await db.tabInstances.bulkDelete(staleIds);
   }
 
@@ -391,15 +444,30 @@ async function removeTabInstance(tabId: number): Promise<void> {
     return;
   }
 
-  await db.transaction("rw", db.tabInstances, db.events, async () => {
-    await db.tabInstances.delete(tabId);
-    await db.events.add({
-      type: "TAB_CLOSED",
-      resourceId: instance.resourceId,
-      browserTabId: tabId,
-      createdAt: Date.now(),
-    });
-  });
+  const now = Date.now();
+  await db.transaction(
+    "rw",
+    db.resources,
+    db.tabInstances,
+    db.events,
+    async () => {
+      const resource = await db.resources.get(instance.resourceId);
+      if (resource && !resource.savedTitle?.trim()) {
+        await db.resources.update(resource.id, {
+          savedTitle: resource.title.trim() || resource.domain,
+          savedTitleAt: now,
+          updatedAt: Math.max(resource.updatedAt, now),
+        });
+      }
+      await db.tabInstances.delete(tabId);
+      await db.events.add({
+        type: "TAB_CLOSED",
+        resourceId: instance.resourceId,
+        browserTabId: tabId,
+        createdAt: now,
+      });
+    },
+  );
   await broadcastChange();
 }
 
@@ -450,8 +518,14 @@ async function createSnapshot(
     await captureTab(tab, "TAB_CAPTURED", false);
   }
 
-  const [instances, resources, groups] = await Promise.all([
-    db.tabInstances.toArray(),
+  const instances = await db.tabInstances.toArray();
+  const eligibleTabIds = new Set(eligibleTabs.map((tab) => tab.id));
+  await preserveResourceTitles(
+    instances
+      .filter((instance) => eligibleTabIds.has(instance.browserTabId))
+      .map((instance) => instance.resourceId),
+  );
+  const [resources, groups] = await Promise.all([
     db.resources.toArray(),
     getTabGroups(),
   ]);
@@ -476,7 +550,7 @@ async function createSnapshot(
       result.push({
         resourceId: resource.id,
         url: resource.originalUrl,
-        title: resource.customTitle || resource.title,
+        title: getResourceDisplayTitle(resource),
         windowKey: String(tab.windowId),
         index: tab.index,
         pinned: tab.pinned,
@@ -540,6 +614,7 @@ async function discardTab(
     return false;
   }
 
+  await preserveResourceTitles([resource.id]);
   await appendEvent({
     type: "TAB_DISCARD_PREPARED",
     resourceId: resource.id,
@@ -642,18 +717,20 @@ async function deepSleepTab(
     return false;
   }
 
+  await preserveResourceTitles([resource.id]);
+  const displayTitle = getResourceDisplayTitle(resource);
   const placeholderUrl = createDeepSleepUrl(SUSPENDED_PAGE_URL, {
     version: 1,
     resourceId: resource.id,
     url: resource.originalUrl,
-    title: resource.customTitle || resource.title,
+    title: displayTitle,
   });
   const recovery: DeepSleepRecovery = {
     id: `${resource.id}:${tab.id}`,
     browserTabId: tab.id,
     resourceId: resource.id,
     originalUrl: resource.originalUrl,
-    title: resource.customTitle || resource.title,
+    title: displayTitle,
     windowId: tab.windowId,
     index: tab.index,
     pinned: tab.pinned,
@@ -727,20 +804,7 @@ async function deepSleepEligibleTabs(): Promise<number> {
 
 async function archiveResources(resourceIds: string[]): Promise<void> {
   const selected = new Set(resourceIds);
-  const instances = await db.tabInstances
-    .filter((instance) => selected.has(instance.resourceId))
-    .toArray();
-
-  for (const instance of instances) {
-    let tab: chrome.tabs.Tab;
-    try {
-      tab = await chrome.tabs.get(instance.browserTabId);
-    } catch {
-      await db.tabInstances.delete(instance.browserTabId);
-      continue;
-    }
-    await captureTab(tab, "TAB_CAPTURED", false);
-  }
+  await refreshAndPreserveResourceTitles(selected);
 
   const liveInstances = await db.tabInstances
     .filter((instance) => selected.has(instance.resourceId))
@@ -1196,7 +1260,7 @@ async function migrateLegacyDeepSleepRecoveries(): Promise<void> {
       browserTabId: savedRecovery?.browserTabId ?? browserTabId,
       resourceId: resource.id,
       originalUrl: resource.originalUrl,
-      title: resource.customTitle || resource.title,
+      title: getResourceDisplayTitle(resource),
       windowId:
         savedRecovery?.windowId ??
         instance?.windowId ??
@@ -1234,6 +1298,109 @@ async function migrateLegacyDeepSleepRecoveries(): Promise<void> {
       });
     },
   );
+}
+
+async function migrateSavedResourceTitles(): Promise<void> {
+  const settings = await ensureDatabaseDefaults();
+  if (settings.savedTitleMigrationVersion >= SAVED_TITLE_MIGRATION_VERSION) {
+    return;
+  }
+
+  const [resources, memberships, events, snapshots, recoveries] =
+    await Promise.all([
+      db.resources.toArray(),
+      db.memberships.toArray(),
+      db.events.orderBy("createdAt").toArray(),
+      db.snapshots.orderBy("createdAt").toArray(),
+      db.deepSleepRecoveries.toArray(),
+    ]);
+  const savedAtByResource = new Map<string, number>();
+  const snapshotAtByResource = new Map<string, number>();
+  const candidatesByResource = new Map<string, ResourceTitleCandidate[]>();
+  const markSavedAt = (resourceId: string, createdAt: number) => {
+    const existing = savedAtByResource.get(resourceId);
+    if (existing === undefined || createdAt < existing) {
+      savedAtByResource.set(resourceId, createdAt);
+    }
+  };
+  const addCandidate = (
+    resourceId: string,
+    title: unknown,
+    createdAt: number,
+  ) => {
+    if (typeof title !== "string" || !title.trim()) {
+      return;
+    }
+    const candidates = candidatesByResource.get(resourceId) ?? [];
+    candidates.push({ title, createdAt });
+    candidatesByResource.set(resourceId, candidates);
+  };
+
+  for (const membership of memberships) {
+    if (membership.source !== "rule") {
+      markSavedAt(membership.resourceId, membership.createdAt);
+    }
+  }
+  for (const event of events) {
+    if (!event.resourceId) {
+      continue;
+    }
+    if (
+      [
+        "ARCHIVE_PREPARED",
+        "TAB_CLOSED",
+        "TAB_DISCARD_PREPARED",
+        "TAB_DEEP_SLEEP_PREPARED",
+      ].includes(event.type)
+    ) {
+      markSavedAt(event.resourceId, event.createdAt);
+    }
+    if (event.type === "TAB_CAPTURED" || event.type === "RESOURCE_RESTORED") {
+      addCandidate(event.resourceId, event.payload?.title, event.createdAt);
+    }
+  }
+  for (const snapshot of snapshots) {
+    for (const tab of snapshot.tabs) {
+      const existing = snapshotAtByResource.get(tab.resourceId);
+      if (existing === undefined || snapshot.createdAt < existing) {
+        snapshotAtByResource.set(tab.resourceId, snapshot.createdAt);
+      }
+      addCandidate(tab.resourceId, tab.title, snapshot.createdAt);
+    }
+  }
+  for (const recovery of recoveries) {
+    markSavedAt(recovery.resourceId, recovery.createdAt);
+    addCandidate(recovery.resourceId, recovery.title, recovery.createdAt);
+  }
+
+  await db.transaction("rw", db.resources, db.settings, async () => {
+    for (const resource of resources) {
+      if (resource.savedTitle?.trim()) {
+        continue;
+      }
+      const savedAt =
+        savedAtByResource.get(resource.id) ??
+        snapshotAtByResource.get(resource.id) ??
+        resource.savedTitleAt ??
+        resource.updatedAt;
+      const customTitle = resource.customTitle?.trim();
+      const candidates = (candidatesByResource.get(resource.id) ?? []).filter(
+        (candidate) => candidate.title.trim() !== customTitle,
+      );
+      await db.resources.update(resource.id, {
+        savedTitle: selectHistoricalSavedTitle(
+          resource,
+          candidates,
+          savedAt,
+        ),
+        savedTitleAt: savedAt,
+      });
+    }
+    await db.settings.put({
+      ...settings,
+      savedTitleMigrationVersion: SAVED_TITLE_MIGRATION_VERSION,
+    });
+  });
 }
 
 async function focusResource(resourceId: string): Promise<void> {
@@ -1429,6 +1596,7 @@ async function addToCollection(
   collectionId: string,
   resourceIds: string[],
 ): Promise<void> {
+  await refreshAndPreserveResourceTitles(resourceIds);
   const now = Date.now();
   await db.transaction("rw", db.resources, db.memberships, async () => {
     await db.memberships.bulkPut(
@@ -1497,6 +1665,9 @@ async function moveResourceCollection(
   sourceCollectionId: string,
   targetCollectionId?: string,
 ): Promise<void> {
+  if (targetCollectionId) {
+    await refreshAndPreserveResourceTitles([resourceId]);
+  }
   const now = Date.now();
   await db.transaction("rw", db.resources, db.memberships, async () => {
     const resource = await db.resources.get(resourceId);
@@ -1622,7 +1793,7 @@ async function updateResourceTitle(
       resourceId,
       payload: {
         customTitle: normalizedTitle,
-        originalTitle: resource.title,
+        originalTitle: getResourceSavedTitle(resource),
       },
       createdAt: Date.now(),
     });
@@ -1632,6 +1803,16 @@ async function updateResourceTitle(
 
 async function importData(data: VaultExport): Promise<void> {
   const validated = parseVaultExport(data);
+  const snapshotTitleByResource = new Map<string, string>();
+  for (const snapshot of [...validated.snapshots].sort(
+    (left, right) => left.createdAt - right.createdAt,
+  )) {
+    for (const tab of snapshot.tabs) {
+      if (!snapshotTitleByResource.has(tab.resourceId)) {
+        snapshotTitleByResource.set(tab.resourceId, tab.title);
+      }
+    }
+  }
   const normalizedResources = await Promise.all(
     validated.resources.map(async (resource) => {
       const normalized = normalizeUrl(resource.originalUrl);
@@ -1644,6 +1825,11 @@ async function importData(data: VaultExport): Promise<void> {
         normalizedUrl: normalized.normalizedUrl,
         domain: normalized.domain,
         dedupeKey: await createDedupeKey(normalized.normalizedUrl),
+        savedTitle:
+          resource.savedTitle ||
+          snapshotTitleByResource.get(resource.id) ||
+          resource.title,
+        savedTitleAt: resource.savedTitleAt ?? resource.updatedAt,
       };
     }),
   );
@@ -1676,6 +1862,12 @@ async function importData(data: VaultExport): Promise<void> {
           await db.resources.put({
             ...existing,
             title: resource.title || existing.title,
+            savedTitle:
+              existing.savedTitle || resource.savedTitle || resource.title,
+            savedTitleAt:
+              existing.savedTitleAt ??
+              resource.savedTitleAt ??
+              resource.updatedAt,
             customTitle: existing.customTitle || resource.customTitle,
             notes: resource.notes || existing.notes,
             protected: existing.protected || resource.protected,
@@ -1780,6 +1972,7 @@ async function bootstrap(): Promise<void> {
   }
   await scheduleMaintenance();
   await rebuildContextMenus();
+  await migrateSavedResourceTitles();
   await migrateLegacyDeepSleepRecoveries();
   await rebuildMissingDeepSleepingTabs();
   await syncOpenTabs();
@@ -1804,6 +1997,7 @@ async function handleCommand(
     case "GET_STATE":
       return getVaultState();
     case "REFRESH_TABS":
+      await migrateSavedResourceTitles();
       await migrateLegacyDeepSleepRecoveries();
       await rebuildMissingDeepSleepingTabs();
       await syncOpenTabs();

@@ -73,6 +73,19 @@ describe("matchesRule", () => {
     ).toBe(false);
   });
 
+  it("matches the saved title when the latest page title is generic", () => {
+    expect(
+      matchesRule(
+        {
+          ...resource,
+          title: "飞书云文档",
+          savedTitle: "G1 治理周会复盘",
+        },
+        makeRule({ titleKeywords: ["治理周会"] }),
+      ),
+    ).toBe(true);
+  });
+
   it("applies excluded domains before positive conditions", () => {
     expect(
       matchesRule(

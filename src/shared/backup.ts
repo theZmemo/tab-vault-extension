@@ -90,6 +90,8 @@ function isResource(value: unknown): value is Resource {
     isNonEmptyString(value.normalizedUrl) &&
     isNonEmptyString(value.dedupeKey) &&
     isNonEmptyString(value.title) &&
+    isOptionalString(value.savedTitle) &&
+    (value.savedTitleAt === undefined || isFiniteNumber(value.savedTitleAt)) &&
     isOptionalString(value.customTitle) &&
     isNonEmptyString(value.domain) &&
     isFiniteNumber(value.createdAt) &&
@@ -200,7 +202,9 @@ function isSettings(value: unknown): value is VaultSettings {
     (value.deepSleepWarningVersion === undefined ||
       isFiniteNumber(value.deepSleepWarningVersion)) &&
     (value.deepSleepLegacyRecoveryVersion === undefined ||
-      isFiniteNumber(value.deepSleepLegacyRecoveryVersion))
+      isFiniteNumber(value.deepSleepLegacyRecoveryVersion)) &&
+    (value.savedTitleMigrationVersion === undefined ||
+      isFiniteNumber(value.savedTitleMigrationVersion))
   );
 }
 

@@ -15,6 +15,7 @@ export function matchesResourceSubstring(
 
   const fields = [
     resource.customTitle ?? "",
+    resource.savedTitle ?? "",
     resource.title,
     resource.originalUrl,
     resource.domain,

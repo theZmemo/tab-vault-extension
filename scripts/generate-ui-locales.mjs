@@ -40,6 +40,9 @@ const overrides = {
     deepSleepPageRestore: "確認恢復",
     confirmDeepSleep: "確認並開始深度休眠",
     privacyAndData: "隱私與資料",
+    originalTitle: "儲存時名稱",
+    restoreOriginalTitle: "恢復儲存時名稱",
+    originalTitleRestored: "已恢復儲存時名稱",
   },
   ja: {
     appName: "タブ保管庫",
@@ -68,6 +71,9 @@ const overrides = {
     idleMinutes: "アイドル状態が続いた後にスリープする時間（分）",
     snapshotInterval: "セッションスナップショット間隔（分）",
     restoreConcurrency: "同時に復元するページ数",
+    originalTitle: "保存時のタイトル",
+    restoreOriginalTitle: "保存時のタイトルに戻す",
+    originalTitleRestored: "保存時のタイトルに戻しました",
   },
   ko: {
     appName: "탭 보관함",
@@ -93,6 +99,9 @@ const overrides = {
     deepSleepPageRestore: "복원 확인",
     confirmDeepSleep: "확인 후 딥 슬립 시작",
     restoreConcurrency: "동시에 복원할 페이지 수",
+    originalTitle: "저장 당시 제목",
+    restoreOriginalTitle: "저장 당시 제목 복원",
+    originalTitleRestored: "저장 당시 제목을 복원했습니다",
   },
   es: {
     sleep: "Suspender",
@@ -109,6 +118,9 @@ const overrides = {
       "La página original seguirá suspendida hasta que confirmes la restauración",
     deepSleepPageRestore: "Confirmar restauración",
     confirmDeepSleep: "Confirmar e iniciar la suspensión profunda",
+    originalTitle: "Título guardado",
+    restoreOriginalTitle: "Restaurar título guardado",
+    originalTitleRestored: "Título guardado restaurado",
   },
   fr: {
     sleep: "Mettre en veille",
@@ -125,6 +137,9 @@ const overrides = {
       "La page d'origine reste en veille jusqu'à la confirmation de sa restauration",
     deepSleepPageRestore: "Confirmer la restauration",
     confirmDeepSleep: "Confirmer et lancer la veille profonde",
+    originalTitle: "Titre enregistré",
+    restoreOriginalTitle: "Restaurer le titre enregistré",
+    originalTitleRestored: "Titre enregistré restauré",
   },
   de: {
     sleep: "Ruhezustand",
@@ -141,6 +156,9 @@ const overrides = {
       "Die ursprüngliche Seite bleibt im Tiefschlaf, bis Sie die Wiederherstellung bestätigen",
     deepSleepPageRestore: "Wiederherstellung bestätigen",
     confirmDeepSleep: "Bestätigen und Tiefschlaf starten",
+    originalTitle: "Gespeicherter Titel",
+    restoreOriginalTitle: "Gespeicherten Titel wiederherstellen",
+    originalTitleRestored: "Gespeicherter Titel wiederhergestellt",
   },
   "pt-BR": {
     sleep: "Suspender",
@@ -157,6 +175,9 @@ const overrides = {
       "A página original continuará suspensa até você confirmar a restauração",
     deepSleepPageRestore: "Confirmar restauração",
     confirmDeepSleep: "Confirmar e iniciar a suspensão profunda",
+    originalTitle: "Título salvo",
+    restoreOriginalTitle: "Restaurar título salvo",
+    originalTitleRestored: "Título salvo restaurado",
   },
   ru: {
     sleep: "Усыпить",
@@ -174,6 +195,9 @@ const overrides = {
     deepSleepPageRestore: "Подтвердить восстановление",
     confirmDeepSleep: "Подтвердить и запустить глубокий сон",
     hoursAgo: "{count} ч назад",
+    originalTitle: "Сохранённое название",
+    restoreOriginalTitle: "Восстановить сохранённое название",
+    originalTitleRestored: "Сохранённое название восстановлено",
   },
 };
 

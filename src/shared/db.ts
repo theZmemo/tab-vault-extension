@@ -93,7 +93,9 @@ export async function ensureDatabaseDefaults(): Promise<VaultSettings> {
         merged.deepSleepWarningAccepted ||
       existing.deepSleepWarningVersion !== merged.deepSleepWarningVersion ||
       existing.deepSleepLegacyRecoveryVersion !==
-        merged.deepSleepLegacyRecoveryVersion
+        merged.deepSleepLegacyRecoveryVersion ||
+      existing.savedTitleMigrationVersion !==
+        merged.savedTitleMigrationVersion
     ) {
       await db.settings.put(merged);
     }
