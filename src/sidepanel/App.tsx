@@ -59,6 +59,7 @@ import type {
   VaultCommand,
   VaultSettings,
   VaultState,
+  WakeResourcesResult,
 } from "../shared/types";
 import { splitRuleValues } from "../shared/url";
 import { downloadBackup, readBackup, sendCommand } from "./api";
@@ -575,6 +576,31 @@ export function App() {
     }
   };
 
+  const unfreezeResources = async (resourceIds: string[]): Promise<void> => {
+    if (busy) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const { woken, failed } = await sendCommand<WakeResourcesResult>({
+        type: "WAKE_RESOURCES",
+        resourceIds,
+      });
+      await loadState();
+      setToast(
+        failed > 0
+          ? t("tabsUnfreezePartial", { count: woken, failed })
+          : woken > 0
+            ? t("tabsUnfrozen", { count: woken })
+            : t("noTabsToUnfreeze"),
+      );
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t("actionFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const deleteSavedResource = async (resourceId: string): Promise<void> => {
     setBusy(true);
     try {
@@ -860,6 +886,16 @@ export function App() {
   }, [state, view]);
 
   const selectedIds = [...selected];
+  const selectedHasSleepingTabs = Boolean(
+    state?.instances.some(
+      (instance) =>
+        selected.has(instance.resourceId) &&
+        (instance.discarded || instance.deepSleeping),
+    ),
+  );
+  const selectedHasArchivedResources = resourceViews.some(
+    (item) => selected.has(item.resource.id) && item.state === "virtual",
+  );
   const selectedMembershipCounts = useMemo(() => {
     const countsByCollection = new Map<string, number>();
     for (const membership of state?.memberships ?? []) {
@@ -1326,6 +1362,7 @@ export function App() {
                     item={item}
                     collectionMap={collectionMap}
                     checked={selected.has(item.resource.id)}
+                    busy={busy}
                     onToggle={() => toggleSelected(item.resource.id)}
                     onFocus={() =>
                       void run({
@@ -1334,6 +1371,9 @@ export function App() {
                       })
                     }
                     onDiscard={() => void sleepResources([item.resource.id])}
+                    onUnfreeze={() =>
+                      void unfreezeResources([item.resource.id])
+                    }
                     onArchive={() =>
                       void run(
                         {
@@ -1424,26 +1464,39 @@ export function App() {
 
       <div className={cx("action-dock", selected.size > 0 && "is-visible")}>
         <span>{t("selectedCount", { count: selected.size })}</span>
+        {selectedHasArchivedResources && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void run(
+                { type: "RESTORE_RESOURCES", resourceIds: selectedIds },
+                t("addedToRestoreQueue"),
+              )
+            }
+          >
+            <ArchiveRestore size={15} />
+            {t("open")}
+          </button>
+        )}
         <button
           type="button"
           disabled={busy}
+          title={
+            selectedHasSleepingTabs ? t("unfreezeSelected") : t("sleep")
+          }
           onClick={() =>
-            void run(
-              { type: "RESTORE_RESOURCES", resourceIds: selectedIds },
-              t("addedToRestoreQueue"),
-            )
+            selectedHasSleepingTabs
+              ? void unfreezeResources(selectedIds)
+              : void sleepResources(selectedIds)
           }
         >
-          <ArchiveRestore size={15} />
-          {t("open")}
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void sleepResources(selectedIds)}
-        >
-          <Moon size={15} />
-          {t("sleep")}
+          {selectedHasSleepingTabs ? (
+            <RotateCcw size={15} />
+          ) : (
+            <Moon size={15} />
+          )}
+          {selectedHasSleepingTabs ? t("unfreeze") : t("sleep")}
         </button>
         <button
           type="button"
@@ -2143,9 +2196,11 @@ function ResourceRow({
   item,
   collectionMap,
   checked,
+  busy,
   onToggle,
   onFocus,
   onDiscard,
+  onUnfreeze,
   onArchive,
   onDelete,
   onRestore,
@@ -2156,9 +2211,11 @@ function ResourceRow({
   item: ResourceView;
   collectionMap: ReadonlyMap<string, Collection>;
   checked: boolean;
+  busy: boolean;
   onToggle: () => void;
   onFocus: () => void;
   onDiscard: () => void;
+  onUnfreeze: () => void;
   onArchive: () => void;
   onDelete: () => void;
   onRestore: () => void;
@@ -2275,9 +2332,15 @@ function ResourceRow({
               <Trash2 size={15} />
             </IconButton>
           </>
-        ) : state === "discarded" || state === "deep-sleeping" ? (
+        ) : instances.some(
+            (instance) => instance.discarded || instance.deepSleeping,
+          ) ? (
           <>
-            <IconButton label={t("wakeTab")} onClick={onFocus}>
+            <IconButton
+              label={t("wakeTab")}
+              disabled={busy}
+              onClick={onUnfreeze}
+            >
               <RotateCcw size={15} />
             </IconButton>
             <IconButton label={t("archiveAndClose")} onClick={onArchive}>

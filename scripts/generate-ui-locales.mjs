@@ -298,12 +298,27 @@ await mkdir(outputRoot, { recursive: true });
 const sourceDictionaries = await loadSourceDictionaries();
 
 for (const target of targets) {
+  const existing = JSON.parse(
+    await readFile(resolve(outputRoot, `${target.locale}.json`), "utf8"),
+  );
   const dictionary = await translateDictionary(
     sourceDictionaries[target.source],
     target.source,
     target.language,
   );
   Object.assign(dictionary, overrides[target.locale]);
+  for (const key of [
+    "wakeTab",
+    "unfreeze",
+    "unfreezeSelected",
+    "tabsUnfrozen",
+    "tabsUnfreezePartial",
+    "noTabsToUnfreeze",
+  ]) {
+    if (existing[key]) {
+      dictionary[key] = existing[key];
+    }
+  }
   await writeFile(
     resolve(outputRoot, `${target.locale}.json`),
     `${JSON.stringify(dictionary, null, 2)}\n`,

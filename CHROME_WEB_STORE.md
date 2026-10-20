@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.20
+版本：0.0.21
 
 插件内产品介绍：`about.html`，从扩展“设置”中打开。
 
@@ -38,6 +38,7 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 中文子串、标题、URL、域名和备注搜索。
 - 规范化 URL 去重，合并常见跟踪参数造成的重复记录。
 - 四级渐进式休眠，按当前窗口、所有窗口、强力模式和本地占位页深度休眠逐级增强。
+- 已休眠和深度休眠标签支持单页或批量解冻，并保留原标签位置、固定状态和 Chrome 原生分组。
 - 深度休眠前先保存原 URL，并处理所有可操作网页标签，包括活动、固定、有声、加载中和已原生休眠标签；已保护资源和浏览器内部页除外。选中深睡标签时只显示占位页，用户点击“确认恢复”后才打开原页面；首次使用会提示页面运行时状态会被中断。
 - 更新或重新加载扩展时，深度休眠恢复记录可自动重建被 Chrome 关闭的本地占位标签及其原生标签组。
 - 安全归档，在本地写入成功后才关闭真实标签。
@@ -68,6 +69,8 @@ Key features:
 - Normalized URL deduplication for common tracking parameters.
 - Four progressive sleep levels for the current window, all windows, broader
   manual coverage, or placeholder-based deep sleep.
+- Single and batch unfreeze for sleeping and deep-sleeping tabs while preserving
+  existing tab positions, pinned state, and native Chrome groups.
 - Deep sleep persists the original URL before replacing all browser-operable
   web tabs, including active, pinned, audible, loading, and natively discarded
   tabs. Protected resources and browser-internal pages remain excluded.
@@ -141,6 +144,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.20 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.21 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

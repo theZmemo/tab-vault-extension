@@ -23,6 +23,7 @@ import {
 import { matchesRule } from "../shared/rules";
 import { normalizeSettings } from "../shared/settings";
 import { isEligibleForDeepSleep, isSafeToDiscard } from "../shared/tabs";
+import { wakeTab } from "../shared/wake";
 import type {
   Collection,
   CollectionMembership,
@@ -36,6 +37,7 @@ import type {
   VaultExport,
   VaultResponse,
   VaultSettings,
+  WakeResourcesResult,
 } from "../shared/types";
 import { createDedupeKey, normalizeUrl } from "../shared/url";
 
@@ -47,6 +49,8 @@ const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
 const SAVED_TITLE_MIGRATION_VERSION = 1;
 const captureQueue = new Map<number, Promise<void>>();
+const wakingTabs = new Map<number, Promise<boolean>>();
+let wakeQueue: Promise<unknown> = Promise.resolve();
 let bootstrapPromise: Promise<void> | null = null;
 let deepSleepRebuildPromise: Promise<void> | null = null;
 
@@ -1010,6 +1014,63 @@ async function restoreDeepSleepingTab(tabId: number): Promise<boolean> {
   });
   await broadcastChange();
   return true;
+}
+
+function wakeSleepingTab(tabId: number): Promise<boolean> {
+  const pending = wakingTabs.get(tabId);
+  if (pending) {
+    // Share success with the placeholder button so it does not retry navigation.
+    return pending;
+  }
+  const task = (async () => {
+    const tab = await chrome.tabs.get(tabId);
+    return wakeTab(tab, SUSPENDED_PAGE_URL, {
+      restoreDeepSleepingTab,
+      reloadTab: async (id) => {
+        await chrome.tabs.reload(id);
+      },
+      markTabAwake: async (id) => {
+        await db.tabInstances.update(id, {
+          discarded: false,
+          deepSleeping: false,
+          lastSeenAt: Date.now(),
+        });
+      },
+    });
+  })();
+  wakingTabs.set(tabId, task);
+  return task.finally(() => {
+    wakingTabs.delete(tabId);
+  });
+}
+
+function wakeResources(resourceIds: string[]): Promise<WakeResourcesResult> {
+  const task = wakeQueue.catch(() => undefined).then(async () => {
+    const selected = new Set(resourceIds);
+    const [instances, settings] = await Promise.all([
+      db.tabInstances
+        .filter((instance) => selected.has(instance.resourceId))
+        .toArray(),
+      ensureDatabaseDefaults(),
+    ]);
+    const tabIds = [...new Set(instances.map((item) => item.browserTabId))];
+    const result: WakeResourcesResult = { woken: 0, failed: 0 };
+    for (const chunk of chunkItems(tabIds, settings.restoreConcurrency)) {
+      const outcomes = await Promise.allSettled(chunk.map(wakeSleepingTab));
+      for (const outcome of outcomes) {
+        if (outcome.status === "rejected") {
+          result.failed += 1;
+        } else if (outcome.value) {
+          result.woken += 1;
+        }
+      }
+    }
+    await broadcastChange();
+    return result;
+  });
+  // Share the batch limit across side panels and repeated clicks.
+  wakeQueue = task;
+  return task;
 }
 
 async function rebuildMissingDeepSleepingTabsInternal(): Promise<void> {
@@ -2004,6 +2065,8 @@ async function handleCommand(
       return getVaultState();
     case "DISCARD_RESOURCES":
       return discardResources(command.resourceIds);
+    case "WAKE_RESOURCES":
+      return wakeResources(command.resourceIds);
     case "DISCARD_ELIGIBLE_TABS":
       return discardEligibleTabs(command.scope, command.windowId);
     case "DEEP_SLEEP_ELIGIBLE_TABS":
@@ -2012,7 +2075,7 @@ async function handleCommand(
       if (sender?.tab?.id === undefined) {
         throw new Error(t("deepSleepTabUnavailable"));
       }
-      return restoreDeepSleepingTab(sender.tab.id);
+      return wakeSleepingTab(sender.tab.id);
     case "ARCHIVE_RESOURCES":
       await archiveResources(command.resourceIds);
       return undefined;

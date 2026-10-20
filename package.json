@@ -1,13 +1,14 @@
 {
   "name": "tab-vault-extension",
   "private": true,
-  "version": "0.0.20",
+  "version": "0.0.21",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "test:extension": "node tests/extension.smoke.mjs",
+    "test:unfreeze": "node tests/unfreeze.smoke.mjs",
     "test:recovery": "node tests/deep-sleep-upgrade.mjs",
     "test:locale": "node tests/locale.smoke.mjs",
     "test:performance": "node tests/all-resources-performance.mjs",

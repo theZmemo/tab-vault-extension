@@ -6,7 +6,7 @@ import { chromium, expect } from "@playwright/test";
 
 const projectRoot = resolve(import.meta.dirname, "..");
 const extensionPath = join(projectRoot, "dist");
-const artifactsPath = join(projectRoot, "artifacts");
+const artifactsPath = process.env.TAB_VAULT_ARTIFACTS ?? join(projectRoot, "artifacts");
 const profilePath = join(
   tmpdir(),
   `tab-vault-smoke-${Date.now().toString(36)}`,

@@ -2,6 +2,27 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.21] - 2026-10-20
+
+### Added
+
+- Added explicit single-page and batch unfreeze actions for native sleeping and
+  deep-sleeping tabs.
+- Unfreeze reuses the existing tab and preserves its window, index, pinned
+  state, and native Chrome tab group.
+- Mixed selections only unfreeze sleeping items; open and archived resources
+  are skipped without creating duplicate tabs.
+- Added concurrency protection so repeated clicks cannot restore the same
+  deep-sleeping tab more than once.
+- Updated all 10 UI languages and added dedicated unfreeze regression coverage.
+
+### Fixed
+
+- Clarified that Chrome's own toolbar side-panel button can directly collapse
+  and reopen the panel; no in-extension pseudo-collapse is required.
+- Updated the build dependency `source-map-js` to 1.2.2 to resolve
+  GHSA-68fv-2mgg-jv7q.
+
 ## [0.0.20] - 2026-10-08
 
 ### Fixed
@@ -285,6 +306,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.21]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.21
 [0.0.20]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.20
 [0.0.19]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.19
 [0.0.18]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.18

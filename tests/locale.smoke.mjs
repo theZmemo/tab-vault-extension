@@ -5,7 +5,7 @@ import { chromium, expect } from "@playwright/test";
 
 const projectRoot = resolve(import.meta.dirname, "..");
 const extensionPath = join(projectRoot, "dist");
-const artifactsPath = join(projectRoot, "artifacts");
+const artifactsPath = process.env.TAB_VAULT_ARTIFACTS ?? join(projectRoot, "artifacts");
 const requestedLocale = process.env.TAB_VAULT_TEST_LOCALE ?? "en-US";
 const requestedTheme = process.env.TAB_VAULT_TEST_THEME ?? "dark";
 const localeKey = requestedLocale.toLowerCase().replaceAll("-", "_");

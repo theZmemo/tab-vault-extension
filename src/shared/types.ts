@@ -206,10 +206,16 @@ export interface VaultExport {
   settings: VaultSettings;
 }
 
+export interface WakeResourcesResult {
+  woken: number;
+  failed: number;
+}
+
 export type VaultCommand =
   | { type: "GET_STATE" }
   | { type: "REFRESH_TABS" }
   | { type: "DISCARD_RESOURCES"; resourceIds: string[] }
+  | { type: "WAKE_RESOURCES"; resourceIds: string[] }
   | {
       type: "DISCARD_ELIGIBLE_TABS";
       scope: "window" | "all" | "force-all";
