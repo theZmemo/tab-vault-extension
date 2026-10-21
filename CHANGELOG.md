@@ -24,6 +24,8 @@ All notable changes to Tab Vault are documented in this file.
   resource surfaces, lighter group color treatment, and a neutral graphite
   dark theme.
 - Added viewport-drift protection for the overlay navigation.
+- Reserved stable scrollbar gutters for resource and group lists so expanding
+  or collapsing groups does not shift row widths.
 - Updated the Vite build tool lock to 8.3.5 to clear the current security
   audit.
 

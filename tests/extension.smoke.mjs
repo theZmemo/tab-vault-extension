@@ -321,6 +321,51 @@ try {
     fullPage: true,
   });
   await expectVisibleIconGeometry(panel, "group hover state");
+  const groupOverviewList = groupOverview.locator(".group-overview-list");
+  await expect(groupOverviewList).toHaveCSS("scrollbar-gutter", "stable");
+  await panel.setViewportSize({ width: 480, height: 280 });
+  if (
+    !(await governanceHoverGroup.getAttribute("class"))?.includes(
+      "is-expanded",
+    )
+  ) {
+    await governanceHoverGroup
+      .locator(".collection-accordion-toggle")
+      .click();
+  }
+  await panel.waitForTimeout(180);
+  expect(
+    await groupOverviewList.evaluate(
+      (list) => list.scrollHeight > list.clientHeight,
+    ),
+  ).toBe(true);
+  const expandedGroupWidth = (
+    await governanceHoverGroup
+      .locator(".collection-accordion-header")
+      .boundingBox()
+  )?.width;
+  await governanceHoverGroup
+    .locator(".collection-accordion-toggle")
+    .click();
+  await panel.waitForTimeout(180);
+  expect(
+    await groupOverviewList.evaluate(
+      (list) => list.scrollHeight > list.clientHeight,
+    ),
+  ).toBe(false);
+  const collapsedGroupWidth = (
+    await governanceHoverGroup
+      .locator(".collection-accordion-header")
+      .boundingBox()
+  )?.width;
+  expect(Math.abs((expandedGroupWidth ?? 0) - (collapsedGroupWidth ?? 0))).toBe(
+    0,
+  );
+  await governanceHoverGroup
+    .locator(".collection-accordion-toggle")
+    .click();
+  await panel.waitForTimeout(180);
+  await panel.setViewportSize({ width: 480, height: 780 });
   await groupOverview.getByLabel("分组排序").selectOption("count");
   await expect(
     groupOverview.locator(".collection-accordion").first(),
