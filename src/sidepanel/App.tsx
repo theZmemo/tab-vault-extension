@@ -2780,49 +2780,51 @@ function SettingsDialog({
             onChange={setAutoDiscardEnabled}
           />
         </div>
-        <label>
-          <span>{t("idleMinutes")}</span>
-          <input
-            type="number"
-            min="5"
-            max="1440"
-            value={autoDiscardMinutes}
-            disabled={!autoDiscardEnabled}
-            onInput={(event) =>
-              setAutoDiscardMinutes(
-                Number((event.currentTarget as HTMLInputElement).value),
-              )
-            }
-          />
-        </label>
-        <label>
-          <span>{t("snapshotInterval")}</span>
-          <input
-            type="number"
-            min="1"
-            max="60"
-            value={snapshotIntervalMinutes}
-            onInput={(event) =>
-              setSnapshotIntervalMinutes(
-                Number((event.currentTarget as HTMLInputElement).value),
-              )
-            }
-          />
-        </label>
-        <label>
-          <span>{t("restoreConcurrency")}</span>
-          <input
-            type="number"
-            min="1"
-            max="10"
-            value={restoreConcurrency}
-            onInput={(event) =>
-              setRestoreConcurrency(
-                Number((event.currentTarget as HTMLInputElement).value),
-              )
-            }
-          />
-        </label>
+        <div className="settings-metrics">
+          <label>
+            <span>{t("idleMinutes")}</span>
+            <input
+              type="number"
+              min="5"
+              max="1440"
+              value={autoDiscardMinutes}
+              disabled={!autoDiscardEnabled}
+              onInput={(event) =>
+                setAutoDiscardMinutes(
+                  Number((event.currentTarget as HTMLInputElement).value),
+                )
+              }
+            />
+          </label>
+          <label>
+            <span>{t("snapshotInterval")}</span>
+            <input
+              type="number"
+              min="1"
+              max="60"
+              value={snapshotIntervalMinutes}
+              onInput={(event) =>
+                setSnapshotIntervalMinutes(
+                  Number((event.currentTarget as HTMLInputElement).value),
+                )
+              }
+            />
+          </label>
+          <label>
+            <span>{t("restoreConcurrency")}</span>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={restoreConcurrency}
+              onInput={(event) =>
+                setRestoreConcurrency(
+                  Number((event.currentTarget as HTMLInputElement).value),
+                )
+              }
+            />
+          </label>
+        </div>
         <div className="browser-side-setting">
           <div>
             <strong>{t("browserPanelSide")}</strong>

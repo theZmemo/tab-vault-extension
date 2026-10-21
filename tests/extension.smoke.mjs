@@ -141,6 +141,19 @@ async function expectVisibleIconGeometry(page, checkpoint) {
   expect(issues, `${checkpoint} icon geometry`).toEqual([]);
 }
 
+async function expectNoViewportDrift(page, checkpoint) {
+  const offsets = await page.evaluate(() => ({
+    windowX: window.scrollX,
+    documentX: document.documentElement.scrollLeft,
+    bodyX: document.body.scrollLeft,
+  }));
+  expect(offsets, `${checkpoint} viewport drift`).toEqual({
+    windowX: 0,
+    documentX: 0,
+    bodyX: 0,
+  });
+}
+
 let context;
 try {
   context = await chromium.launchPersistentContext(profilePath, {
@@ -257,6 +270,8 @@ try {
   await expect(panel.getByText("本地治理页面", { exact: true })).toBeVisible();
   await panel.locator(".modal").getByTitle("关闭").click();
   await panel.getByTitle("收起导航").click();
+  await panel.waitForTimeout(220);
+  await expectNoViewportDrift(panel, "collapsed navigation");
 
   const newPage = await context.newPage();
   await newPage.goto("http://127.0.0.1:4178/new?id=99");
