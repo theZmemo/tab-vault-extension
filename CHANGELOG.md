@@ -2,7 +2,7 @@
 
 All notable changes to Tab Vault are documented in this file.
 
-## [0.0.23] - Unreleased
+## [0.0.23] - 2026-10-21
 
 ### Added
 
@@ -333,6 +333,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.23]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.23
 [0.0.21]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.21
 [0.0.20]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.20
 [0.0.19]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.19
