@@ -2,6 +2,31 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.23] - Unreleased
+
+### Added
+
+- Added a manual storage-cleanup workflow for old, ungrouped resources.
+- Cleanup supports 30, 60, 90, 180, and 365-day inactivity windows.
+- Candidates must be closed, ungrouped, unprotected, unmodified, without
+  notes, outside manual snapshots, and unrelated to pending deep-sleep
+  recovery.
+- Users must scan, select records, and pass a second permanent-deletion
+  confirmation. No scheduled or automatic resource deletion was added.
+- Eligibility is checked again when deletion is submitted, so records whose
+  status changed are skipped.
+- Added cleanup regression coverage and localized the complete workflow in all
+  10 UI languages.
+
+### Changed
+
+- Refined the side panel with a quieter cool-gray workspace, compact white
+  resource surfaces, lighter group color treatment, and a neutral graphite
+  dark theme.
+- Added viewport-drift protection for the overlay navigation.
+- Updated the Vite build tool lock to 8.3.5 to clear the current security
+  audit.
+
 ## [0.0.21] - 2026-10-20
 
 ### Added

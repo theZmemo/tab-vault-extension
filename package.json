@@ -1,7 +1,7 @@
 {
   "name": "tab-vault-extension",
   "private": true,
-  "version": "0.0.22",
+  "version": "0.0.23",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:extension": "node tests/extension.smoke.mjs",
     "test:unfreeze": "node tests/unfreeze.smoke.mjs",
+    "test:cleanup": "node tests/cleanup.smoke.mjs",
     "test:recovery": "node tests/deep-sleep-upgrade.mjs",
     "test:locale": "node tests/locale.smoke.mjs",
     "test:performance": "node tests/all-resources-performance.mjs",
