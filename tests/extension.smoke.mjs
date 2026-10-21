@@ -241,7 +241,10 @@ try {
     .locator(".top-actions")
     .getByRole("button", { name: "新建永久分组", exact: true })
     .click();
-  await expect(panel.locator(".color-swatch")).toHaveCount(20);
+  await expect(panel.locator(".color-swatch")).toHaveCount(24);
+  for (const colorName of ["水绿色", "黄色", "棕色", "淡紫色"]) {
+    await expect(panel.getByLabel(`选择${colorName}`)).toBeVisible();
+  }
   await panel.screenshot({
     path: join(artifactsPath, "color-picker.png"),
     fullPage: true,
@@ -972,7 +975,7 @@ try {
         collectionEdited: true,
         customTitlePersisted: true,
         savedTitlePersisted: true,
-        collectionColorCount: 20,
+        collectionColorCount: 24,
         collectionSort: true,
         collectionMoveAndRemove: true,
         compactResourceCards: true,

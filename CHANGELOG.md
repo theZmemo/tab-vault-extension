@@ -12,6 +12,8 @@ All notable changes to Tab Vault are documented in this file.
   immediately for keyboard focus.
 - Updated browser tests to locate icon controls by accessible name and verify
   tooltip timing, dismissal, and removal of native title duplication.
+- Expanded permanent-group identifiers from 20 to 24 colors with aqua,
+  yellow, brown, and lavender options across all 10 UI languages.
 
 ## [0.0.23] - 2026-10-21
 
