@@ -211,6 +211,18 @@ export interface WakeResourcesResult {
   failed: number;
 }
 
+export interface StaleResourceScanResult {
+  inactiveDays: number;
+  scannedAt: number;
+  totalResources: number;
+  candidates: Resource[];
+}
+
+export interface StaleResourceDeleteResult {
+  deleted: number;
+  skipped: number;
+}
+
 export type VaultCommand =
   | { type: "GET_STATE" }
   | { type: "REFRESH_TABS" }
@@ -225,6 +237,12 @@ export type VaultCommand =
   | { type: "RESTORE_DEEP_SLEEP_TAB" }
   | { type: "ARCHIVE_RESOURCES"; resourceIds: string[] }
   | { type: "DELETE_RESOURCES"; resourceIds: string[] }
+  | { type: "SCAN_STALE_RESOURCES"; inactiveDays: number }
+  | {
+      type: "DELETE_STALE_RESOURCES";
+      inactiveDays: number;
+      resourceIds: string[];
+    }
   | { type: "RESTORE_RESOURCES"; resourceIds: string[] }
   | { type: "FOCUS_RESOURCE"; resourceId: string }
   | { type: "CREATE_SNAPSHOT" }

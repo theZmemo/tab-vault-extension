@@ -7,6 +7,10 @@ import {
   membershipId,
 } from "../shared/db";
 import { parseVaultExport } from "../shared/backup";
+import {
+  findStaleResourceCandidates,
+  normalizeStaleResourceDays,
+} from "../shared/cleanup";
 import { sortCollections } from "../shared/collections";
 import {
   createDeepSleepUrl,
@@ -32,6 +36,8 @@ import type {
   Rule,
   Snapshot,
   SnapshotTab,
+  StaleResourceDeleteResult,
+  StaleResourceScanResult,
   TabInstance,
   VaultCommand,
   VaultExport,
@@ -916,6 +922,64 @@ async function deleteResources(resourceIds: string[]): Promise<number> {
   await rebuildContextMenus();
   await broadcastChange();
   return deletableIds.length;
+}
+
+async function scanStaleResources(
+  inactiveDays: number,
+): Promise<StaleResourceScanResult> {
+  const normalizedDays = normalizeStaleResourceDays(inactiveDays);
+  const scannedAt = Date.now();
+  const [resources, instances, memberships, snapshots, recoveries] =
+    await Promise.all([
+      db.resources.toArray(),
+      db.tabInstances.toArray(),
+      db.memberships.toArray(),
+      db.snapshots.toArray(),
+      db.deepSleepRecoveries.toArray(),
+    ]);
+
+  return {
+    inactiveDays: normalizedDays,
+    scannedAt,
+    totalResources: resources.length,
+    candidates: findStaleResourceCandidates(
+      {
+        resources,
+        instances,
+        memberships,
+        snapshots,
+        recoveryResourceIds: recoveries.map(
+          (recovery) => recovery.resourceId,
+        ),
+      },
+      normalizedDays,
+      scannedAt,
+    ),
+  };
+}
+
+async function deleteStaleResources(
+  resourceIds: string[],
+  inactiveDays: number,
+): Promise<StaleResourceDeleteResult> {
+  const requestedIds = [...new Set(resourceIds)];
+  if (requestedIds.length === 0) {
+    return { deleted: 0, skipped: 0 };
+  }
+
+  const scan = await scanStaleResources(inactiveDays);
+  const candidateIds = new Set(
+    scan.candidates.map((resource) => resource.id),
+  );
+  const eligibleIds = requestedIds.filter((resourceId) =>
+    candidateIds.has(resourceId),
+  );
+  const deleted = await deleteResources(eligibleIds);
+
+  return {
+    deleted,
+    skipped: requestedIds.length - deleted,
+  };
 }
 
 function chunkItems<T>(items: T[], size: number): T[][] {
@@ -2081,6 +2145,13 @@ async function handleCommand(
       return undefined;
     case "DELETE_RESOURCES":
       return deleteResources(command.resourceIds);
+    case "SCAN_STALE_RESOURCES":
+      return scanStaleResources(command.inactiveDays);
+    case "DELETE_STALE_RESOURCES":
+      return deleteStaleResources(
+        command.resourceIds,
+        command.inactiveDays,
+      );
     case "RESTORE_RESOURCES":
       await restoreResources(command.resourceIds);
       return undefined;

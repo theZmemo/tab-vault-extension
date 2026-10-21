@@ -226,6 +226,29 @@ const en = {
   localDataDisclosure:
     "Tab URLs, titles, visit times, and groups stay in this browser and are not transmitted.",
   viewPrivacyPolicy: "Privacy policy",
+  storageCleanup: "Storage cleanup",
+  storageCleanupDescription:
+    "Review old, ungrouped records and choose what to delete.",
+  openStorageCleanup: "Review cleanup candidates",
+  cleanupInactivePeriod: "Not visited for",
+  cleanupDays: "{count} days",
+  scanResources: "Scan resources",
+  cleanupEligibilityHint:
+    "Open, sleeping, grouped, protected, renamed, noted, recovery, and manually snapshotted pages are excluded.",
+  cleanupSummary: "{count} of {total} resources can be cleaned",
+  cleanupStorageUsage: "Extension storage: {size}",
+  cleanupNoCandidates: "No cleanup candidates",
+  cleanupSelectAll: "Select all candidates",
+  cleanupDeleteSelected: "Delete selected",
+  cleanupConfirmTitle: "Confirm permanent deletion",
+  cleanupConfirmBody:
+    "Permanently delete {count} selected records and remove them from automatic snapshots? This cannot be undone.",
+  cleanupConfirmDelete: "Permanently delete",
+  cleanupDeleted: "{count} records permanently deleted",
+  cleanupDeletePartial:
+    "{count} records deleted; {skipped} skipped because their status changed.",
+  cleanupManualOnly:
+    "Nothing is deleted automatically. Deletion happens only after your confirmation.",
   saveSettings: "Save settings",
   saveCurrentSession: "Save current session",
   snapshotSummary:
@@ -495,6 +518,26 @@ const zh: Record<MessageKey, string> = {
   localDataDisclosure:
     "标签 URL、标题、访问时间和分组仅保存在当前浏览器中，不会对外传输。",
   viewPrivacyPolicy: "查看隐私政策",
+  storageCleanup: "存储清理",
+  storageCleanupDescription: "检查长期未访问且未收藏的记录，自行选择删除。",
+  openStorageCleanup: "查看可清理记录",
+  cleanupInactivePeriod: "未访问时长",
+  cleanupDays: "{count} 天",
+  scanResources: "扫描资源",
+  cleanupEligibilityHint:
+    "当前打开、休眠、已分组、受保护、重命名、有备注、待恢复及手动快照中的页面不会进入候选。",
+  cleanupSummary: "{total} 个资源中有 {count} 个可清理",
+  cleanupStorageUsage: "扩展存储占用：{size}",
+  cleanupNoCandidates: "暂无可清理记录",
+  cleanupSelectAll: "选择全部候选",
+  cleanupDeleteSelected: "删除所选记录",
+  cleanupConfirmTitle: "确认永久删除",
+  cleanupConfirmBody:
+    "确定永久删除所选 {count} 条记录，并从自动快照中移除？此操作无法撤销。",
+  cleanupConfirmDelete: "确认永久删除",
+  cleanupDeleted: "已永久删除 {count} 条记录",
+  cleanupDeletePartial: "已删除 {count} 条；另有 {skipped} 条因状态变化被跳过。",
+  cleanupManualOnly: "不会自动删除；只有你确认后才会提交删除。",
   saveSettings: "保存设置",
   saveCurrentSession: "保存当前会话",
   snapshotSummary: "{pages} 个页面 · {windows} 个窗口 · {snapshotType}",

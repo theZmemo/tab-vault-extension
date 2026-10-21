@@ -40,6 +40,10 @@ import {
 import MiniSearch from "minisearch";
 import { type ComponentChildren, type ComponentProps } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import {
+  DEFAULT_STALE_RESOURCE_DAYS,
+  STALE_RESOURCE_DAY_OPTIONS,
+} from "../shared/cleanup";
 import { exportVaultData } from "../shared/db";
 import { sortCollections } from "../shared/collections";
 import { t, uiLocale } from "../shared/i18n";
@@ -55,6 +59,8 @@ import type {
   ResourceRuntimeState,
   Rule,
   Snapshot,
+  StaleResourceDeleteResult,
+  StaleResourceScanResult,
   TabInstance,
   VaultCommand,
   VaultSettings,
@@ -86,6 +92,7 @@ type DialogKey =
   | "deep-sleep-warning"
   | "rules"
   | "settings"
+  | "cleanup"
   | "snapshots"
   | "add-to-group"
   | "rename-resource"
@@ -212,6 +219,19 @@ function formatSnapshotTime(timestamp: number): string {
     minute: "2-digit",
     hour12: false,
   }).format(timestamp);
+}
+
+function formatStorageSize(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB"];
+  let value = Math.max(0, bytes);
+  let unitIndex = 0;
+  while (value >= 1_024 && unitIndex < units.length - 1) {
+    value /= 1_024;
+    unitIndex += 1;
+  }
+  return `${new Intl.NumberFormat(uiLocale, {
+    maximumFractionDigits: unitIndex === 0 ? 0 : 1,
+  }).format(value)} ${units[unitIndex]}`;
 }
 
 function IconButton({
@@ -1622,9 +1642,28 @@ export function App() {
           settings={state.settings}
           browserPanelSide={browserPanelSide}
           onClose={() => setDialog(null)}
+          onOpenCleanup={() => setDialog("cleanup")}
           onSave={(settings) => {
             void run({ type: "UPDATE_SETTINGS", settings }, t("settingsSaved"));
             setDialog(null);
+          }}
+        />
+      )}
+
+      {dialog === "cleanup" && (
+        <StorageCleanupDialog
+          onClose={() => setDialog(null)}
+          onDeleted={async ({ deleted, skipped }) => {
+            await loadState();
+            setDialog(null);
+            setToast(
+              skipped > 0
+                ? t("cleanupDeletePartial", {
+                    count: deleted,
+                    skipped,
+                  })
+                : t("cleanupDeleted", { count: deleted }),
+            );
           }}
         />
       )}
@@ -2734,11 +2773,13 @@ function SettingsDialog({
   settings,
   browserPanelSide,
   onClose,
+  onOpenCleanup,
   onSave,
 }: {
   settings: VaultSettings;
   browserPanelSide: "left" | "right";
   onClose: () => void;
+  onOpenCleanup: () => void;
   onSave: (settings: Partial<VaultSettings>) => void;
 }) {
   const [autoDiscardEnabled, setAutoDiscardEnabled] = useState(
@@ -2761,7 +2802,7 @@ function SettingsDialog({
       onClose={onClose}
     >
       <form
-        className="form"
+        className="form settings-form"
         onSubmit={(event) => {
           event.preventDefault();
           onSave({
@@ -2780,49 +2821,51 @@ function SettingsDialog({
             onChange={setAutoDiscardEnabled}
           />
         </div>
-        <label>
-          <span>{t("idleMinutes")}</span>
-          <input
-            type="number"
-            min="5"
-            max="1440"
-            value={autoDiscardMinutes}
-            disabled={!autoDiscardEnabled}
-            onInput={(event) =>
-              setAutoDiscardMinutes(
-                Number((event.currentTarget as HTMLInputElement).value),
-              )
-            }
-          />
-        </label>
-        <label>
-          <span>{t("snapshotInterval")}</span>
-          <input
-            type="number"
-            min="1"
-            max="60"
-            value={snapshotIntervalMinutes}
-            onInput={(event) =>
-              setSnapshotIntervalMinutes(
-                Number((event.currentTarget as HTMLInputElement).value),
-              )
-            }
-          />
-        </label>
-        <label>
-          <span>{t("restoreConcurrency")}</span>
-          <input
-            type="number"
-            min="1"
-            max="10"
-            value={restoreConcurrency}
-            onInput={(event) =>
-              setRestoreConcurrency(
-                Number((event.currentTarget as HTMLInputElement).value),
-              )
-            }
-          />
-        </label>
+        <div className="settings-metrics">
+          <label>
+            <span>{t("idleMinutes")}</span>
+            <input
+              type="number"
+              min="5"
+              max="1440"
+              value={autoDiscardMinutes}
+              disabled={!autoDiscardEnabled}
+              onInput={(event) =>
+                setAutoDiscardMinutes(
+                  Number((event.currentTarget as HTMLInputElement).value),
+                )
+              }
+            />
+          </label>
+          <label>
+            <span>{t("snapshotInterval")}</span>
+            <input
+              type="number"
+              min="1"
+              max="60"
+              value={snapshotIntervalMinutes}
+              onInput={(event) =>
+                setSnapshotIntervalMinutes(
+                  Number((event.currentTarget as HTMLInputElement).value),
+                )
+              }
+            />
+          </label>
+          <label>
+            <span>{t("restoreConcurrency")}</span>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={restoreConcurrency}
+              onInput={(event) =>
+                setRestoreConcurrency(
+                  Number((event.currentTarget as HTMLInputElement).value),
+                )
+              }
+            />
+          </label>
+        </div>
         <div className="browser-side-setting">
           <div>
             <strong>{t("browserPanelSide")}</strong>
@@ -2874,6 +2917,24 @@ function SettingsDialog({
         </div>
         <div className="browser-side-setting">
           <div>
+            <strong>{t("storageCleanup")}</strong>
+            <span>{t("storageCleanupDescription")}</span>
+          </div>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={onOpenCleanup}
+          >
+            <span className="setting-action-icon" aria-hidden="true">
+              <Trash2 size={14} />
+            </span>
+            <span className="setting-action-label">
+              {t("openStorageCleanup")}
+            </span>
+          </button>
+        </div>
+        <div className="browser-side-setting">
+          <div>
             <strong>{t("productIntroduction")}</strong>
             <span>{t("aboutDescription")}</span>
           </div>
@@ -2903,6 +2964,287 @@ function SettingsDialog({
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function StorageCleanupDialog({
+  onClose,
+  onDeleted,
+}: {
+  onClose: () => void;
+  onDeleted: (result: StaleResourceDeleteResult) => Promise<void>;
+}) {
+  const [inactiveDays, setInactiveDays] = useState(
+    DEFAULT_STALE_RESOURCE_DAYS,
+  );
+  const [scanResult, setScanResult] =
+    useState<StaleResourceScanResult | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [renderLimit, setRenderLimit] = useState(RESOURCE_RENDER_BATCH);
+  const [storageUsage, setStorageUsage] = useState<number | null>(null);
+  const [working, setWorking] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const scanResources = async (days: number): Promise<void> => {
+    setWorking(true);
+    setError(null);
+    setConfirming(false);
+    setSelected(new Set());
+    setRenderLimit(RESOURCE_RENDER_BATCH);
+    try {
+      const result = await sendCommand<StaleResourceScanResult>({
+        type: "SCAN_STALE_RESOURCES",
+        inactiveDays: days,
+      });
+      setScanResult(result);
+    } catch (scanError) {
+      setScanResult(null);
+      setError(
+        scanError instanceof Error ? scanError.message : t("actionFailed"),
+      );
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  useEffect(() => {
+    void scanResources(DEFAULT_STALE_RESOURCE_DAYS);
+    if (navigator.storage?.estimate) {
+      void navigator.storage
+        .estimate()
+        .then((estimate) => setStorageUsage(estimate.usage ?? null))
+        .catch(() => undefined);
+    }
+  }, []);
+
+  const candidates = scanResult?.candidates ?? [];
+  const renderedCandidates = candidates.slice(0, renderLimit);
+  const allSelected =
+    candidates.length > 0 &&
+    candidates.every((resource) => selected.has(resource.id));
+
+  const toggleCandidate = (resourceId: string) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(resourceId)) {
+        next.delete(resourceId);
+      } else {
+        next.add(resourceId);
+      }
+      return next;
+    });
+  };
+
+  const deleteSelected = async (): Promise<void> => {
+    setWorking(true);
+    setError(null);
+    try {
+      const result = await sendCommand<StaleResourceDeleteResult>({
+        type: "DELETE_STALE_RESOURCES",
+        inactiveDays,
+        resourceIds: [...selected],
+      });
+      await onDeleted(result);
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : t("actionFailed"),
+      );
+      setConfirming(false);
+      setWorking(false);
+    }
+  };
+
+  if (confirming) {
+    return (
+      <Modal title={t("cleanupConfirmTitle")} onClose={onClose}>
+        <div className="cleanup-confirmation">
+          <span className="cleanup-confirmation-icon">
+            <TriangleAlert size={20} />
+          </span>
+          <div>
+            <strong>
+              {t("cleanupConfirmBody", { count: selected.size })}
+            </strong>
+            <span>{t("cleanupManualOnly")}</span>
+          </div>
+        </div>
+        {error && (
+          <p className="cleanup-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="form-actions">
+          <button
+            type="button"
+            className="button-ghost"
+            disabled={working}
+            onClick={() => setConfirming(false)}
+          >
+            {t("cancel")}
+          </button>
+          <button
+            type="button"
+            className="button-danger"
+            disabled={working || selected.size === 0}
+            onClick={() => void deleteSelected()}
+          >
+            <Trash2 size={15} />
+            {t("cleanupConfirmDelete")}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal title={t("storageCleanup")} onClose={onClose} width="wide">
+      <div className="cleanup-toolbar">
+        <label>
+          <span>{t("cleanupInactivePeriod")}</span>
+          <select
+            aria-label={t("cleanupInactivePeriod")}
+            value={inactiveDays}
+            disabled={working}
+            onChange={(event) => {
+              const days = Number(
+                (event.currentTarget as HTMLSelectElement).value,
+              );
+              setInactiveDays(days);
+              void scanResources(days);
+            }}
+          >
+            {STALE_RESOURCE_DAY_OPTIONS.map((days) => (
+              <option key={days} value={days}>
+                {t("cleanupDays", { count: days })}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="button-secondary"
+          disabled={working}
+          onClick={() => void scanResources(inactiveDays)}
+        >
+          <Search size={14} />
+          {t("scanResources")}
+        </button>
+      </div>
+
+      <div className="cleanup-summary">
+        <div>
+          <strong>
+            {scanResult
+              ? t("cleanupSummary", {
+                  count: candidates.length,
+                  total: scanResult.totalResources,
+                })
+              : t("scanResources")}
+          </strong>
+          {storageUsage !== null && (
+            <span>
+              {t("cleanupStorageUsage", {
+                size: formatStorageSize(storageUsage),
+              })}
+            </span>
+          )}
+        </div>
+        <span>{t("cleanupManualOnly")}</span>
+      </div>
+
+      <p className="cleanup-eligibility">{t("cleanupEligibilityHint")}</p>
+
+      {error && (
+        <p className="cleanup-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {candidates.length > 0 ? (
+        <>
+          <label className="cleanup-select-all">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() =>
+                setSelected(
+                  allSelected
+                    ? new Set()
+                    : new Set(candidates.map((resource) => resource.id)),
+                )
+              }
+            />
+            <span>{t("cleanupSelectAll")}</span>
+            <strong>{t("selectedCount", { count: selected.size })}</strong>
+          </label>
+          <div className="cleanup-list">
+            {renderedCandidates.map((resource) => (
+              <label className="cleanup-row" key={resource.id}>
+                <input
+                  type="checkbox"
+                  checked={selected.has(resource.id)}
+                  onChange={() => toggleCandidate(resource.id)}
+                />
+                <span className="cleanup-resource-copy">
+                  <strong title={getResourceDisplayTitle(resource)}>
+                    {getResourceDisplayTitle(resource)}
+                  </strong>
+                  <span>
+                    {resource.domain} ·{" "}
+                    {formatRelativeTime(resource.lastVisitedAt)} ·{" "}
+                    {t("visitLabel", { count: resource.visitCount })}
+                  </span>
+                </span>
+              </label>
+            ))}
+            {renderedCandidates.length < candidates.length && (
+              <button
+                type="button"
+                className="resource-load-more"
+                onClick={() =>
+                  setRenderLimit((current) =>
+                    Math.min(
+                      current + RESOURCE_RENDER_BATCH,
+                      candidates.length,
+                    ),
+                  )
+                }
+              >
+                <ChevronDown size={14} />
+                {t("loadMoreResources", {
+                  count: Math.min(
+                    RESOURCE_RENDER_BATCH,
+                    candidates.length - renderedCandidates.length,
+                  ),
+                })}
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="cleanup-empty">
+          <Trash2 size={20} />
+          <strong>{t("cleanupNoCandidates")}</strong>
+          <span>{t("cleanupEligibilityHint")}</span>
+        </div>
+      )}
+
+      <div className="form-actions">
+        <button type="button" className="button-ghost" onClick={onClose}>
+          {t("cancel")}
+        </button>
+        <button
+          type="button"
+          className="button-danger"
+          disabled={working || selected.size === 0}
+          onClick={() => setConfirming(true)}
+        >
+          <Trash2 size={15} />
+          {t("cleanupDeleteSelected")}
+        </button>
+      </div>
     </Modal>
   );
 }
