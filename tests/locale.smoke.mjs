@@ -274,7 +274,9 @@ try {
     ),
     fullPage: true,
   });
-  await panel.getByTitle(expectations.settings).click();
+  await panel
+    .getByRole("button", { name: expectations.settings, exact: true })
+    .click();
   await expect(panel.getByText("Navigation rail position")).toHaveCount(0);
   await expect(panel.getByText(expectations.browserPanelSide)).toBeVisible();
   await expect(

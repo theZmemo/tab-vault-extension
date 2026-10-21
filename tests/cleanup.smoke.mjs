@@ -199,7 +199,9 @@ try {
   );
   expect(response?.ok).toBe(true);
 
-  await panel.getByTitle(copy.settings).click();
+  await panel
+    .getByRole("button", { name: copy.settings, exact: true })
+    .click();
   await panel
     .getByRole("button", { name: copy.openCleanup })
     .click();

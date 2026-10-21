@@ -2,6 +2,17 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.24] - Unreleased
+
+### Changed
+
+- Replaced delayed browser-native icon titles with an 80 ms in-app tooltip.
+- The tooltip uses one shared overlay for all icon buttons, stays inside the
+  side-panel viewport, is not clipped by resource rows, and appears
+  immediately for keyboard focus.
+- Updated browser tests to locate icon controls by accessible name and verify
+  tooltip timing, dismissal, and removal of native title duplication.
+
 ## [0.0.23] - 2026-10-21
 
 ### Added

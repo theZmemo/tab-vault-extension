@@ -134,6 +134,7 @@ const PRIVACY_POLICY_URL =
   "https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md";
 const RESOURCE_RENDER_BATCH = 80;
 const DEEP_SLEEP_WARNING_VERSION = 2;
+const ICON_TOOLTIP_DELAY_MS = 80;
 
 const COLLECTION_COLOR_LABELS: Record<CollectionColor, string> = {
   blue: t("colorBlue"),
@@ -234,6 +235,91 @@ function formatStorageSize(bytes: number): string {
   }).format(value)} ${units[unitIndex]}`;
 }
 
+let quickTooltipElement: HTMLSpanElement | null = null;
+let quickTooltipOwner: HTMLButtonElement | null = null;
+let quickTooltipTimer: number | null = null;
+
+function clearQuickTooltipTimer(): void {
+  if (quickTooltipTimer !== null) {
+    window.clearTimeout(quickTooltipTimer);
+    quickTooltipTimer = null;
+  }
+}
+
+function hideQuickTooltip(owner?: HTMLButtonElement): void {
+  if (owner && owner !== quickTooltipOwner) {
+    return;
+  }
+  clearQuickTooltipTimer();
+  quickTooltipOwner = null;
+  quickTooltipElement?.classList.remove("is-visible");
+  if (quickTooltipElement) {
+    quickTooltipElement.hidden = true;
+  }
+}
+
+function getQuickTooltipElement(): HTMLSpanElement {
+  if (quickTooltipElement) {
+    return quickTooltipElement;
+  }
+  const element = document.createElement("span");
+  element.className = "quick-tooltip";
+  element.setAttribute("role", "tooltip");
+  element.hidden = true;
+  document.body.append(element);
+  quickTooltipElement = element;
+  window.addEventListener("resize", () => hideQuickTooltip());
+  window.addEventListener("scroll", () => hideQuickTooltip(), true);
+  return element;
+}
+
+function scheduleQuickTooltip(
+  button: HTMLButtonElement,
+  label: string,
+  delay: number,
+): void {
+  hideQuickTooltip();
+  quickTooltipOwner = button;
+
+  const reveal = () => {
+    if (
+      quickTooltipOwner !== button ||
+      !button.isConnected ||
+      button.disabled
+    ) {
+      return;
+    }
+    const tooltip = getQuickTooltipElement();
+    const rect = button.getBoundingClientRect();
+    const above = rect.bottom + 38 > window.innerHeight;
+    tooltip.textContent = label;
+    tooltip.hidden = false;
+    tooltip.style.top = `${above ? rect.top - 6 : rect.bottom + 6}px`;
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.transform = above
+      ? "translate(-50%, -100%)"
+      : "translateX(-50%)";
+
+    const bounds = tooltip.getBoundingClientRect();
+    const halfWidth = bounds.width / 2;
+    const clampedLeft = Math.max(
+      8 + halfWidth,
+      Math.min(
+        window.innerWidth - 8 - halfWidth,
+        rect.left + rect.width / 2,
+      ),
+    );
+    tooltip.style.left = `${clampedLeft}px`;
+    tooltip.classList.add("is-visible");
+  };
+
+  if (delay === 0) {
+    reveal();
+    return;
+  }
+  quickTooltipTimer = window.setTimeout(reveal, delay);
+}
+
 function IconButton({
   label,
   className,
@@ -248,9 +334,25 @@ function IconButton({
     <button
       type="button"
       className={cx("icon-button", className)}
-      title={label}
       aria-label={label}
       {...props}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch") {
+          scheduleQuickTooltip(
+            event.currentTarget,
+            label,
+            ICON_TOOLTIP_DELAY_MS,
+          );
+        }
+      }}
+      onPointerLeave={(event) => hideQuickTooltip(event.currentTarget)}
+      onPointerDown={(event) => hideQuickTooltip(event.currentTarget)}
+      onFocus={(event) => {
+        if (event.currentTarget.matches(":focus-visible")) {
+          scheduleQuickTooltip(event.currentTarget, label, 0);
+        }
+      }}
+      onBlur={(event) => hideQuickTooltip(event.currentTarget)}
     >
       {children}
     </button>
