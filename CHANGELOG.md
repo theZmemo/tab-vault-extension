@@ -14,6 +14,8 @@ All notable changes to Tab Vault are documented in this file.
   tooltip timing, dismissal, and removal of native title duplication.
 - Expanded permanent-group identifiers from 20 to 24 colors with aqua,
   yellow, brown, and lavender options across all 10 UI languages.
+- Updated the Vitest lock to 5.0.5 to clear the current development-tool
+  security advisories.
 
 ## [0.0.23] - 2026-10-21
 
