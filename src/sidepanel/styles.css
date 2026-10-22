@@ -136,6 +136,42 @@ input:disabled {
   background: #dce2e8;
 }
 
+.quick-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  overflow: hidden;
+  border: 1px solid #263442;
+  border-radius: 5px;
+  background: #172431;
+  box-shadow: 0 4px 12px rgb(20 31 42 / 22%);
+  padding: 5px 8px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 14px;
+  opacity: 0;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-tooltip.is-visible {
+  opacity: 1;
+  animation: quick-tooltip-in 80ms ease-out;
+}
+
+@keyframes quick-tooltip-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 .workspace {
   position: relative;
   display: flex;
@@ -273,6 +309,10 @@ input:disabled {
   --accent-color: #1687a7;
 }
 
+.color-aqua {
+  --accent-color: #159698;
+}
+
 .color-teal {
   --accent-color: #187f78;
 }
@@ -301,8 +341,16 @@ input:disabled {
   --accent-color: #b38a22;
 }
 
+.color-yellow {
+  --accent-color: #c1961e;
+}
+
 .color-orange {
   --accent-color: #cc6727;
+}
+
+.color-brown {
+  --accent-color: #8d674d;
 }
 
 .color-coral {
@@ -323,6 +371,10 @@ input:disabled {
 
 .color-violet {
   --accent-color: #7659b8;
+}
+
+.color-lavender {
+  --accent-color: #9a6fc4;
 }
 
 .color-plum {
@@ -1908,6 +1960,7 @@ body {
 .color-swatch.color-olive,
 .color-swatch.color-amber,
 .color-swatch.color-gold,
+.color-swatch.color-yellow,
 .color-swatch.color-orange {
   color: #322b18;
 }

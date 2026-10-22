@@ -66,6 +66,15 @@ describe("parseVaultExport", () => {
     expect(parseVaultExport(makeBackup())).toEqual(makeBackup());
   });
 
+  it.each(["aqua", "yellow", "brown", "lavender"] as const)(
+    "accepts the new %s collection color",
+    (color) => {
+      const backup = makeBackup();
+      backup.collections[0].color = color;
+      expect(parseVaultExport(backup).collections[0].color).toBe(color);
+    },
+  );
+
   it("rejects missing collections", () => {
     const backup = makeBackup() as unknown as Record<string, unknown>;
     delete backup.collections;

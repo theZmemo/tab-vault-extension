@@ -221,7 +221,9 @@ try {
   await expect(panel.locator(".resource-row")).toHaveCount(1);
   await expect(panel.getByText("重复 2", { exact: true })).toBeVisible();
   await expect(panel.getByLabel("资源排序")).toBeVisible();
-  await panel.getByTitle("清除搜索").click();
+  await panel
+    .getByRole("button", { name: "清除搜索", exact: true })
+    .click();
   await expect(panel.locator(".group-overview")).toBeVisible();
 
   await panel
@@ -235,8 +237,14 @@ try {
     .click();
   await expect(panel.locator(".group-overview")).toBeVisible();
 
-  await panel.locator(".top-actions").getByTitle("新建永久分组").click();
-  await expect(panel.locator(".color-swatch")).toHaveCount(20);
+  await panel
+    .locator(".top-actions")
+    .getByRole("button", { name: "新建永久分组", exact: true })
+    .click();
+  await expect(panel.locator(".color-swatch")).toHaveCount(24);
+  for (const colorName of ["水绿色", "黄色", "棕色", "淡紫色"]) {
+    await expect(panel.getByLabel(`选择${colorName}`)).toBeVisible();
+  }
   await panel.screenshot({
     path: join(artifactsPath, "color-picker.png"),
     fullPage: true,
@@ -245,15 +253,23 @@ try {
   await panel.getByLabel("分组名称").fill("数据治理");
   await panel.getByLabel("选择橙色").click();
   await panel.getByRole("button", { name: "创建分组" }).click();
-  await panel.getByTitle("展开导航").click();
-  await panel.locator(".navigation").getByTitle("编辑 数据治理").click();
+  await panel
+    .getByRole("button", { name: "展开导航", exact: true })
+    .click();
+  await panel
+    .locator(".navigation")
+    .getByRole("button", { name: "编辑 数据治理", exact: true })
+    .click();
   await panel.getByLabel("分组名称").fill("治理资料");
   await panel.getByRole("button", { name: "保存", exact: true }).click();
   await expect(
     panel.locator(".group-overview").getByText("治理资料", { exact: true }),
   ).toBeVisible();
 
-  await panel.locator(".top-actions").getByTitle("新建永久分组").click();
+  await panel
+    .locator(".top-actions")
+    .getByRole("button", { name: "新建永久分组", exact: true })
+    .click();
   await panel.getByLabel("分组名称").fill("待处理");
   await panel.getByLabel("选择深蓝色").click();
   await panel.getByRole("button", { name: "创建分组" }).click();
@@ -268,8 +284,13 @@ try {
   await panel.getByLabel("域名").fill("127.0.0.1");
   await panel.getByRole("button", { name: "保存规则" }).click();
   await expect(panel.getByText("本地治理页面", { exact: true })).toBeVisible();
-  await panel.locator(".modal").getByTitle("关闭").click();
-  await panel.getByTitle("收起导航").click();
+  await panel
+    .locator(".modal")
+    .getByRole("button", { name: "关闭", exact: true })
+    .click();
+  await panel
+    .getByRole("button", { name: "收起导航", exact: true })
+    .click();
   await panel.waitForTimeout(220);
   await expectNoViewportDrift(panel, "collapsed navigation");
 
@@ -386,14 +407,18 @@ try {
   const governanceNewResource = governanceGroup
     .locator(".collection-resource-row")
     .filter({ hasText: "数据治理工作台" });
-  await governanceNewResource.getByTitle("移动或移除页面").click();
+  await governanceNewResource
+    .getByRole("button", { name: "移动或移除页面", exact: true })
+    .click();
   await panel.getByRole("button", { name: "移动到待处理" }).click();
   await pendingGroup.locator(".collection-accordion-toggle").click();
   const pendingResource = pendingGroup
     .locator(".collection-resource-row")
     .filter({ hasText: "数据治理工作台" });
   await expect(pendingResource).toBeVisible();
-  await pendingResource.getByTitle("移动或移除页面").click();
+  await pendingResource
+    .getByRole("button", { name: "移动或移除页面", exact: true })
+    .click();
   await panel.getByRole("button", { name: "从待处理移除" }).click();
 
   await groupOverview
@@ -409,8 +434,30 @@ try {
   await expect(resourceRow.getByText("治理资料", { exact: true })).toBeVisible();
   const compactResourceBox = await resourceRow.boundingBox();
   expect(compactResourceBox?.height).toBeLessThanOrEqual(80);
+  const manageResourceButton = resourceRow.getByRole("button", {
+    name: "移动或移除页面",
+    exact: true,
+  });
+  expect(await manageResourceButton.getAttribute("title")).toBeNull();
+  const quickTooltipStartedAt = Date.now();
+  await manageResourceButton.hover();
+  await expect(
+    panel.locator(".quick-tooltip").filter({
+      hasText: "移动或移除页面",
+    }),
+  ).toBeVisible({ timeout: 300 });
+  const quickTooltipElapsedMs = Date.now() - quickTooltipStartedAt;
+  expect(quickTooltipElapsedMs).toBeLessThan(300);
+  await panel.screenshot({
+    path: join(artifactsPath, "quick-icon-tooltip.png"),
+    fullPage: true,
+  });
+  await panel.locator(".list-header").hover();
+  await expect(panel.locator(".quick-tooltip")).toBeHidden();
 
-  await resourceRow.getByTitle("归档并关闭").click();
+  await resourceRow
+    .getByRole("button", { name: "归档并关闭", exact: true })
+    .click();
   await expect(resourceRow.getByText("已归档", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
@@ -418,7 +465,9 @@ try {
     "title",
     "浏览器标签已关闭，记录保留在资产库中，可重新打开",
   );
-  await resourceRow.getByTitle("打开页面").click();
+  await resourceRow
+    .getByRole("button", { name: "打开页面", exact: true })
+    .click();
   await expect(resourceRow.getByText("已打开", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
@@ -456,7 +505,9 @@ try {
     resourceRow.getByText("飞书云文档", { exact: true }),
   ).toHaveCount(0);
 
-  await resourceRow.getByTitle("重命名页面").click();
+  await resourceRow
+    .getByRole("button", { name: "重命名页面", exact: true })
+    .click();
   await panel.getByLabel("页面名称").fill("治理 SQL · 自定义");
   await panel.getByRole("button", { name: "保存", exact: true }).click();
   await expect(
@@ -488,10 +539,14 @@ try {
   await expect(panel.locator(".resource-row").first()).toContainText(
     "治理 SQL · 自定义",
   );
-  await panel.getByTitle("清除搜索").click();
+  await panel
+    .getByRole("button", { name: "清除搜索", exact: true })
+    .click();
   await expect(panel.locator(".group-overview")).toBeVisible();
 
-  await panel.getByTitle("保存当前快照").click();
+  await panel
+    .getByRole("button", { name: "保存当前快照", exact: true })
+    .click();
   await expect(panel.getByText("当前会话已保存", { exact: true })).toBeVisible();
   await panel.screenshot({
     path: join(artifactsPath, "sidepanel-smoke.png"),
@@ -522,7 +577,9 @@ try {
   await moreGroupsButton.click();
   await expect(panel.locator(".navigation")).toHaveClass(/is-open/);
   await expect(panel.locator(".navigation")).toContainText("补充分组 6");
-  await panel.getByTitle("收起导航").click();
+  await panel
+    .getByRole("button", { name: "收起导航", exact: true })
+    .click();
 
   await panel.setViewportSize({ width: 760, height: 780 });
   await expect(panel.locator(".navigation-rail")).toBeVisible();
@@ -534,7 +591,9 @@ try {
   });
   await expectVisibleIconGeometry(panel, "compact navigation rail");
   const collapsedContentBox = await panel.locator(".content").boundingBox();
-  await panel.getByTitle("展开导航").click();
+  await panel
+    .getByRole("button", { name: "展开导航", exact: true })
+    .click();
   await expect(panel.locator(".navigation")).toBeVisible();
   await panel.waitForTimeout(200);
   const expandedContentBox = await panel.locator(".content").boundingBox();
@@ -555,7 +614,9 @@ try {
     }
     return (await chrome.sidePanel.getLayout()).side;
   });
-  await panel.getByTitle("设置").click();
+  await panel
+    .getByRole("button", { name: "设置", exact: true })
+    .click();
   await expect(panel.getByText("图标导航轨道位置")).toHaveCount(0);
   await expect(panel.getByText("浏览器侧边栏", { exact: true })).toBeVisible();
   await expect(panel.getByText("隐私与数据", { exact: true })).toBeVisible();
@@ -591,9 +652,13 @@ try {
   });
   await expectVisibleIconGeometry(aboutPage, "packaged about page");
   await aboutPage.close();
-  await panel.getByTitle("关闭").press("Escape");
+  await panel
+    .getByRole("button", { name: "关闭", exact: true })
+    .press("Escape");
   await expect(panel.locator(".modal")).toHaveCount(0);
-  await panel.getByTitle("收起导航").click();
+  await panel
+    .getByRole("button", { name: "收起导航", exact: true })
+    .click();
   await expect(panel.locator(".navigation")).not.toHaveClass(/is-open/);
   await panel.waitForTimeout(220);
   await panel.setViewportSize({ width: 380, height: 780 });
@@ -627,7 +692,10 @@ try {
       }
     }
   });
-  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .locator(".top-actions")
+    .getByRole("button", { name: "批量休眠标签", exact: true })
+    .click();
   await expect(panel.getByText("选择休眠级别", { exact: true })).toBeVisible();
   await expect(panel.getByText("第 1 级 · 推荐", { exact: true })).toBeVisible();
   await expect(
@@ -662,7 +730,10 @@ try {
       exact: true,
     }),
   ).toBeVisible({ timeout: 10_000 });
-  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .locator(".top-actions")
+    .getByRole("button", { name: "批量休眠标签", exact: true })
+    .click();
   await panel
     .getByRole("button", { name: "休眠所有窗口可休眠标签" })
     .click();
@@ -671,7 +742,10 @@ try {
       exact: true,
     }),
   ).toBeVisible();
-  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .locator(".top-actions")
+    .getByRole("button", { name: "批量休眠标签", exact: true })
+    .click();
   await panel
     .getByRole("button", { name: "强力休眠所有后台标签" })
     .click();
@@ -698,7 +772,10 @@ try {
     await chrome.tabs.update(tab.id, { pinned: true });
     return tab.id;
   }, deepSleepOriginalUrl);
-  await panel.locator(".top-actions").getByTitle("批量休眠标签").click();
+  await panel
+    .locator(".top-actions")
+    .getByRole("button", { name: "批量休眠标签", exact: true })
+    .click();
   await panel
     .getByRole("button", { name: "深度休眠所有可操作网页标签" })
     .click();
@@ -742,7 +819,9 @@ try {
   expect(deepSleepState.settings.deepSleepWarningAccepted).toBe(true);
   expect(deepSleepState.settings.deepSleepWarningVersion).toBe(2);
 
-  await panel.getByTitle("保存当前快照").click();
+  await panel
+    .getByRole("button", { name: "保存当前快照", exact: true })
+    .click();
   await expect(panel.getByText("当前会话已保存", { exact: true })).toBeVisible();
   const snapshotState = await panel.evaluate(async () => {
     const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
@@ -847,19 +926,25 @@ try {
     .locator(".resource-row")
     .filter({ hasText: "待删除页面" });
   await expect(deletionRow).toBeVisible({ timeout: 10_000 });
-  await panel.getByTitle("保存当前快照").click();
+  await panel
+    .getByRole("button", { name: "保存当前快照", exact: true })
+    .click();
   const deletionResourceId = await panel.evaluate(async () => {
     const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
     return response.data.resources.find(
       (resource) => resource.title === "待删除页面",
     ).id;
   });
-  await deletionRow.getByTitle("归档并关闭").click();
+  await deletionRow
+    .getByRole("button", { name: "归档并关闭", exact: true })
+    .click();
   await expect(deletionRow.getByText("已归档", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
   panel.once("dialog", (dialog) => dialog.accept());
-  await deletionRow.getByTitle("永久删除").click();
+  await deletionRow
+    .getByRole("button", { name: "永久删除", exact: true })
+    .click();
   await expect(deletionRow).toHaveCount(0);
   const deletionState = await panel.evaluate(async () => {
     const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
@@ -890,10 +975,12 @@ try {
         collectionEdited: true,
         customTitlePersisted: true,
         savedTitlePersisted: true,
-        collectionColorCount: 20,
+        collectionColorCount: 24,
         collectionSort: true,
         collectionMoveAndRemove: true,
         compactResourceCards: true,
+        fastIconTooltips: true,
+        quickTooltipElapsedMs,
         archiveMeaningExposed: true,
         compactResourceScreenshot: "artifacts/compact-resource-card.png",
         batchSleepCurrentWindow: true,

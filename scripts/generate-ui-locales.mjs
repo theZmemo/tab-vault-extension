@@ -332,6 +332,10 @@ for (const target of targets) {
     "cleanupDeleted",
     "cleanupDeletePartial",
     "cleanupManualOnly",
+    "colorAqua",
+    "colorYellow",
+    "colorBrown",
+    "colorLavender",
   ]) {
     if (existing[key]) {
       dictionary[key] = existing[key];

@@ -2,6 +2,19 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.24] - 2026-10-22
+
+### Changed
+
+- Replaced delayed browser-native icon titles with an 80 ms in-app tooltip.
+- The tooltip uses one shared overlay for all icon buttons, stays inside the
+  side-panel viewport, is not clipped by resource rows, and appears
+  immediately for keyboard focus.
+- Updated browser tests to locate icon controls by accessible name and verify
+  tooltip timing, dismissal, and removal of native title duplication.
+- Expanded permanent-group identifiers from 20 to 24 colors with aqua,
+  yellow, brown, and lavender options across all 10 UI languages.
+
 ## [0.0.23] - 2026-10-21
 
 ### Added
@@ -333,6 +346,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.24]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.24
 [0.0.23]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.23
 [0.0.21]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.21
 [0.0.20]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.20
