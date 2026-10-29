@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isEligibleForDeepSleep, isSafeToDiscard } from "./tabs";
+import {
+  isEligibleForDeepSleep,
+  isSafeToDiscard,
+  shouldUseNativeDeepSleep,
+} from "./tabs";
 
 function makeTab(
   patch: Partial<chrome.tabs.Tab> = {},
@@ -72,5 +76,24 @@ describe("isEligibleForDeepSleep", () => {
     ["browser-internal", { url: "chrome://extensions" }],
   ])("rejects a %s tab", (_label, patch) => {
     expect(isEligibleForDeepSleep(makeTab(patch))).toBe(false);
+  });
+});
+
+describe("shouldUseNativeDeepSleep", () => {
+  it("uses Chrome native discard for ordinary background tabs", () => {
+    expect(shouldUseNativeDeepSleep(makeTab())).toBe(true);
+    expect(
+      shouldUseNativeDeepSleep(makeTab({ autoDiscardable: false })),
+    ).toBe(true);
+  });
+
+  it.each([
+    ["active", { active: true }],
+    ["pinned", { pinned: true }],
+    ["audible", { audible: true }],
+    ["loading", { status: "loading" as const }],
+    ["already discarded", { discarded: true }],
+  ])("keeps a placeholder for a %s tab", (_label, patch) => {
+    expect(shouldUseNativeDeepSleep(makeTab(patch))).toBe(false);
   });
 });

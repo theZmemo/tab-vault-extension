@@ -27,3 +27,9 @@ export function isEligibleForDeepSleep(
       normalizeUrl(tab.pendingUrl ?? tab.url ?? "") !== null,
   );
 }
+
+export function shouldUseNativeDeepSleep(tab: chrome.tabs.Tab): boolean {
+  return isSafeToDiscard(tab, Number.POSITIVE_INFINITY, {
+    respectAutoDiscardable: false,
+  });
+}

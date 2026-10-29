@@ -106,15 +106,15 @@ const en = {
     "No tabs match the safe levels. Try Level 3 for broader coverage.",
   noTabsToSleep: "No eligible tabs to sleep",
   deepSleepTabsPutToSleep:
-    "{count} tabs are in deep sleep; select one and confirm to restore it",
+    "{count} tabs are in deep sleep; ordinary background tabs reload when selected",
   noTabsToDeepSleep: "No eligible tabs for deep sleep",
   deepSleepWarningTitle: "Before deep sleep",
   deepSleepWarningBody:
-    "Deep sleep replaces every operable web tab with a lightweight local placeholder after saving its original URL, title, and group.",
+    "Deep sleep saves each original URL, title, and group. Ordinary background tabs use Chrome native discard; special tabs use a lightweight local placeholder.",
   deepSleepWarningRuntimeLoss:
     "Active pages are replaced immediately. Audio, loading, unsaved forms, and in-page app state will be interrupted.",
   deepSleepWarningRecovery:
-    "The original URL is stored both in Tab Vault and in the placeholder address for recovery.",
+    "Original URLs are stored in Tab Vault; placeholder tabs also keep a redundant recovery address.",
   confirmDeepSleep: "Continue with deep sleep",
   deepSleepTabUnavailable: "Unable to identify the deep-sleeping tab",
   windowUnavailable: "The current browser window is unavailable",
@@ -295,6 +295,7 @@ const en = {
   minutesAgo: "{count}m ago",
   hoursAgo: "{count}h ago",
   daysAgo: "{count}d ago",
+  contextDeepSleep: "Fully sleep this page",
   contextAddToGroup: "Add to permanent group",
   contextManageGroups: "Manage permanent groups...",
   contextCreateGroup: "Create permanent group...",
@@ -407,15 +408,16 @@ const zh: Record<MessageKey, string> = {
   noTabsToSleepCurrent: "当前窗口没有可休眠标签，可尝试第 2 级处理所有窗口。",
   noTabsToSleepSafe: "安全级别没有可休眠标签，可尝试第 3 级扩大覆盖。",
   noTabsToSleep: "没有可休眠的标签",
-  deepSleepTabsPutToSleep: "已深度休眠 {count} 个标签；选中后需确认恢复",
+  deepSleepTabsPutToSleep:
+    "已深度休眠 {count} 个标签；普通后台标签选中后自动重载",
   noTabsToDeepSleep: "没有可深度休眠的标签",
   deepSleepWarningTitle: "深度休眠前确认",
   deepSleepWarningBody:
-    "深度休眠会先保存原 URL、标题和分组，再把所有可操作网页标签替换为轻量本地占位页。",
+    "深度休眠会先保存原 URL、标题和分组；普通后台标签使用 Chrome 原生丢弃，特殊状态标签使用轻量本地占位页。",
   deepSleepWarningRuntimeLoss:
     "活动页面会立即被替换；音频、加载任务、未提交表单和网页应用临时状态都会中断。",
   deepSleepWarningRecovery:
-    "原 URL 同时保存在标签资产库和占位页地址中，可双重恢复。",
+    "原 URL 保存在标签资产库中；使用占位页的标签还会在地址中保留冗余恢复信息。",
   confirmDeepSleep: "确认并开始深度休眠",
   deepSleepTabUnavailable: "无法识别待恢复的深度休眠标签",
   windowUnavailable: "无法获取当前浏览器窗口",
@@ -586,6 +588,7 @@ const zh: Record<MessageKey, string> = {
   minutesAgo: "{count} 分钟前",
   hoursAgo: "{count} 小时前",
   daysAgo: "{count} 天前",
+  contextDeepSleep: "完全睡眠此页面",
   contextAddToGroup: "加入永久分组",
   contextManageGroups: "管理永久分组…",
   contextCreateGroup: "创建永久分组…",

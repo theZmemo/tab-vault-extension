@@ -751,6 +751,42 @@ try {
     .click();
   await expect(panel.getByText("没有可休眠的标签", { exact: true })).toBeVisible();
 
+  const singleDeepSleepPage = await context.newPage();
+  await singleDeepSleepPage.goto(
+    "http://127.0.0.1:4178/single-deep-sleep?id=100",
+  );
+  const singleDeepSleepOriginalUrl = singleDeepSleepPage.url();
+  const singleDeepSleepTabId = await serviceWorker.evaluate(
+    async (originalUrl) => {
+      const tab = (await chrome.tabs.query({})).find(
+        (candidate) => candidate.url === originalUrl,
+      );
+      if (tab?.id === undefined) {
+        throw new Error("Single deep-sleep fixture tab not found");
+      }
+      await chrome.tabs.update(tab.id, { pinned: true });
+      return tab.id;
+    },
+    singleDeepSleepOriginalUrl,
+  );
+  const singleDeepSleepResponse = await panel.evaluate(
+    async (tabId) =>
+      chrome.runtime.sendMessage({ type: "DEEP_SLEEP_TAB", tabId }),
+    singleDeepSleepTabId,
+  );
+  expect(singleDeepSleepResponse.ok).toBe(true);
+  expect(singleDeepSleepResponse.data).toBe(true);
+  await expect
+    .poll(() => singleDeepSleepPage.url())
+    .toContain(`chrome-extension://${extensionId}/suspended.html`);
+  await singleDeepSleepPage
+    .getByRole("button", { name: "确认恢复" })
+    .click();
+  await expect
+    .poll(() => singleDeepSleepPage.url(), { timeout: 10_000 })
+    .toBe(singleDeepSleepOriginalUrl);
+  await panel.bringToFront();
+
   const deepSleepPage = await context.newPage();
   await deepSleepPage.addInitScript(() => {
     Object.defineProperty(document, "visibilityState", {
@@ -772,6 +808,18 @@ try {
     await chrome.tabs.update(tab.id, { pinned: true });
     return tab.id;
   }, deepSleepOriginalUrl);
+  await serviceWorker.evaluate(async () => {
+    const tabs = await chrome.tabs.query({});
+    await Promise.all(
+      tabs
+        .filter(
+          (tab) =>
+            tab.id !== undefined && /^https?:/.test(tab.url ?? ""),
+        )
+        .map((tab) => chrome.tabs.update(tab.id, { pinned: true })),
+    );
+  });
+  await panel.bringToFront();
   await panel
     .locator(".top-actions")
     .getByRole("button", { name: "批量休眠标签", exact: true })
@@ -797,7 +845,7 @@ try {
     .getByRole("button", { name: "确认并开始深度休眠" })
     .click();
   await expect(
-    panel.getByText(/已深度休眠 \d+ 个标签；选中后需确认恢复/),
+    panel.getByText(/已深度休眠 \d+ 个标签；普通后台标签选中后自动重载/),
   ).toBeVisible({ timeout: 10_000 });
   await expect
     .poll(() => deepSleepPage.url())
@@ -988,6 +1036,7 @@ try {
         batchSleepForceAllAvailable: true,
         batchSleepDeepAvailable: true,
         batchSleepProgressiveLevels: true,
+        singlePageDeepSleep: true,
         batchSleepScreenshot: "artifacts/batch-sleep-dialog.png",
         deepSleepWarningScreenshot: "artifacts/deep-sleep-warning.png",
         deepSleepPlaceholderScreenshot:

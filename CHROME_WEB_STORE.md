@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.21
+版本：0.0.25
 
 插件内产品介绍：`about.html`，从扩展“设置”中打开。
 
@@ -37,10 +37,11 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 永久分组、20 种颜色、规则分类和组内移动。
 - 中文子串、标题、URL、域名和备注搜索。
 - 规范化 URL 去重，合并常见跟踪参数造成的重复记录。
-- 四级渐进式休眠，按当前窗口、所有窗口、强力模式和本地占位页深度休眠逐级增强。
+- 四级渐进式休眠，按当前窗口、所有窗口、强力模式和混合深度休眠逐级增强。
+- 支持从网页、扩展图标或标签右键菜单完全睡眠单个页面。
 - 已休眠和深度休眠标签支持单页或批量解冻，并保留原标签位置、固定状态和 Chrome 原生分组。
-- 深度休眠前先保存原 URL，并处理所有可操作网页标签，包括活动、固定、有声、加载中和已原生休眠标签；已保护资源和浏览器内部页除外。选中深睡标签时只显示占位页，用户点击“确认恢复”后才打开原页面；首次使用会提示页面运行时状态会被中断。
-- 更新或重新加载扩展时，深度休眠恢复记录可自动重建被 Chrome 关闭的本地占位标签及其原生标签组。
+- 深度休眠前先保存原 URL。普通后台标签使用 Chrome 原生丢弃，活动、固定、有声或加载中的特殊标签使用本地占位页；已保护资源和浏览器内部页除外。
+- 更新或重新加载扩展时，旧版后台占位页会逐个迁移为 Chrome 原生丢弃，避免扩展渲染进程积累。
 - 安全归档，在本地写入成功后才关闭真实标签。
 - 自动及手动会话快照，并按窗口、顺序和标签组恢复。
 - JSON 备份导出、校验和合并导入。
@@ -68,14 +69,14 @@ Key features:
 - Search across custom names, titles, URLs, domains, and notes.
 - Normalized URL deduplication for common tracking parameters.
 - Four progressive sleep levels for the current window, all windows, broader
-  manual coverage, or placeholder-based deep sleep.
+  manual coverage, or hybrid deep sleep.
+- Fully sleep one page from the page, extension action, or tab context menu.
 - Single and batch unfreeze for sleeping and deep-sleeping tabs while preserving
   existing tab positions, pinned state, and native Chrome groups.
-- Deep sleep persists the original URL before replacing all browser-operable
-  web tabs, including active, pinned, audible, loading, and natively discarded
-  tabs. Protected resources and browser-internal pages remain excluded.
-  Selecting a deep-sleeping tab shows its local placeholder; the original page
-  opens only after the user confirms restoration.
+- Deep sleep persists the original URL. Ordinary background tabs use Chrome
+  native discard, while active, pinned, audible, or loading tabs use a local
+  confirmation placeholder. Protected and browser-internal pages remain
+  excluded.
 - Safe archiving that persists data before closing live tabs.
 - Automatic and manual session snapshots with window and tab-group restoration.
 - Validated JSON backup export, import, and merge.
@@ -94,7 +95,7 @@ Privacy:
 | 权限 | 提交说明 |
 |---|---|
 | `alarms` | 定时执行用户配置的闲置标签休眠和本地会话快照。 |
-| `contextMenus` | 允许用户从浏览器右键菜单把当前标签加入永久分组或打开管理界面。 |
+| `contextMenus` | 允许用户从浏览器右键菜单完全睡眠当前页面、加入永久分组或打开管理界面。 |
 | `sidePanel` | 在 Chrome 原生侧边栏中提供扩展的主要管理界面。 |
 | `tabGroups` | 读取标签组元数据，并在恢复会话快照时重建标签组。 |
 | `tabs` | 读取标签 URL、标题和状态，并执行用户请求的聚焦、原生休眠、深度休眠占位替换、关闭和恢复操作。 |
@@ -144,6 +145,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.21 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.25 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

@@ -56,6 +56,7 @@ export interface DeepSleepRecovery {
   groupCollapsed?: boolean;
   createdAt: number;
   pendingRemovalAt?: number;
+  nativeDiscardPending?: boolean;
 }
 
 export type CollectionColor =
@@ -238,6 +239,7 @@ export type VaultCommand =
       windowId?: number;
     }
   | { type: "DEEP_SLEEP_ELIGIBLE_TABS" }
+  | { type: "DEEP_SLEEP_TAB"; tabId: number }
   | { type: "RESTORE_DEEP_SLEEP_TAB" }
   | { type: "ARCHIVE_RESOURCES"; resourceIds: string[] }
   | { type: "DELETE_RESOURCES"; resourceIds: string[] }

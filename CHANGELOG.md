@@ -2,6 +2,25 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.25] - 2026-10-29
+
+### Added
+
+- Added “Fully sleep this page” to the page, extension-action, and supported
+  tab context menus.
+- Added a dedicated single-tab deep-sleep command with restore regression
+  coverage.
+
+### Fixed
+
+- Ordinary background tabs now use Chrome's native discard instead of one
+  extension placeholder per tab, preventing deep-sleep placeholders from
+  accumulating in the extension renderer.
+- Active, pinned, audible, and loading tabs retain the explicit local
+  placeholder and confirmation-based restore flow.
+- Existing inactive placeholders migrate to native discard one at a time after
+  upgrade, avoiding a simultaneous page-reload memory spike.
+
 ## [0.0.24] - 2026-10-22
 
 ### Changed
@@ -348,6 +367,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.25]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.25
 [0.0.24]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.24
 [0.0.23]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.23
 [0.0.21]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.21
