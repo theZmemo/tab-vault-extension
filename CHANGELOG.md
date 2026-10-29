@@ -2,6 +2,17 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.26] - 2026-10-29
+
+### Changed
+
+- Deep-sleep placeholder tabs now retain the original website favicon instead
+  of using the Tab Vault extension icon.
+- The original favicon is rendered with reduced saturation and opacity so the
+  website remains recognizable while the sleeping state stays visually clear.
+- Added Chrome's local `favicon` permission without adding host permissions or
+  remote requests.
+
 ## [0.0.25] - 2026-10-29
 
 ### Added
@@ -367,6 +378,7 @@ All notable changes to Tab Vault are documented in this file.
 - Persistence failures no longer remove live tab-instance records.
 - Imported resource IDs and deduplication keys are reconciled safely.
 
+[0.0.26]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.26
 [0.0.25]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.25
 [0.0.24]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.24
 [0.0.23]: https://github.com/theZmemo/tab-vault-extension/releases/tag/v0.0.23
