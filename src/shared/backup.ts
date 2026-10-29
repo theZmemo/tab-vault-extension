@@ -94,6 +94,7 @@ function isResource(value: unknown): value is Resource {
     isNonEmptyString(value.normalizedUrl) &&
     isNonEmptyString(value.dedupeKey) &&
     isNonEmptyString(value.title) &&
+    isOptionalString(value.stableTitle) &&
     isOptionalString(value.savedTitle) &&
     (value.savedTitleAt === undefined || isFiniteNumber(value.savedTitleAt)) &&
     isOptionalString(value.customTitle) &&

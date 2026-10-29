@@ -11,6 +11,7 @@ export interface Resource {
   normalizedUrl: string;
   dedupeKey: string;
   title: string;
+  stableTitle?: string;
   savedTitle?: string;
   savedTitleAt?: number;
   customTitle?: string;
@@ -38,6 +39,7 @@ export interface TabInstance {
   groupId: number;
   lastAccessed: number;
   lastSeenAt: number;
+  loadCompleted?: boolean;
 }
 
 export interface DeepSleepRecovery {
@@ -142,6 +144,14 @@ export interface Snapshot {
   tabs: SnapshotTab[];
 }
 
+export interface SnapshotSummary {
+  id: string;
+  type: Snapshot["type"];
+  createdAt: number;
+  tabCount: number;
+  windowCount: number;
+}
+
 export interface VaultEvent {
   sequence?: number;
   type:
@@ -185,7 +195,7 @@ export interface VaultState {
   collections: Collection[];
   memberships: CollectionMembership[];
   rules: Rule[];
-  snapshots: Snapshot[];
+  snapshots: SnapshotSummary[];
   settings: VaultSettings;
   generatedAt: number;
 }

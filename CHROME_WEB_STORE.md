@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.26
+版本：0.0.27
 
 插件内产品介绍：`about.html`，从扩展“设置”中打开。
 
@@ -33,8 +33,8 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 主要功能：
 
 - 自动保存标签 URL、标题、窗口位置和状态。
-- 独立保留页面保存时名称，后续刷新、恢复或站点临时标题不会覆盖。
-- 永久分组、20 种颜色、规则分类和组内移动。
+- 页面加载完成且标题非空后固化保存时名称，后续刷新、恢复或站点临时标题不会覆盖。
+- 永久分组、24 种颜色、规则分类和组内移动。
 - 中文子串、标题、URL、域名和备注搜索。
 - 规范化 URL 去重，合并常见跟踪参数造成的重复记录。
 - 四级渐进式休眠，按当前窗口、所有窗口、强力模式和混合深度休眠逐级增强。
@@ -64,9 +64,9 @@ their URLs, titles, groups, and session structure.
 Key features:
 
 - Automatically saves tab URLs, titles, window positions, and states.
-- Preserves the title captured when a page is saved, independently from later
-  live-tab title changes.
-- Permanent groups, 20 colors, deterministic rules, and group management.
+- Preserves a non-empty title after page loading completes, independently from
+  later live-tab title changes.
+- Permanent groups, 24 colors, deterministic rules, and group management.
 - Search across custom names, titles, URLs, domains, and notes.
 - Normalized URL deduplication for common tracking parameters.
 - Four progressive sleep levels for the current window, all windows, broader
@@ -148,6 +148,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.26 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.27 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

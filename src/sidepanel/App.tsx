@@ -58,7 +58,7 @@ import type {
   Resource,
   ResourceRuntimeState,
   Rule,
-  Snapshot,
+  SnapshotSummary,
   StaleResourceDeleteResult,
   StaleResourceScanResult,
   TabInstance,
@@ -612,21 +612,46 @@ export function App() {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const accordionInitializedRef = useRef(false);
+  const stateLoadRef = useRef<Promise<void> | null>(null);
+  const stateReloadQueuedRef = useRef(false);
 
-  const loadState = async (showSpinner = false) => {
+  const loadState = (
+    showSpinner = false,
+    queueIfLoading = false,
+  ): Promise<void> => {
+    if (stateLoadRef.current) {
+      if (queueIfLoading) {
+        stateReloadQueuedRef.current = true;
+      }
+      return stateLoadRef.current;
+    }
     if (showSpinner) {
       setBusy(true);
     }
-    try {
-      const nextState = await sendCommand<VaultState>({ type: "GET_STATE" });
-      setState(nextState);
-    } catch (error) {
-      setToast(error instanceof Error ? error.message : t("readFailed"));
-    } finally {
-      if (showSpinner) {
-        setBusy(false);
+
+    const task = (async () => {
+      try {
+        const nextState = await sendCommand<VaultState>({ type: "GET_STATE" });
+        setState(nextState);
+      } catch (error) {
+        setToast(error instanceof Error ? error.message : t("readFailed"));
+      } finally {
+        if (showSpinner) {
+          setBusy(false);
+        }
       }
-    }
+    })();
+    stateLoadRef.current = task;
+    void task.finally(() => {
+      if (stateLoadRef.current === task) {
+        stateLoadRef.current = null;
+      }
+      if (stateReloadQueuedRef.current) {
+        stateReloadQueuedRef.current = false;
+        void loadState();
+      }
+    });
+    return task;
   };
 
   useEffect(() => {
@@ -639,7 +664,7 @@ export function App() {
     }
     const listener = (message: { type?: string }) => {
       if (message.type === "VAULT_DATA_CHANGED") {
-        void loadState();
+        void loadState(false, true);
       }
     };
     chrome.runtime.onMessage.addListener(listener);
@@ -871,7 +896,11 @@ export function App() {
     ],
   );
 
+  const hasSearchQuery = query.trim().length > 0;
   const searchIndex = useMemo(() => {
+    if (!hasSearchQuery || resourceViews.length === 0) {
+      return null;
+    }
     const index = new MiniSearch<Resource>({
       fields: [
         "customTitle",
@@ -890,10 +919,10 @@ export function App() {
     });
     index.addAll(resourceViews.map((item) => item.resource));
     return index;
-  }, [resourceViews]);
+  }, [hasSearchQuery, resourceViews]);
 
   const searchResultIds = useMemo(() => {
-    if (!query.trim() || resourceViews.length === 0) {
+    if (!searchIndex) {
       return null;
     }
     const resultIds = new Set(
@@ -3366,7 +3395,7 @@ function SnapshotsDialog({
   onCreate,
   onRestore,
 }: {
-  snapshots: Snapshot[];
+  snapshots: SnapshotSummary[];
   onClose: () => void;
   onCreate: () => void;
   onRestore: (snapshotId: string) => void;
@@ -3381,9 +3410,6 @@ function SnapshotsDialog({
       </div>
       <div className="snapshot-list">
         {snapshots.map((snapshot) => {
-          const windowCount = new Set(
-            snapshot.tabs.map((tab) => tab.windowKey),
-          ).size;
           return (
             <div className="snapshot-row" key={snapshot.id}>
               <span className="snapshot-icon">
@@ -3397,8 +3423,8 @@ function SnapshotsDialog({
                 <strong>{formatSnapshotTime(snapshot.createdAt)}</strong>
                 <span>
                   {t("snapshotSummary", {
-                    pages: snapshot.tabs.length,
-                    windows: windowCount,
+                    pages: snapshot.tabCount,
+                    windows: snapshot.windowCount,
                     snapshotType:
                       snapshot.type === "manual"
                         ? t("manual")
@@ -3411,10 +3437,10 @@ function SnapshotsDialog({
                 className="button-secondary compact"
                 onClick={() => {
                   if (
-                    snapshot.tabs.length > 20 &&
+                    snapshot.tabCount > 20 &&
                     !window.confirm(
                       t("confirmRestoreSnapshot", {
-                        count: snapshot.tabs.length,
+                        count: snapshot.tabCount,
                       }),
                     )
                   ) {

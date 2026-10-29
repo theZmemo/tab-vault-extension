@@ -13,6 +13,16 @@ const profilePath = join(
 );
 
 const server = createServer((request, response) => {
+  if (request.url?.startsWith("/delayed-title")) {
+    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    response.write("<title>正在加载</title><main>Loading</main>");
+    setTimeout(() => {
+      response.end(
+        '<script>document.title = "最终治理报告";</script><h1>Done</h1>',
+      );
+    }, 2_000);
+    return;
+  }
   const title = request.url?.includes("utm_title=generic")
     ? "飞书云文档"
     : request.url?.startsWith("/delete")
@@ -471,10 +481,22 @@ try {
   await expect(resourceRow.getByText("已打开", { exact: true })).toBeVisible({
     timeout: 10_000,
   });
+  await expect
+    .poll(
+      () =>
+        context
+          .pages()
+          .find((page) => page.url().includes("/report?id=42"))
+          ?.url() ?? "",
+    )
+    .toContain("/report?id=42");
   const refreshedPage = context
     .pages()
     .find((page) => page.url().includes("/report?id=42"));
-  await refreshedPage?.goto(
+  if (!refreshedPage) {
+    throw new Error("Restored report tab not found");
+  }
+  await refreshedPage.goto(
     "http://127.0.0.1:4178/report?id=42&utm_title=generic",
   );
   await expect(refreshedPage).toHaveTitle("飞书云文档");
@@ -887,8 +909,26 @@ try {
     const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
     return response.data;
   });
+  expect(snapshotState.snapshots[0].tabs).toBeUndefined();
+  expect(snapshotState.snapshots[0].tabCount).toBeGreaterThan(0);
+  const storedSnapshot = await panel.evaluate(
+    (snapshotId) =>
+      new Promise((resolveSnapshot, rejectSnapshot) => {
+        const request = indexedDB.open("tab-vault");
+        request.onerror = () => rejectSnapshot(request.error);
+        request.onsuccess = () => {
+          const query = request.result
+            .transaction("snapshots", "readonly")
+            .objectStore("snapshots")
+            .get(snapshotId);
+          query.onerror = () => rejectSnapshot(query.error);
+          query.onsuccess = () => resolveSnapshot(query.result);
+        };
+      }),
+    snapshotState.snapshots[0].id,
+  );
   expect(
-    snapshotState.snapshots[0].tabs.some(
+    storedSnapshot.tabs.some(
       (tab) => tab.url === deepSleepOriginalUrl,
     ),
   ).toBe(true);
@@ -1015,11 +1055,119 @@ try {
       (resource) => resource.id === deletionResourceId,
     ),
   ).toBe(false);
+  const storedSnapshotsAfterDeletion = await panel.evaluate(
+    () =>
+      new Promise((resolveSnapshots, rejectSnapshots) => {
+        const request = indexedDB.open("tab-vault");
+        request.onerror = () => rejectSnapshots(request.error);
+        request.onsuccess = () => {
+          const query = request.result
+            .transaction("snapshots", "readonly")
+            .objectStore("snapshots")
+            .getAll();
+          query.onerror = () => rejectSnapshots(query.error);
+          query.onsuccess = () => resolveSnapshots(query.result);
+        };
+      }),
+  );
   expect(
-    deletionState.snapshots.some((snapshot) =>
+    storedSnapshotsAfterDeletion.some((snapshot) =>
       snapshot.tabs.some((tab) => tab.resourceId === deletionResourceId),
     ),
   ).toBe(false);
+
+  const delayedTitlePage = await context.newPage();
+  const delayedTitleUrl = "http://127.0.0.1:4178/delayed-title?id=105";
+  const delayedNavigation = delayedTitlePage.goto(delayedTitleUrl);
+  await expect(delayedTitlePage).toHaveTitle("正在加载");
+  await expect
+    .poll(() =>
+      panel.evaluate(async (url) => {
+        const response = await chrome.runtime.sendMessage({
+          type: "REFRESH_TABS",
+        });
+        return (
+          response.data.resources.find(
+            (resource) => resource.originalUrl === url,
+          )?.id ?? ""
+        );
+      }, delayedTitleUrl),
+    )
+    .not.toBe("");
+  const delayedTitleTarget = await panel.evaluate(async (url) => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return {
+      resourceId: response.data.resources.find(
+        (resource) => resource.originalUrl === url,
+      ).id,
+      collectionId: response.data.collections.find(
+        (collection) => collection.name === "治理资料",
+      ).id,
+    };
+  }, delayedTitleUrl);
+  const addDelayedTitleResponse = await panel.evaluate(
+    async ({ collectionId, resourceId }) =>
+      chrome.runtime.sendMessage({
+        type: "ADD_TO_COLLECTION",
+        collectionId,
+        resourceIds: [resourceId],
+      }),
+    delayedTitleTarget,
+  );
+  expect(addDelayedTitleResponse.ok).toBe(true);
+  const pendingTitleState = await panel.evaluate(async (resourceId) => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data.resources.find(
+      (resource) => resource.id === resourceId,
+    );
+  }, delayedTitleTarget.resourceId);
+  expect(pendingTitleState.savedTitle).toBeUndefined();
+  expect(pendingTitleState.savedTitleAt).toEqual(expect.any(Number));
+  await delayedNavigation;
+  await expect(delayedTitlePage).toHaveTitle("最终治理报告");
+  await expect
+    .poll(() =>
+      panel.evaluate(async (resourceId) => {
+        const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+        const resource = response.data.resources.find(
+          (resource) => resource.id === resourceId,
+        );
+        return {
+          title: resource?.title,
+          stableTitle: resource?.stableTitle,
+          savedTitle: resource?.savedTitle,
+          savedTitleAt: resource?.savedTitleAt,
+        };
+      }, delayedTitleTarget.resourceId),
+    )
+    .toMatchObject({
+      title: "最终治理报告",
+      stableTitle: "最终治理报告",
+      savedTitle: "最终治理报告",
+    });
+  await delayedTitlePage.evaluate(() => {
+    document.title = "治理报告处理中";
+    document.title = "治理报告已完成";
+  });
+  await expect
+    .poll(() =>
+      panel.evaluate(async (resourceId) => {
+        const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+        const resource = response.data.resources.find(
+          (resource) => resource.id === resourceId,
+        );
+        return {
+          title: resource?.title,
+          stableTitle: resource?.stableTitle,
+          savedTitle: resource?.savedTitle,
+        };
+      }, delayedTitleTarget.resourceId),
+    )
+    .toEqual({
+      title: "治理报告已完成",
+      stableTitle: "治理报告已完成",
+      savedTitle: "最终治理报告",
+    });
 
   if (runtimeErrors.length > 0) {
     throw new Error(`Side panel errors: ${runtimeErrors.join("; ")}`);

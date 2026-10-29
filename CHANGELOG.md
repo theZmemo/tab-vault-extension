@@ -2,6 +2,26 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.27] - 2026-10-29
+
+### Changed
+
+- Saved page titles now wait for a completed navigation and a non-empty title;
+  saves requested during loading are finalized automatically when the stable
+  title arrives.
+- Search indexing is created only while a query is active, and overlapping
+  side-panel state refreshes are coalesced.
+- The main state response now sends lightweight snapshot summaries while
+  backup, cleanup, and restore flows continue to read full snapshots directly.
+- Consecutive URL, title, and loading-state events for the same tab are
+  coalesced into fewer database writes and one state broadcast without dropping
+  trailing updates.
+
+### Tests
+
+- Expanded the performance fixture to 2,000 resources and 100 large snapshots.
+- Added browser regression coverage for delayed and rapidly changing titles.
+
 ## [0.0.26] - 2026-10-29
 
 ### Changed

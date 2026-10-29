@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  getCompletedTabTitle,
   getResourceDisplayTitle,
+  getSavedTitleUpdate,
   selectHistoricalSavedTitle,
 } from "./resources";
 
@@ -39,5 +41,32 @@ describe("resource titles", () => {
         250,
       ),
     ).toBe("G1 治理周会复盘");
+  });
+
+  it("only treats a completed non-empty tab title as stable", () => {
+    expect(
+      getCompletedTabTitle({ status: "loading", title: "Loading..." }),
+    ).toBeUndefined();
+    expect(
+      getCompletedTabTitle({ status: "complete", title: "  Final report  " }),
+    ).toBe("Final report");
+    expect(
+      getCompletedTabTitle({ status: "complete", title: "   " }),
+    ).toBeUndefined();
+    expect(
+      getCompletedTabTitle({ status: undefined, title: "Final report" }, true),
+    ).toBe("Final report");
+  });
+
+  it("keeps a pending save until a stable title is available", () => {
+    expect(
+      getSavedTitleUpdate({ stableTitle: undefined, savedTitleAt: undefined }, 100),
+    ).toEqual({ savedTitleAt: 100 });
+    expect(
+      getSavedTitleUpdate(
+        { stableTitle: "Final report", savedTitleAt: 100 },
+        200,
+      ),
+    ).toEqual({ savedTitle: "Final report", savedTitleAt: 100 });
   });
 });

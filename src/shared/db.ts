@@ -131,7 +131,13 @@ export async function getVaultState(): Promise<VaultState> {
     collections,
     memberships,
     rules,
-    snapshots,
+    snapshots: snapshots.map((snapshot) => ({
+      id: snapshot.id,
+      type: snapshot.type,
+      createdAt: snapshot.createdAt,
+      tabCount: snapshot.tabs.length,
+      windowCount: new Set(snapshot.tabs.map((tab) => tab.windowKey)).size,
+    })),
     settings,
     generatedAt: Date.now(),
   };
@@ -142,16 +148,24 @@ export async function appendEvent(event: VaultEvent): Promise<number> {
 }
 
 export async function exportVaultData(): Promise<VaultExport> {
-  const state = await getVaultState();
+  const [resources, collections, memberships, rules, snapshots, settings] =
+    await Promise.all([
+      db.resources.toArray(),
+      db.collections.orderBy("createdAt").toArray(),
+      db.memberships.toArray(),
+      db.rules.orderBy("priority").toArray(),
+      db.snapshots.orderBy("createdAt").toArray(),
+      ensureDatabaseDefaults(),
+    ]);
   return {
     format: "tab-vault",
     version: 1,
     exportedAt: Date.now(),
-    resources: state.resources,
-    collections: state.collections,
-    memberships: state.memberships,
-    rules: state.rules,
-    snapshots: state.snapshots,
-    settings: state.settings,
+    resources,
+    collections,
+    memberships,
+    rules,
+    snapshots,
+    settings,
   };
 }

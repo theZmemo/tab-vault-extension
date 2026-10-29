@@ -9,6 +9,25 @@ function normalizedTitle(title: string | undefined): string {
   return title?.trim() ?? "";
 }
 
+export function getCompletedTabTitle(
+  tab: Pick<chrome.tabs.Tab, "status" | "title">,
+  completed = tab.status === "complete",
+): string | undefined {
+  const title = normalizedTitle(tab.title);
+  return completed && title ? title : undefined;
+}
+
+export function getSavedTitleUpdate(
+  resource: Pick<Resource, "stableTitle" | "savedTitleAt">,
+  savedAt: number,
+): Pick<Resource, "savedTitleAt"> & Partial<Pick<Resource, "savedTitle">> {
+  const stableTitle = normalizedTitle(resource.stableTitle);
+  return {
+    ...(stableTitle ? { savedTitle: stableTitle } : {}),
+    savedTitleAt: resource.savedTitleAt ?? savedAt,
+  };
+}
+
 export function getResourceDisplayTitle(
   resource: Pick<Resource, "customTitle" | "savedTitle" | "title">,
 ): string {
@@ -20,9 +39,13 @@ export function getResourceDisplayTitle(
 }
 
 export function getResourceSavedTitle(
-  resource: Pick<Resource, "savedTitle" | "title">,
+  resource: Pick<Resource, "savedTitle" | "stableTitle" | "title">,
 ): string {
-  return normalizedTitle(resource.savedTitle) || normalizedTitle(resource.title);
+  return (
+    normalizedTitle(resource.savedTitle) ||
+    normalizedTitle(resource.stableTitle) ||
+    normalizedTitle(resource.title)
+  );
 }
 
 export function selectHistoricalSavedTitle(

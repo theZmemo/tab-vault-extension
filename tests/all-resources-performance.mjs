@@ -11,6 +11,8 @@ const profilePath = join(
 );
 const resourceCount = Number(process.env.RESOURCE_COUNT ?? 2_000);
 const collectionCount = 20;
+const snapshotCount = 100;
+const tabsPerSnapshot = Math.min(resourceCount, 100);
 
 await mkdir(profilePath, { recursive: true });
 
@@ -77,10 +79,26 @@ try {
       createdAt: 20_000 + index,
     };
   });
+  const snapshotBaseTime = Date.now() + 1_000;
+  const snapshots = Array.from({ length: snapshotCount }, (_, snapshotIndex) => ({
+    id: `snapshot_perf_${snapshotIndex}`,
+    type: snapshotIndex === 0 ? "manual" : "automatic",
+    createdAt: snapshotBaseTime + snapshotIndex,
+    checksum: `snapshot-checksum-${snapshotIndex}`,
+    tabs: resources.slice(0, tabsPerSnapshot).map((resource, index) => ({
+      resourceId: resource.id,
+      url: resource.originalUrl,
+      title: resource.title,
+      windowKey: String((index % 4) + 1),
+      index,
+      pinned: index % 20 === 0,
+      active: index === 0,
+    })),
+  }));
 
   const importStartedAt = performance.now();
   const importResponse = await panel.evaluate(
-    async ({ resources, collections, memberships }) =>
+    async ({ resources, collections, memberships, snapshots }) =>
       chrome.runtime.sendMessage({
         type: "IMPORT_DATA",
         data: {
@@ -91,7 +109,7 @@ try {
           collections,
           memberships,
           rules: [],
-          snapshots: [],
+          snapshots,
           settings: {
             key: "main",
             autoCapture: true,
@@ -104,7 +122,7 @@ try {
           },
         },
       }),
-    { resources, collections, memberships },
+    { resources, collections, memberships, snapshots },
   );
   if (!importResponse?.ok) {
     throw new Error(importResponse?.error || "Performance fixture import failed");
@@ -113,6 +131,29 @@ try {
   await panel.getByText(`${resourceCount} 个资源`, { exact: true }).waitFor({
     timeout: 30_000,
   });
+  const statePayload = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    const summaries = response.data.snapshots;
+    return {
+      summaries,
+      summaryBytes: new Blob([JSON.stringify(summaries)]).size,
+    };
+  });
+  if (
+    statePayload.summaries.length !== snapshotCount ||
+    statePayload.summaries.some(
+      (snapshot) =>
+        snapshot.tabs !== undefined ||
+        snapshot.tabCount !== tabsPerSnapshot ||
+        snapshot.windowCount !== 4,
+    )
+  ) {
+    throw new Error("Vault state did not return lightweight snapshot summaries");
+  }
+  const fullSnapshotBytes = new Blob([JSON.stringify(snapshots)]).size;
+  if (statePayload.summaryBytes >= fullSnapshotBytes * 0.05) {
+    throw new Error("Snapshot summaries did not reduce the state payload enough");
+  }
   const result = await panel.evaluate(async () => {
     const button = document.querySelector(
       '.navigation-rail button[aria-label="全部资源"]',
@@ -160,6 +201,10 @@ try {
       {
         resourceCount,
         collectionCount,
+        snapshotCount,
+        tabsPerSnapshot,
+        fullSnapshotBytes,
+        snapshotSummaryBytes: statePayload.summaryBytes,
         importDurationMs: performance.now() - importStartedAt,
         ...result,
         progressiveRows,

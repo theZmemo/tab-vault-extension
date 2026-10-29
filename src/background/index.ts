@@ -19,8 +19,10 @@ import {
 } from "../shared/deepSleep";
 import { t } from "../shared/i18n";
 import {
+  getCompletedTabTitle,
   getResourceDisplayTitle,
   getResourceSavedTitle,
+  getSavedTitleUpdate,
   selectHistoricalSavedTitle,
   type ResourceTitleCandidate,
 } from "../shared/resources";
@@ -59,7 +61,10 @@ const CONTEXT_MENU_COLLECTION_PREFIX = "tab-vault:collection:";
 const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
 const SAVED_TITLE_MIGRATION_VERSION = 1;
+type CaptureLoadState = "reset" | "complete";
 const captureQueue = new Map<number, Promise<void>>();
+const repeatedCaptureRequests = new Set<number>();
+const captureLoadStates = new Map<number, CaptureLoadState>();
 const wakingTabs = new Map<number, Promise<boolean>>();
 let wakeQueue: Promise<unknown> = Promise.resolve();
 let bootstrapPromise: Promise<void> | null = null;
@@ -181,8 +186,7 @@ async function preserveResourceTitles(
         continue;
       }
       await db.resources.update(resource.id, {
-        savedTitle: resource.title.trim() || resource.domain,
-        savedTitleAt: savedAt,
+        ...getSavedTitleUpdate(resource, savedAt),
         updatedAt: Math.max(resource.updatedAt, savedAt),
       });
     }
@@ -236,6 +240,7 @@ async function captureDeepSleepingTab(
         normalizedUrl: normalized.normalizedUrl,
         dedupeKey,
         title: payload.title,
+        stableTitle: payload.title,
         domain: normalized.domain,
         createdAt: now,
         updatedAt: now,
@@ -266,6 +271,7 @@ async function captureDeepSleepingTab(
     groupId: tab.groupId,
     lastAccessed: tab.lastAccessed ?? previousInstance?.lastAccessed ?? now,
     lastSeenAt: now,
+    loadCompleted: tab.status === "complete",
   };
   await db.tabInstances.put(instance);
   return resource;
@@ -275,6 +281,7 @@ async function captureTab(
   tab: chrome.tabs.Tab,
   eventType: "TAB_CAPTURED" | "RESOURCE_RESTORED" = "TAB_CAPTURED",
   notify = true,
+  options: { loadState?: CaptureLoadState } = {},
 ): Promise<Resource | null> {
   if (tab.id === undefined) {
     return null;
@@ -300,6 +307,7 @@ async function captureTab(
 
   const now = Date.now();
   const dedupeKey = await createDedupeKey(normalized.normalizedUrl);
+  const liveTitle = tab.title?.trim();
   let capturedResource: Resource | null = null;
   let nativeDiscardRecovery: DeepSleepRecovery | undefined;
 
@@ -333,6 +341,23 @@ async function captureTab(
         .where("dedupeKey")
         .equals(dedupeKey)
         .first();
+      const sameResource =
+        previousInstance?.resourceId !== undefined &&
+        previousInstance.resourceId === resource?.id;
+      const loadCompleted =
+        options.loadState === "complete"
+          ? true
+          : options.loadState === "reset"
+            ? false
+            : tab.status === "complete" ||
+              (sameResource && previousInstance?.loadCompleted === true);
+      const completedTitle = getCompletedTabTitle(
+        tab,
+        loadCompleted ||
+          (resource?.savedTitleAt !== undefined &&
+            options.loadState !== "reset" &&
+            tab.status !== "loading"),
+      );
 
       const isNewVisit =
         !previousInstance || previousInstance.resourceId !== resource?.id;
@@ -343,7 +368,8 @@ async function captureTab(
           originalUrl: normalized.originalUrl,
           normalizedUrl: normalized.normalizedUrl,
           dedupeKey,
-          title: tab.title?.trim() || normalized.domain,
+          title: liveTitle || normalized.domain,
+          stableTitle: completedTitle,
           domain: normalized.domain,
           createdAt: now,
           updatedAt: now,
@@ -353,11 +379,18 @@ async function captureTab(
           notes: "",
         };
       } else {
+        const stableTitle = completedTitle ?? resource.stableTitle;
         resource = {
           ...resource,
           originalUrl: normalized.originalUrl,
           normalizedUrl: normalized.normalizedUrl,
-          title: tab.title?.trim() || resource.title,
+          title: liveTitle || resource.title,
+          stableTitle,
+          ...(!resource.savedTitle?.trim() &&
+          resource.savedTitleAt !== undefined &&
+          stableTitle
+            ? { savedTitle: stableTitle }
+            : {}),
           updatedAt: now,
           lastVisitedAt: Math.max(
             resource.lastVisitedAt,
@@ -383,6 +416,7 @@ async function captureTab(
         groupId: tab.groupId,
         lastAccessed: tab.lastAccessed ?? now,
         lastSeenAt: now,
+        loadCompleted,
       };
       await db.tabInstances.put(instance);
 
@@ -454,23 +488,49 @@ async function captureTab(
   return capturedResource;
 }
 
-function queueTabCapture(tabId: number): void {
-  const previous = captureQueue.get(tabId) ?? Promise.resolve();
-  const next = previous
-    .catch(() => undefined)
-    .then(async () => {
+function queueTabCapture(
+  tabId: number,
+  loadState?: CaptureLoadState,
+): void {
+  if (loadState) {
+    captureLoadStates.set(tabId, loadState);
+  }
+  if (captureQueue.has(tabId)) {
+    repeatedCaptureRequests.add(tabId);
+    return;
+  }
+
+  const task = (async () => {
+    let captured = false;
+    do {
+      repeatedCaptureRequests.delete(tabId);
+      const nextLoadState = captureLoadStates.get(tabId);
+      captureLoadStates.delete(tabId);
       try {
         const tab = await chrome.tabs.get(tabId);
-        await captureTab(tab);
+        await captureTab(tab, "TAB_CAPTURED", false, {
+          loadState: nextLoadState,
+        });
+        captured = true;
       } catch {
         // The tab may have closed before the queued capture started.
       }
-    });
+    } while (repeatedCaptureRequests.has(tabId));
+    if (captured) {
+      await broadcastChange();
+    }
+  })();
 
-  captureQueue.set(tabId, next);
-  void next.finally(() => {
-    if (captureQueue.get(tabId) === next) {
+  captureQueue.set(tabId, task);
+  void task.finally(() => {
+    if (captureQueue.get(tabId) === task) {
       captureQueue.delete(tabId);
+      if (
+        repeatedCaptureRequests.has(tabId) ||
+        captureLoadStates.has(tabId)
+      ) {
+        queueTabCapture(tabId);
+      }
     }
   });
 }
@@ -577,8 +637,7 @@ async function removeTabInstance(tabId: number): Promise<void> {
       const resource = await db.resources.get(instance.resourceId);
       if (resource && !resource.savedTitle?.trim()) {
         await db.resources.update(resource.id, {
-          savedTitle: resource.title.trim() || resource.domain,
-          savedTitleAt: now,
+          ...getSavedTitleUpdate(resource, now),
           updatedAt: Math.max(resource.updatedAt, now),
         });
       }
@@ -2087,6 +2146,11 @@ async function importData(data: VaultExport): Promise<void> {
         normalizedUrl: normalized.normalizedUrl,
         domain: normalized.domain,
         dedupeKey: await createDedupeKey(normalized.normalizedUrl),
+        stableTitle:
+          resource.stableTitle ||
+          resource.savedTitle ||
+          snapshotTitleByResource.get(resource.id) ||
+          resource.title,
         savedTitle:
           resource.savedTitle ||
           snapshotTitleByResource.get(resource.id) ||
@@ -2124,6 +2188,11 @@ async function importData(data: VaultExport): Promise<void> {
           await db.resources.put({
             ...existing,
             title: resource.title || existing.title,
+            stableTitle:
+              existing.stableTitle ||
+              resource.stableTitle ||
+              resource.savedTitle ||
+              resource.title,
             savedTitle:
               existing.savedTitle || resource.savedTitle || resource.title,
             savedTitleAt:
@@ -2409,7 +2478,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 chrome.tabs.onCreated.addListener((tab) => {
   if (tab.id !== undefined) {
-    queueTabCapture(tab.id);
+    queueTabCapture(
+      tab.id,
+      tab.status === "complete" ? "complete" : "reset",
+    );
   }
 });
 
@@ -2421,7 +2493,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     changeInfo.discarded !== undefined ||
     changeInfo.pinned !== undefined
   ) {
-    queueTabCapture(tabId);
+    queueTabCapture(
+      tabId,
+      changeInfo.status === "complete"
+        ? "complete"
+        : changeInfo.url !== undefined || changeInfo.status === "loading"
+          ? "reset"
+          : undefined,
+    );
   }
 });
 
@@ -2439,10 +2518,12 @@ chrome.tabs.onAttached.addListener((tabId) => {
 
 chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
   void handleTabRemoved(removedTabId);
-  queueTabCapture(addedTabId);
+  queueTabCapture(addedTabId, "reset");
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  repeatedCaptureRequests.delete(tabId);
+  captureLoadStates.delete(tabId);
   void handleTabRemoved(tabId);
 });
 
