@@ -2,6 +2,32 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.28] - 2026-10-29
+
+### Added
+
+- Added a compact “Close extra tabs” action wherever duplicate resources are
+  visible.
+- Added confirmation and result messaging across all 10 supported UI
+  languages.
+
+### Changed
+
+- Exact URL duplicates are closed first without conflating functional query
+  parameters such as document IDs, filters, or pagination.
+- Tabs that differ only by known tracking parameters such as `utm_*` or `spm`
+  require a second explicit confirmation before closing.
+- Cleanup always keeps at least one tab per resource, prefers active, pinned,
+  audible, Chrome-grouped, loaded, and recently used tabs, and skips protected
+  resources.
+
+### Tests
+
+- Added unit coverage for exact URL normalization and duplicate-retention
+  priority.
+- Added browser coverage for exact duplicates, tracking-only variants, Chrome
+  tab-group retention, and the compact 380 px side-panel layout.
+
 ## [0.0.27] - 2026-10-29
 
 ### Changed

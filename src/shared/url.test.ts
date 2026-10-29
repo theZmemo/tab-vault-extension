@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createDedupeKey, normalizeUrl, splitRuleValues } from "./url";
+import {
+  createDedupeKey,
+  normalizeExactUrl,
+  normalizeUrl,
+  splitRuleValues,
+} from "./url";
 
 describe("normalizeUrl", () => {
   it("removes tracking parameters and sorts remaining parameters", () => {
@@ -20,6 +25,26 @@ describe("normalizeUrl", () => {
       .toBe("https://docs.example.com/view?id=123#section");
     expect(normalizeUrl("https://docs.example.com/view?id=456#section")?.normalizedUrl)
       .toBe("https://docs.example.com/view?id=456#section");
+  });
+
+  it("keeps tracking parameters for exact duplicate checks", () => {
+    const first = normalizeExactUrl(
+      "https://example.com/report?utm_source=first&id=42",
+    );
+    const second = normalizeExactUrl(
+      "https://example.com/report?id=42&utm_source=second",
+    );
+
+    expect(first?.normalizedUrl).toBe(
+      "https://example.com/report?id=42&utm_source=first",
+    );
+    expect(second?.normalizedUrl).toBe(
+      "https://example.com/report?id=42&utm_source=second",
+    );
+    expect(first?.normalizedUrl).not.toBe(second?.normalizedUrl);
+    expect(normalizeUrl(first!.originalUrl)?.normalizedUrl).toBe(
+      normalizeUrl(second!.originalUrl)?.normalizedUrl,
+    );
   });
 
   it("blocks browser internal pages", () => {

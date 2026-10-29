@@ -515,6 +515,11 @@ input:disabled {
   gap: 7px;
 }
 
+.list-tools .icon-button {
+  width: 26px;
+  height: 26px;
+}
+
 .list-tools select {
   height: 25px;
   border: 1px solid #d2d8de;

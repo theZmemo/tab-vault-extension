@@ -172,6 +172,15 @@ const en = {
   archivedStatusHint:
     "The browser tab is closed; its saved record can be reopened here",
   duplicateCount: "{count} duplicates",
+  closeDuplicateTabs: "Close extra tabs",
+  confirmCloseTrackingDuplicateTabs:
+    "Some tabs across {count} duplicate pages differ only by tracking parameters such as utm_* or spm. These parameters may affect a few sites. Close them too?",
+  duplicateTabsClosed: "{count} extra tabs closed",
+  duplicateTabsClosedPartial:
+    "{count} extra tabs closed; {remaining} duplicates were kept for safety",
+  trackingDuplicateTabsKept:
+    "Tabs with different tracking parameters were kept",
+  noSafeDuplicateTabsToClose: "No extra tabs could be safely closed",
   openPage: "Open page",
   wakeTab: "Unfreeze tab",
   unfreeze: "Unfreeze",
@@ -470,6 +479,14 @@ const zh: Record<MessageKey, string> = {
   deepSleepingStatusHint: "原 URL 已保存，网页已替换为本地轻量占位页",
   archivedStatusHint: "浏览器标签已关闭，记录保留在资产库中，可重新打开",
   duplicateCount: "重复 {count}",
+  closeDuplicateTabs: "关闭多余标签",
+  confirmCloseTrackingDuplicateTabs:
+    "检测到 {count} 组页面仅跟踪参数不同（如 utm_* 或 spm）。这些参数可能影响少数网站，是否也关闭多余标签？",
+  duplicateTabsClosed: "已关闭 {count} 个多余标签",
+  duplicateTabsClosedPartial:
+    "已关闭 {count} 个多余标签；为保证安全仍保留 {remaining} 个重复标签",
+  trackingDuplicateTabsKept: "已保留跟踪参数不同的标签",
+  noSafeDuplicateTabsToClose: "没有可安全关闭的多余标签",
   openPage: "打开页面",
   wakeTab: "解冻标签",
   unfreeze: "解冻",

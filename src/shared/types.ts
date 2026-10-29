@@ -226,6 +226,12 @@ export interface WakeResourcesResult {
   failed: number;
 }
 
+export interface CloseDuplicateTabsResult {
+  closed: number;
+  remaining: number;
+  trackingVariantResources: number;
+}
+
 export interface StaleResourceScanResult {
   inactiveDays: number;
   scannedAt: number;
@@ -241,6 +247,11 @@ export interface StaleResourceDeleteResult {
 export type VaultCommand =
   | { type: "GET_STATE" }
   | { type: "REFRESH_TABS" }
+  | {
+      type: "CLOSE_DUPLICATE_TABS";
+      resourceIds: string[];
+      includeTrackingVariants?: boolean;
+    }
   | { type: "DISCARD_RESOURCES"; resourceIds: string[] }
   | { type: "WAKE_RESOURCES"; resourceIds: string[] }
   | {

@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.27
+版本：0.0.28
 
 插件内产品介绍：`about.html`，从扩展“设置”中打开。
 
@@ -37,6 +37,7 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 永久分组、24 种颜色、规则分类和组内移动。
 - 中文子串、标题、URL、域名和备注搜索。
 - 规范化 URL 去重，合并常见跟踪参数造成的重复记录。
+- 重复页面支持安全关闭多余标签；原始 URL 完全一致时直接清理，仅跟踪参数不同时再次确认，并优先保留活动、固定、有声或 Chrome 分组内标签。
 - 四级渐进式休眠，按当前窗口、所有窗口、强力模式和混合深度休眠逐级增强。
 - 支持从网页、扩展图标或标签右键菜单完全睡眠单个页面。
 - 已休眠和深度休眠标签支持单页或批量解冻，并保留原标签位置、固定状态和 Chrome 原生分组。
@@ -69,6 +70,9 @@ Key features:
 - Permanent groups, 24 colors, deterministic rules, and group management.
 - Search across custom names, titles, URLs, domains, and notes.
 - Normalized URL deduplication for common tracking parameters.
+- Safe duplicate cleanup closes exact extra tabs directly and asks again before
+  closing tabs that differ only by tracking parameters, while preferring
+  active, pinned, audible, or Chrome-grouped tabs.
 - Four progressive sleep levels for the current window, all windows, broader
   manual coverage, or hybrid deep sleep.
 - Fully sleep one page from the page, extension action, or tab context menu.
@@ -148,6 +152,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.27 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.28 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

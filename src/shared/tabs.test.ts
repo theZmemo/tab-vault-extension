@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   isEligibleForDeepSleep,
   isSafeToDiscard,
+  selectSafeDuplicateTabsToClose,
   shouldUseNativeDeepSleep,
 } from "./tabs";
+import type { TabInstance } from "./types";
 
 function makeTab(
   patch: Partial<chrome.tabs.Tab> = {},
@@ -21,6 +23,71 @@ function makeTab(
     ...patch,
   } as chrome.tabs.Tab;
 }
+
+function makeInstance(
+  browserTabId: number,
+  patch: Partial<TabInstance> = {},
+): TabInstance {
+  return {
+    browserTabId,
+    resourceId: "resource-1",
+    windowId: 1,
+    index: browserTabId,
+    pinned: false,
+    active: false,
+    discarded: false,
+    deepSleeping: false,
+    audible: false,
+    groupId: -1,
+    lastAccessed: browserTabId,
+    lastSeenAt: browserTabId,
+    ...patch,
+  };
+}
+
+describe("selectSafeDuplicateTabsToClose", () => {
+  it("keeps a Chrome-grouped tab before an ungrouped duplicate", () => {
+    const ungrouped = makeInstance(1, { lastAccessed: 2_000 });
+    const grouped = makeInstance(2, { groupId: 7, lastAccessed: 1_000 });
+
+    expect(
+      selectSafeDuplicateTabsToClose([ungrouped, grouped]).map(
+        (instance) => instance.browserTabId,
+      ),
+    ).toEqual([ungrouped.browserTabId]);
+  });
+
+  it("keeps the most recently used loaded tab when none are grouped", () => {
+    const older = makeInstance(1, { lastAccessed: 1_000 });
+    const latest = makeInstance(2, { lastAccessed: 2_000 });
+    const sleeping = makeInstance(3, {
+      discarded: true,
+      lastAccessed: 3_000,
+    });
+
+    expect(
+      selectSafeDuplicateTabsToClose([older, latest, sleeping]).map(
+        (instance) => instance.browserTabId,
+      ),
+    ).toEqual([older.browserTabId, sleeping.browserTabId]);
+  });
+
+  it("never automatically closes active, pinned, or audible tabs", () => {
+    const active = makeInstance(1, { active: true });
+    const pinned = makeInstance(2, { pinned: true });
+    const audible = makeInstance(3, { audible: true });
+    const ordinary = makeInstance(4);
+
+    expect(
+      selectSafeDuplicateTabsToClose([
+        active,
+        pinned,
+        audible,
+        ordinary,
+      ]).map((instance) => instance.browserTabId),
+    ).toEqual([ordinary.browserTabId]);
+  });
+});
 
 describe("isSafeToDiscard", () => {
   it("accepts an inactive, persisted web tab", () => {

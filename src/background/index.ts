@@ -31,12 +31,14 @@ import { normalizeSettings } from "../shared/settings";
 import {
   isEligibleForDeepSleep,
   isSafeToDiscard,
+  selectSafeDuplicateTabsToClose,
   shouldUseNativeDeepSleep,
 } from "../shared/tabs";
 import { wakeTab } from "../shared/wake";
 import type {
   Collection,
   CollectionMembership,
+  CloseDuplicateTabsResult,
   DeepSleepRecovery,
   Resource,
   Rule,
@@ -51,7 +53,11 @@ import type {
   VaultSettings,
   WakeResourcesResult,
 } from "../shared/types";
-import { createDedupeKey, normalizeUrl } from "../shared/url";
+import {
+  createDedupeKey,
+  normalizeExactUrl,
+  normalizeUrl,
+} from "../shared/url";
 
 const MAINTENANCE_ALARM = "tab-vault-maintenance";
 const CONTEXT_MENU_ROOT = "tab-vault:add-to-group";
@@ -1006,6 +1012,139 @@ async function deepSleepSingleTab(tabId: number): Promise<boolean> {
     : await deepSleepTab(tab, groups.get(tab.groupId));
   await broadcastChange();
   return slept;
+}
+
+async function closeDuplicateTabs(
+  resourceIds: string[],
+  includeTrackingVariants = false,
+): Promise<CloseDuplicateTabsResult> {
+  const selectedIds = new Set(resourceIds);
+  const [instances, resources] = await Promise.all([
+    db.tabInstances
+      .filter((instance) => selectedIds.has(instance.resourceId))
+      .toArray(),
+    db.resources.bulkGet([...selectedIds]),
+  ]);
+  const resourceById = new Map(
+    resources
+      .filter((resource): resource is Resource => resource !== undefined)
+      .map((resource) => [resource.id, resource]),
+  );
+  const instancesByResource = new Map<string, TabInstance[]>();
+  const staleTabIds: number[] = [];
+  let closed = 0;
+  let trackingVariantResources = 0;
+
+  for (const instance of instances) {
+    const grouped = instancesByResource.get(instance.resourceId) ?? [];
+    grouped.push(instance);
+    instancesByResource.set(instance.resourceId, grouped);
+  }
+
+  for (const [resourceId, storedInstances] of instancesByResource) {
+    if (storedInstances.length <= 1) {
+      continue;
+    }
+
+    const liveInstances: Array<{
+      exactUrl: string;
+      instance: TabInstance;
+    }> = [];
+    for (const instance of storedInstances) {
+      try {
+        const tab = await chrome.tabs.get(instance.browserTabId);
+        const exactUrl = normalizeExactUrl(
+          tab.pendingUrl ?? tab.url ?? "",
+        )?.normalizedUrl;
+        if (!exactUrl) {
+          continue;
+        }
+        liveInstances.push({
+          exactUrl,
+          instance: {
+            ...instance,
+            windowId: tab.windowId,
+            index: tab.index,
+            pinned: tab.pinned,
+            active: tab.active,
+            discarded: tab.discarded,
+            audible: tab.audible ?? false,
+            groupId: tab.groupId,
+            lastAccessed: tab.lastAccessed ?? instance.lastAccessed,
+            lastSeenAt: Date.now(),
+          },
+        });
+      } catch {
+        staleTabIds.push(instance.browserTabId);
+      }
+    }
+
+    if (
+      liveInstances.length <= 1 ||
+      resourceById.get(resourceId)?.protected
+    ) {
+      continue;
+    }
+
+    const exactUrlGroups = new Map<string, TabInstance[]>();
+    for (const liveInstance of liveInstances) {
+      const grouped = exactUrlGroups.get(liveInstance.exactUrl) ?? [];
+      grouped.push(liveInstance.instance);
+      exactUrlGroups.set(liveInstance.exactUrl, grouped);
+    }
+    if (!includeTrackingVariants && exactUrlGroups.size > 1) {
+      trackingVariantResources += 1;
+    }
+
+    const candidateGroups = includeTrackingVariants
+      ? [liveInstances.map((item) => item.instance)]
+      : [...exactUrlGroups.values()];
+    const instancesToClose = candidateGroups.flatMap((group) =>
+      selectSafeDuplicateTabsToClose(group),
+    );
+    if (instancesToClose.length === 0) {
+      continue;
+    }
+
+    await preserveResourceTitles([resourceId]);
+    for (const instance of instancesToClose) {
+      try {
+        await chrome.tabs.remove(instance.browserTabId);
+        closed += 1;
+      } catch {
+        // A tab may close independently after the duplicate list is rendered.
+      }
+    }
+  }
+
+  if (staleTabIds.length > 0) {
+    await db.tabInstances.bulkDelete(staleTabIds);
+  }
+  if (closed > 0) {
+    await syncOpenTabs();
+  } else if (staleTabIds.length > 0) {
+    await broadcastChange();
+  }
+
+  const remainingInstances = await db.tabInstances
+    .filter((instance) => selectedIds.has(instance.resourceId))
+    .toArray();
+  const remainingCounts = new Map<string, number>();
+  for (const instance of remainingInstances) {
+    remainingCounts.set(
+      instance.resourceId,
+      (remainingCounts.get(instance.resourceId) ?? 0) + 1,
+    );
+  }
+
+  return {
+    closed,
+    remaining: [...remainingCounts.values()].reduce(
+      (total, count) => total + Math.max(0, count - 1),
+      0,
+    ),
+    trackingVariantResources,
+  };
 }
 
 async function archiveResources(resourceIds: string[]): Promise<void> {
@@ -2333,6 +2472,11 @@ async function handleCommand(
       await rebuildMissingDeepSleepingTabs();
       await syncOpenTabs();
       return getVaultState();
+    case "CLOSE_DUPLICATE_TABS":
+      return closeDuplicateTabs(
+        command.resourceIds,
+        command.includeTrackingVariants,
+      );
     case "DISCARD_RESOURCES":
       return discardResources(command.resourceIds);
     case "WAKE_RESOURCES":

@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock3,
   Copy,
+  CopyX,
   Database,
   Download,
   Folder,
@@ -55,6 +56,7 @@ import { matchesResourceSubstring } from "../shared/search";
 import type {
   Collection,
   CollectionColor,
+  CloseDuplicateTabsResult,
   Resource,
   ResourceRuntimeState,
   Rule,
@@ -756,6 +758,60 @@ export function App() {
     }
   };
 
+  const closeDuplicateTabs = async (resourceIds: string[]): Promise<void> => {
+    if (busy || resourceIds.length === 0) {
+      return;
+    }
+    setBusy(true);
+    try {
+      let result = await sendCommand<CloseDuplicateTabsResult>({
+        type: "CLOSE_DUPLICATE_TABS",
+        resourceIds,
+      });
+      let closed = result.closed;
+      let trackingVariantsKept = false;
+
+      if (result.trackingVariantResources > 0) {
+        if (
+          window.confirm(
+            t("confirmCloseTrackingDuplicateTabs", {
+              count: result.trackingVariantResources,
+            }),
+          )
+        ) {
+          result = await sendCommand<CloseDuplicateTabsResult>({
+            type: "CLOSE_DUPLICATE_TABS",
+            resourceIds,
+            includeTrackingVariants: true,
+          });
+          closed += result.closed;
+        } else {
+          trackingVariantsKept = true;
+        }
+      }
+
+      const { remaining } = result;
+      await loadState();
+      setSelected(new Set());
+      setToast(
+        closed > 0
+          ? remaining > 0
+            ? t("duplicateTabsClosedPartial", {
+                count: closed,
+                remaining,
+              })
+            : t("duplicateTabsClosed", { count: closed })
+          : trackingVariantsKept
+            ? t("trackingDuplicateTabsKept")
+            : t("noSafeDuplicateTabsToClose"),
+      );
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t("actionFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const deleteSavedResource = async (resourceId: string): Promise<void> => {
     setBusy(true);
     try {
@@ -1070,6 +1126,9 @@ export function App() {
   const allVisibleSelected =
     visibleResources.length > 0 &&
     visibleResources.every((item) => selected.has(item.resource.id));
+  const visibleDuplicateResourceIds = visibleResources
+    .filter((item) => item.instances.length > 1)
+    .map((item) => item.resource.id);
 
   const toggleSelected = (resourceId: string) => {
     setSelected((current) => {
@@ -1479,6 +1538,19 @@ export function App() {
                   <span>
                     {t("itemCount", { count: visibleResources.length })}
                   </span>
+                  {visibleDuplicateResourceIds.length > 0 && (
+                    <IconButton
+                      label={t("closeDuplicateTabs")}
+                      disabled={busy}
+                      onClick={() =>
+                        void closeDuplicateTabs(
+                          visibleDuplicateResourceIds,
+                        )
+                      }
+                    >
+                      <CopyX size={15} />
+                    </IconButton>
+                  )}
                   <select
                     value={sortMode}
                     aria-label={t("sortResources")}

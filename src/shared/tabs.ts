@@ -1,4 +1,51 @@
 import { normalizeUrl } from "./url";
+import type { TabInstance } from "./types";
+
+function compareDuplicateRetention(
+  left: TabInstance,
+  right: TabInstance,
+): number {
+  const groupedOrder =
+    Number(right.groupId >= 0) - Number(left.groupId >= 0);
+  if (groupedOrder !== 0) {
+    return groupedOrder;
+  }
+
+  const loadedOrder =
+    Number(!right.discarded && !right.deepSleeping) -
+    Number(!left.discarded && !left.deepSleeping);
+  if (loadedOrder !== 0) {
+    return loadedOrder;
+  }
+
+  return (
+    right.lastAccessed - left.lastAccessed ||
+    right.lastSeenAt - left.lastSeenAt ||
+    left.browserTabId - right.browserTabId
+  );
+}
+
+export function selectSafeDuplicateTabsToClose(
+  instances: readonly TabInstance[],
+): TabInstance[] {
+  if (instances.length <= 1) {
+    return [];
+  }
+
+  const sensitiveInstances = instances.filter(
+    (instance) => instance.active || instance.pinned || instance.audible,
+  );
+  const closableInstances = instances
+    .filter(
+      (instance) =>
+        !instance.active && !instance.pinned && !instance.audible,
+    )
+    .sort(compareDuplicateRetention);
+
+  return sensitiveInstances.length > 0
+    ? closableInstances
+    : closableInstances.slice(1);
+}
 
 export function isSafeToDiscard(
   tab: chrome.tabs.Tab,

@@ -26,7 +26,10 @@ export interface NormalizedUrl {
   domain: string;
 }
 
-export function normalizeUrl(rawUrl: string): NormalizedUrl | null {
+function normalizeUrlInternal(
+  rawUrl: string,
+  removeTrackingParameters: boolean,
+): NormalizedUrl | null {
   if (!rawUrl) {
     return null;
   }
@@ -57,6 +60,9 @@ export function normalizeUrl(rawUrl: string): NormalizedUrl | null {
 
   const sortedEntries = [...parsed.searchParams.entries()]
     .filter(([key]) => {
+      if (!removeTrackingParameters) {
+        return true;
+      }
       const normalizedKey = key.toLowerCase();
       return (
         !normalizedKey.startsWith("utm_") &&
@@ -82,6 +88,14 @@ export function normalizeUrl(rawUrl: string): NormalizedUrl | null {
     normalizedUrl: parsed.toString(),
     domain: parsed.hostname || t("localFile"),
   };
+}
+
+export function normalizeUrl(rawUrl: string): NormalizedUrl | null {
+  return normalizeUrlInternal(rawUrl, true);
+}
+
+export function normalizeExactUrl(rawUrl: string): NormalizedUrl | null {
+  return normalizeUrlInternal(rawUrl, false);
 }
 
 export async function createDedupeKey(normalizedUrl: string): Promise<string> {

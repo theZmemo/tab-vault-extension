@@ -336,6 +336,12 @@ for (const target of targets) {
     "colorYellow",
     "colorBrown",
     "colorLavender",
+    "closeDuplicateTabs",
+    "confirmCloseTrackingDuplicateTabs",
+    "duplicateTabsClosed",
+    "duplicateTabsClosedPartial",
+    "trackingDuplicateTabsKept",
+    "noSafeDuplicateTabsToClose",
   ]) {
     if (existing[key]) {
       dictionary[key] = existing[key];

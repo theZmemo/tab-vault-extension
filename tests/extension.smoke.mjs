@@ -198,9 +198,22 @@ try {
     "http://127.0.0.1:4178/report?id=42&utm_source=smoke",
   );
   await expect(sourcePage).toHaveTitle("治理任务校验 SQL");
+  const exactDuplicatePage = await context.newPage();
+  await exactDuplicatePage.goto(sourcePage.url());
   const duplicatePage = await context.newPage();
   await duplicatePage.goto(
     "http://127.0.0.1:4178/report?id=42&utm_source=duplicate",
+  );
+  const sourceTabId = await serviceWorker.evaluate(async (url) => {
+    const tabs = await chrome.tabs.query({});
+    return tabs.find((tab) => tab.url === url)?.id;
+  }, sourcePage.url());
+  if (sourceTabId === undefined) {
+    throw new Error("Source tab not found for duplicate cleanup");
+  }
+  await serviceWorker.evaluate(
+    async (tabId) => chrome.tabs.group({ tabIds: [tabId] }),
+    sourceTabId,
   );
 
   const panel = await context.newPage();
@@ -229,8 +242,27 @@ try {
     { timeout: 10_000 },
   );
   await expect(panel.locator(".resource-row")).toHaveCount(1);
-  await expect(panel.getByText("重复 2", { exact: true })).toBeVisible();
+  await expect(panel.getByText("重复 3", { exact: true })).toBeVisible();
   await expect(panel.getByLabel("资源排序")).toBeVisible();
+  await panel.setViewportSize({ width: 380, height: 780 });
+  await expectVisibleIconGeometry(panel, "duplicate cleanup");
+  await panel.screenshot({
+    path: join(artifactsPath, "duplicate-cleanup.png"),
+    fullPage: true,
+  });
+  await panel.setViewportSize({ width: 480, height: 780 });
+  panel.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("跟踪参数");
+    await dialog.accept();
+  });
+  await panel
+    .getByRole("button", { name: "关闭多余标签", exact: true })
+    .click();
+  await expect.poll(() => exactDuplicatePage.isClosed()).toBe(true);
+  await expect.poll(() => duplicatePage.isClosed()).toBe(true);
+  expect(sourcePage.isClosed()).toBe(false);
+  await expect(panel.getByText("重复 3", { exact: true })).toHaveCount(0);
+  await expect(panel.getByText("已关闭 2 个多余标签")).toBeVisible();
   await panel
     .getByRole("button", { name: "清除搜索", exact: true })
     .click();
@@ -1179,6 +1211,9 @@ try {
         extensionId,
         captured: true,
         deduplicated: true,
+        duplicateCleanup: true,
+        groupedDuplicateRetained: true,
+        duplicateCleanupScreenshot: "artifacts/duplicate-cleanup.png",
         collection: true,
         collectionEdited: true,
         customTitlePersisted: true,
