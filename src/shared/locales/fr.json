@@ -92,7 +92,7 @@
   "deepSleepTabsPutToSleep": "{count} onglets sont en veille profonde ; leur sélection ouvre seulement une page de confirmation sans charger le site d'origine",
   "noTabsToDeepSleep": "Aucun onglet éligible pour le sommeil profond",
   "deepSleepWarningTitle": "Avant la veille profonde",
-  "deepSleepWarningBody": "La veille profonde enregistre l'URL, le titre et le groupe. Les onglets ordinaires utilisent une page légère sans script qui conserve le nom et l'icône ; les états spéciaux utilisent un espace réservé local.",
+  "deepSleepWarningBody": "La veille profonde enregistre l'URL, le titre et le groupe. Les onglets ordinaires utilisent une page légère sans script qui conserve le nom et un indicateur de veille uniforme ; les états spéciaux utilisent un espace réservé local.",
   "deepSleepWarningRuntimeLoss": "Les pages actives sont remplacées immédiatement. L'audio, le chargement, les formulaires non enregistrés et l'état de l'application sur la page seront interrompus.",
   "deepSleepWarningRecovery": "La sélection d'un onglet en veille ouvre une confirmation locale. Le site d'origine ne se charge qu'après confirmation de la restauration.",
   "confirmDeepSleep": "Confirmer et lancer la veille profonde",

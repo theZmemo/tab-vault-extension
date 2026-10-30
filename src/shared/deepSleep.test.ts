@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEEP_SLEEP_FAVICON_DATA_URL,
   createDeepSleepUrl,
   createParkedDeepSleepUrl,
   isDisplayParkedDeepSleepUrl,
@@ -52,6 +53,16 @@ describe("deep sleep payload", () => {
 });
 
 describe("parked deep sleep URL", () => {
+  it("uses a local gray sleep indicator", () => {
+    expect(DEEP_SLEEP_FAVICON_DATA_URL).toContain(
+      "data:image/svg+xml",
+    );
+    expect(DEEP_SLEEP_FAVICON_DATA_URL).toContain("%235f7182");
+    expect(DEEP_SLEEP_FAVICON_DATA_URL).toContain(
+      "M16 7v18M7 16h18",
+    );
+  });
+
   it("round-trips the resource ID and preserves display metadata", () => {
     const parkedUrl = createParkedDeepSleepUrl(
       "resource_治理 42",

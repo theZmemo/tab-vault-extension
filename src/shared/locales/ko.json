@@ -92,7 +92,7 @@
   "deepSleepTabsPutToSleep": "{count}개 탭이 딥 슬립 상태입니다. 선택해도 확인 페이지만 열리고 원래 사이트는 로드되지 않습니다.",
   "noTabsToDeepSleep": "깊은 수면에 적합한 탭이 없습니다.",
   "deepSleepWarningTitle": "딥 슬립 확인",
-  "deepSleepWarningBody": "딥 슬립은 원본 URL, 제목 및 그룹을 저장합니다. 일반 백그라운드 탭은 이름과 아이콘을 유지하는 스크립트 없는 경량 페이지를 사용하고 특수 상태 탭은 로컬 자리 표시자를 사용합니다.",
+  "deepSleepWarningBody": "딥 슬립은 원본 URL, 제목 및 그룹을 저장합니다. 일반 백그라운드 탭은 이름과 통일된 절전 표시를 유지하는 스크립트 없는 경량 페이지를 사용하고 특수 상태 탭은 로컬 자리 표시자를 사용합니다.",
   "deepSleepWarningRuntimeLoss": "활성 페이지는 즉시 교체됩니다. 오디오, 로드, 저장되지 않은 양식 및 인페이지 앱 상태가 중단됩니다.",
   "deepSleepWarningRecovery": "절전 탭을 선택하면 로컬 확인 페이지만 열립니다. 복원을 확인한 뒤에만 원래 사이트가 로드됩니다.",
   "confirmDeepSleep": "확인 후 딥 슬립 시작",

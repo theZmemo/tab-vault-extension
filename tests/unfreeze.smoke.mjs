@@ -154,7 +154,9 @@ try {
     )
     .toMatchObject({
       title: "Unfreeze /guarded · 深度休眠",
-      favIconUrl: expect.stringMatching(/^data:image\//),
+      favIconUrl: expect.stringMatching(
+        /^data:image\/svg\+xml.*5f7182/,
+      ),
       url: expect.stringMatching(/^data:text\/html/),
     });
   expect(guardedRecovery.activationGuarded).toBe(true);

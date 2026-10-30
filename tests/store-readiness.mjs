@@ -6,7 +6,6 @@ const distRoot = join(projectRoot, "dist");
 const expectedPermissions = [
   "alarms",
   "contextMenus",
-  "favicon",
   "sidePanel",
   "tabGroups",
   "tabs",

@@ -13,6 +13,7 @@ import {
 } from "../shared/cleanup";
 import { sortCollections } from "../shared/collections";
 import {
+  DEEP_SLEEP_FAVICON_DATA_URL,
   createDeepSleepUrl,
   createParkedDeepSleepUrl,
   isDisplayParkedDeepSleepUrl,
@@ -68,8 +69,6 @@ const CONTEXT_MENU_OPEN = "tab-vault:open";
 const CONTEXT_MENU_DEEP_SLEEP = "tab-vault:deep-sleep";
 const CONTEXT_MENU_COLLECTION_PREFIX = "tab-vault:collection:";
 const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
-const FALLBACK_PARKED_FAVICON =
-  "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%235f7182%27/%3E%3Cpath d=%27M16 7v18M7 16h18M9.6 9.6l12.8 12.8M22.4 9.6 9.6 22.4%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27 opacity=%27.82%27/%3E%3C/svg%3E";
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
 const SAVED_TITLE_MIGRATION_VERSION = 1;
 type CaptureLoadState = "reset" | "complete";
@@ -91,43 +90,13 @@ async function broadcastChange(): Promise<void> {
   }
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (let offset = 0; offset < bytes.length; offset += 8_192) {
-    binary += String.fromCharCode(
-      ...bytes.subarray(offset, offset + 8_192),
-    );
-  }
-  return btoa(binary);
-}
-
-async function getParkedFaviconDataUrl(pageUrl: string): Promise<string> {
-  try {
-    const faviconUrl = new URL(chrome.runtime.getURL("/_favicon/"));
-    faviconUrl.searchParams.set("pageUrl", pageUrl);
-    faviconUrl.searchParams.set("size", "32");
-    const response = await fetch(faviconUrl);
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!response.ok || !contentType.startsWith("image/")) {
-      return FALLBACK_PARKED_FAVICON;
-    }
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.length === 0 || bytes.length > 131_072) {
-      return FALLBACK_PARKED_FAVICON;
-    }
-    return `data:${contentType};base64,${bytesToBase64(bytes)}`;
-  } catch {
-    return FALLBACK_PARKED_FAVICON;
-  }
-}
-
 async function createDisplayParkedDeepSleepUrl(
-  recovery: Pick<DeepSleepRecovery, "resourceId" | "title" | "originalUrl">,
+  recovery: Pick<DeepSleepRecovery, "resourceId" | "title">,
 ): Promise<string> {
   return createParkedDeepSleepUrl(
     recovery.resourceId,
     `${recovery.title} · ${t("deepSleepPageTitle")}`,
-    await getParkedFaviconDataUrl(recovery.originalUrl),
+    DEEP_SLEEP_FAVICON_DATA_URL,
   );
 }
 

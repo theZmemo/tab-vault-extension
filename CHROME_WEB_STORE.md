@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.30
+版本：0.0.31
 
 插件内产品介绍：`about.html`，从扩展“设置”中打开。
 
@@ -41,8 +41,8 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 四级渐进式休眠，按当前窗口、所有窗口、强力模式和混合深度休眠逐级增强。
 - 支持从网页、扩展图标或标签右键菜单完全睡眠单个页面。
 - 已休眠和深度休眠标签支持单页或批量解冻，并保留原标签位置、固定状态和 Chrome 原生分组。
-- 深度休眠前先保存原 URL。普通后台标签替换为保留原标题、原站 favicon、窗口位置和原生标签组的无脚本轻量停放页，活动、固定、有声或加载中的特殊标签使用本地占位页；选中后均先显示确认恢复页，不会直接加载原站。已保护资源和浏览器内部页除外。
-- 深睡占位页沿用原网站 favicon，并以低饱和、半透明样式标识睡眠状态。
+- 深度休眠前先保存原 URL。普通后台标签替换为保留原标题、统一灰色休眠标识、窗口位置和原生标签组的无脚本轻量停放页，活动、固定、有声或加载中的特殊标签使用同一休眠标识的本地占位页；选中后均先显示确认恢复页，不会直接加载原站。已保护资源和浏览器内部页除外。
+- 四级深睡标签统一使用本地灰色休眠星标，与普通休眠和正常页面明确区分。
 - 更新或重新加载扩展时，旧版后台占位页会逐个迁移为无脚本轻量停放状态，避免扩展渲染进程积累。
 - 安全归档，在本地写入成功后才关闭真实标签。
 - 自动及手动会话快照，并按窗口、顺序和标签组恢复。
@@ -79,12 +79,11 @@ Key features:
 - Single and batch unfreeze for sleeping and deep-sleeping tabs while preserving
   existing tab positions, pinned state, and native Chrome groups.
 - Deep sleep persists the original URL. Ordinary background tabs use an inert
-  lightweight page that preserves the original title, cached website favicon,
-  position, and native Chrome group, while active, pinned, audible, or loading
-  tabs use a local confirmation placeholder. Selecting either state opens
-  confirmation before the original website loads. Protected and
-  browser-internal pages remain excluded.
-- Placeholder tabs retain a dimmed version of the original website favicon.
+  lightweight page that preserves the original title, position, and native
+  Chrome group, while active, pinned, audible, or loading tabs use a local
+  confirmation placeholder. Both states use the same gray local sleep
+  indicator. Selecting either state opens confirmation before the original
+  website loads. Protected and browser-internal pages remain excluded.
 - Safe archiving that persists data before closing live tabs.
 - Automatic and manual session snapshots with window and tab-group restoration.
 - Validated JSON backup export, import, and merge.
@@ -104,7 +103,6 @@ Privacy:
 |---|---|
 | `alarms` | 定时执行用户配置的闲置标签休眠和本地会话快照。 |
 | `contextMenus` | 允许用户从浏览器右键菜单完全睡眠当前页面、加入永久分组或打开管理界面。 |
-| `favicon` | 从 Chrome 本地 favicon 缓存读取原网站图标，用于在深睡占位标签中保留网站识别性；不向网站发起额外请求。 |
 | `sidePanel` | 在 Chrome 原生侧边栏中提供扩展的主要管理界面。 |
 | `tabGroups` | 读取标签组元数据，并在恢复会话快照时重建标签组。 |
 | `tabs` | 读取标签 URL、标题和状态，并执行用户请求的聚焦、原生休眠、深度休眠占位替换、关闭和恢复操作。 |
@@ -154,6 +152,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.30 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.31 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

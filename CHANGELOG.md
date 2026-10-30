@@ -2,6 +2,19 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.31] - 2026-10-30
+
+### Changed
+
+- Level 4 deep-sleep tabs now use one consistent gray sleep indicator instead
+  of mixing website favicons with the fallback sleep icon.
+- Removed the Chrome `favicon` permission because deep-sleep display no longer
+  reads the browser's website favicon cache.
+
+### Tests
+
+- Added coverage for the shared sleep icon across parked and confirmation tabs.
+
 ## [0.0.30] - 2026-10-30
 
 ### Fixed

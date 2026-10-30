@@ -906,14 +906,14 @@ try {
     .toContain(`chrome-extension://${extensionId}/suspended.html`);
   await expect
     .poll(() =>
-      deepSleepPage.locator("#page-favicon").getAttribute("data-source-url"),
+      deepSleepPage.locator("#page-favicon").getAttribute("href"),
     )
-    .toContain(
-      `/_favicon/?pageUrl=${encodeURIComponent(deepSleepOriginalUrl)}&size=32`,
-    );
+    .toMatch(/^data:image\/svg\+xml/);
   await expect
     .poll(() =>
-      deepSleepPage.locator("#page-favicon").getAttribute("data-dimmed"),
+      deepSleepPage
+        .locator("#page-favicon")
+        .getAttribute("data-deep-sleep-icon"),
     )
     .toBe("true");
   await deepSleepPage.screenshot({

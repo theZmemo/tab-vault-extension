@@ -1,4 +1,7 @@
-import { parseDeepSleepPayload } from "../shared/deepSleep";
+import {
+  DEEP_SLEEP_FAVICON_DATA_URL,
+  parseDeepSleepPayload,
+} from "../shared/deepSleep";
 import { t, uiLocale } from "../shared/i18n";
 import "./styles.css";
 
@@ -14,50 +17,19 @@ const restoreButton =
   document.querySelector<HTMLButtonElement>("#restore-button");
 let restoreStarted = false;
 
-function getFaviconUrl(pageUrl: string): string {
-  const url = new URL(chrome.runtime.getURL("/_favicon/"));
-  url.searchParams.set("pageUrl", pageUrl);
-  url.searchParams.set("size", "32");
-  return url.toString();
-}
-
-async function setDimmedFavicon(pageUrl: string): Promise<void> {
+function setDeepSleepFavicon(): void {
   if (!faviconLink) {
     return;
   }
-
-  const sourceUrl = getFaviconUrl(pageUrl);
-  faviconLink.dataset.sourceUrl = sourceUrl;
-  faviconLink.href = sourceUrl;
-  const image = new Image();
-  image.decoding = "async";
-  image.src = sourceUrl;
-  try {
-    await image.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = 32;
-    canvas.height = 32;
-    const context = canvas.getContext("2d");
-    if (!context) {
-      return;
-    }
-    context.filter = "grayscale(60%)";
-    context.globalAlpha = 0.7;
-    context.drawImage(image, 0, 0, 32, 32);
-    faviconLink.href = canvas.toDataURL("image/png");
-    faviconLink.dataset.dimmed = "true";
-  } catch {
-    // Keep Chrome's cached site favicon when bitmap processing is unavailable.
-  }
+  faviconLink.href = DEEP_SLEEP_FAVICON_DATA_URL;
+  faviconLink.dataset.deepSleepIcon = "true";
 }
 
 document.documentElement.lang = uiLocale;
 document.title = payload
   ? `${payload.title} · ${t("deepSleepPageTitle")}`
   : t("deepSleepPageTitle");
-if (payload) {
-  void setDimmedFavicon(payload.url);
-}
+setDeepSleepFavicon();
 
 if (stateLabel) {
   stateLabel.textContent = t("deepSleepPageTitle");

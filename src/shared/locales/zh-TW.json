@@ -92,7 +92,7 @@
   "deepSleepTabsPutToSleep": "已深度休眠 {count} 個標籤；選取標籤只會開啟確認頁，不會載入原網頁",
   "noTabsToDeepSleep": "沒有可深度休眠的標籤",
   "deepSleepWarningTitle": "深度休眠前確認",
-  "deepSleepWarningBody": "深度休眠會先保存原 URL、標題和分組；一般背景標籤使用保留名稱和圖示的無腳本輕量停放頁，特殊狀態標籤使用本機佔位頁。",
+  "deepSleepWarningBody": "深度休眠會先保存原 URL、標題和分組；一般背景標籤使用保留名稱和統一休眠標識的無腳本輕量停放頁，特殊狀態標籤使用本機佔位頁。",
   "deepSleepWarningRuntimeLoss": "活動頁面會立即被取代；音訊、載入任務、未提交表單和網頁應用程式臨時狀態都會中斷。",
   "deepSleepWarningRecovery": "選取休眠標籤只會開啟本機確認頁；點擊「確認恢復」後才會載入原網頁。",
   "confirmDeepSleep": "確認並開始深度休眠",
