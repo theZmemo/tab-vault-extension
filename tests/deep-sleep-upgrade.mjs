@@ -291,7 +291,7 @@ try {
         }).length;
       }, originalUrl),
     )
-    .toBe(1);
+    .toBe(0);
   await worker.evaluate(async (tabId) => chrome.tabs.remove(tabId), rebuiltTabId);
   await expect
     .poll(() =>

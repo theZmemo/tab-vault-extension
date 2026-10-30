@@ -899,7 +899,7 @@ try {
     .getByRole("button", { name: "确认并开始深度休眠" })
     .click();
   await expect(
-    panel.getByText(/已深度休眠 \d+ 个标签；普通后台标签选中后自动重载/),
+    panel.getByText(/已深度休眠 \d+ 个标签；选中标签只会打开确认页/),
   ).toBeVisible({ timeout: 10_000 });
   await expect
     .poll(() => deepSleepPage.url())
@@ -931,7 +931,7 @@ try {
   );
   expect(deepSleepInstance).toBeTruthy();
   expect(deepSleepState.settings.deepSleepWarningAccepted).toBe(true);
-  expect(deepSleepState.settings.deepSleepWarningVersion).toBe(2);
+  expect(deepSleepState.settings.deepSleepWarningVersion).toBe(3);
 
   await panel
     .getByRole("button", { name: "保存当前快照", exact: true })

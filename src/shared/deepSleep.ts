@@ -7,6 +7,8 @@ export interface DeepSleepPayload {
   title: string;
 }
 
+const PARKED_DEEP_SLEEP_HASH = "#tab-vault-deep-sleep=";
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -77,6 +79,31 @@ export function parseDeepSleepPayload(
       url: value.url,
       title: value.title,
     };
+  } catch {
+    return null;
+  }
+}
+
+export function createParkedDeepSleepUrl(resourceId: string): string {
+  if (!isNonEmptyString(resourceId)) {
+    throw new Error("Invalid parked deep sleep resource");
+  }
+  return `about:blank${PARKED_DEEP_SLEEP_HASH}${encodeURIComponent(resourceId)}`;
+}
+
+export function parseParkedDeepSleepResourceId(
+  rawUrl: string,
+): string | null {
+  if (!rawUrl.startsWith(`about:blank${PARKED_DEEP_SLEEP_HASH}`)) {
+    return null;
+  }
+  try {
+    const resourceId = decodeURIComponent(
+      rawUrl.slice(
+        `about:blank${PARKED_DEEP_SLEEP_HASH}`.length,
+      ),
+    );
+    return isNonEmptyString(resourceId) ? resourceId : null;
   } catch {
     return null;
   }

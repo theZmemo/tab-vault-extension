@@ -59,6 +59,7 @@ export interface DeepSleepRecovery {
   createdAt: number;
   pendingRemovalAt?: number;
   nativeDiscardPending?: boolean;
+  activationGuarded?: boolean;
 }
 
 export type CollectionColor =

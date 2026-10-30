@@ -2,6 +2,28 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.29] - 2026-10-30
+
+### Fixed
+
+- Level 4 deep-sleep tabs no longer load the original website when selected
+  accidentally. Ordinary background pages are parked on an inert blank page;
+  activation opens the local restore confirmation, and the website loads only
+  after explicit confirmation.
+- Parked tabs retain their original URL in session snapshots and remain
+  restorable from both the confirmation page and side-panel unfreeze actions.
+
+### Changed
+
+- Bumped the deep-sleep safety notice version so existing users see the new
+  activation guarantee once.
+
+### Tests
+
+- Added browser request-count coverage proving accidental activation does not
+  request the original website.
+- Added snapshot and explicit side-panel restore coverage for parked tabs.
+
 ## [0.0.28] - 2026-10-29
 
 ### Added

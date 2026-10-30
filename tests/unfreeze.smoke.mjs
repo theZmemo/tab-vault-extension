@@ -56,6 +56,148 @@ try {
     return (await state()).instances.some((item) =>
       item.browserTabId === fixture.tabId && (item.deepSleeping || item.discarded));
   }
+  const guardedTab = await worker.evaluate(
+    (url) => chrome.tabs.create({ url, active: false }),
+    `${baseUrl}/guarded`,
+  );
+  await expect
+    .poll(() => requests.get("/guarded"))
+    .toBeGreaterThan(0);
+  await command({ type: "REFRESH_TABS" });
+  const guardedResource = (await state()).resources.find(
+    (item) => item.originalUrl === `${baseUrl}/guarded`,
+  );
+  expect(guardedResource).toBeTruthy();
+  const guarded = {
+    page: context
+      .pages()
+      .find((page) => page.url() === `${baseUrl}/guarded`),
+    resourceId: guardedResource.id,
+    tabId: guardedTab.id,
+    path: "/guarded",
+  };
+  expect(guarded.page).toBeTruthy();
+  await panel.bringToFront();
+  const beforeGuardActivation = requests.get("/guarded");
+  expect(
+    await command({ type: "DEEP_SLEEP_TAB", tabId: guarded.tabId }),
+  ).toBe(true);
+  const guardedState = await state();
+  expect(
+    guardedState.instances.find(
+      (item) => item.browserTabId === guarded.tabId,
+    ),
+  ).toMatchObject({
+    discarded: false,
+    deepSleeping: true,
+  });
+  const guardedRecovery = await panel.evaluate(
+    (tabId) =>
+      new Promise((resolveRecovery, rejectRecovery) => {
+        const request = indexedDB.open("tab-vault");
+        request.onerror = () => rejectRecovery(request.error);
+        request.onsuccess = () => {
+          const query = request.result
+            .transaction("deepSleepRecoveries", "readonly")
+            .objectStore("deepSleepRecoveries")
+            .index("browserTabId")
+            .get(tabId);
+          query.onerror = () => rejectRecovery(query.error);
+          query.onsuccess = () => resolveRecovery(query.result);
+        };
+      }),
+    guarded.tabId,
+  );
+  expect(guardedRecovery.activationGuarded).toBe(true);
+  await panel.evaluate(
+    (recovery) =>
+      new Promise((resolveUpdate, rejectUpdate) => {
+        const request = indexedDB.open("tab-vault");
+        request.onerror = () => rejectUpdate(request.error);
+        request.onsuccess = () => {
+          const transaction = request.result.transaction(
+            "deepSleepRecoveries",
+            "readwrite",
+          );
+          transaction.objectStore("deepSleepRecoveries").put({
+            ...recovery,
+            browserTabId: 987_654_321,
+          });
+          transaction.oncomplete = resolveUpdate;
+          transaction.onerror = () =>
+            rejectUpdate(transaction.error);
+        };
+      }),
+    guardedRecovery,
+  );
+  await command({ type: "REFRESH_TABS" });
+  const reboundRecoveryTabId = await panel.evaluate(
+    (resourceId) =>
+      new Promise((resolveRecovery, rejectRecovery) => {
+        const request = indexedDB.open("tab-vault");
+        request.onerror = () => rejectRecovery(request.error);
+        request.onsuccess = () => {
+          const query = request.result
+            .transaction("deepSleepRecoveries", "readonly")
+            .objectStore("deepSleepRecoveries")
+            .index("resourceId")
+            .get(resourceId);
+          query.onerror = () => rejectRecovery(query.error);
+          query.onsuccess = () =>
+            resolveRecovery(query.result?.browserTabId);
+        };
+      }),
+    guarded.resourceId,
+  );
+  expect(reboundRecoveryTabId).toBe(guarded.tabId);
+  const guardedSnapshot = await command({ type: "CREATE_SNAPSHOT" });
+  expect(
+    guardedSnapshot.tabs.some(
+      (tab) => tab.url === `${baseUrl}/guarded`,
+    ),
+  ).toBe(true);
+  await worker.evaluate(
+    (tabId) => chrome.tabs.update(tabId, { active: true }),
+    guarded.tabId,
+  );
+  await guarded.page.waitForURL(
+    (url) =>
+      url.protocol === "chrome-extension:" &&
+      url.pathname.endsWith("/suspended.html"),
+  );
+  await expect(
+    guarded.page.getByRole("button", { name: "确认恢复" }),
+  ).toBeVisible();
+  expect(requests.get("/guarded")).toBe(beforeGuardActivation);
+  await guarded.page
+    .getByRole("button", { name: "确认恢复" })
+    .click();
+  await guarded.page.waitForURL(`${baseUrl}/guarded`);
+  expect(requests.get("/guarded")).toBe(beforeGuardActivation + 1);
+  await expect.poll(() => hasSleeping(guarded)).toBe(false);
+  await panel.bringToFront();
+
+  const guardedBatch = await fixture("/guarded-batch");
+  await panel.bringToFront();
+  const beforeGuardedBatch = requests.get("/guarded-batch");
+  expect(
+    await command({
+      type: "DEEP_SLEEP_TAB",
+      tabId: guardedBatch.tabId,
+    }),
+  ).toBe(true);
+  expect(
+    await command({
+      type: "WAKE_RESOURCES",
+      resourceIds: [guardedBatch.resourceId],
+    }),
+  ).toEqual({ woken: 1, failed: 0 });
+  await guardedBatch.page.waitForURL(`${baseUrl}/guarded-batch`);
+  expect(requests.get("/guarded-batch")).toBe(
+    beforeGuardedBatch + 1,
+  );
+  await expect.poll(() => hasSleeping(guardedBatch)).toBe(false);
+
   const one = await fixture("/single");
   const duplicate = await fixture("/single");
   const deep = await fixture("/deep");
@@ -151,6 +293,11 @@ try {
   expect(await command({ type: "WAKE_RESOURCES", resourceIds: [deep.resourceId, archived.resourceId] })).toEqual({ woken: 0, failed: 0 });
   console.log(JSON.stringify({
     selectionKeepsDeepSleep: true,
+    accidentalActivationRequiresConfirmation: true,
+    guardedActivationAvoidsOriginalRequest: true,
+    parkedTabReboundAfterTabIdChange: true,
+    parkedTabSnapshotKeepsOriginalUrl: true,
+    explicitUnfreezeRestoresParkedTab: true,
     singleUnfreezesAllInstances: true,
     batchWakesDeepSleep: true,
     activeAndArchivedSkipped: true,

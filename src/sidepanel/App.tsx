@@ -139,7 +139,7 @@ const COLLECTION_COLORS: CollectionColor[] = [
 const PRIVACY_POLICY_URL =
   "https://github.com/theZmemo/tab-vault-extension/blob/main/PRIVACY.md";
 const RESOURCE_RENDER_BATCH = 80;
-const DEEP_SLEEP_WARNING_VERSION = 2;
+const DEEP_SLEEP_WARNING_VERSION = 3;
 const ICON_TOOLTIP_DELAY_MS = 80;
 
 const COLLECTION_COLOR_LABELS: Record<CollectionColor, string> = {

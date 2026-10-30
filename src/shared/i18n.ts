@@ -106,15 +106,15 @@ const en = {
     "No tabs match the safe levels. Try Level 3 for broader coverage.",
   noTabsToSleep: "No eligible tabs to sleep",
   deepSleepTabsPutToSleep:
-    "{count} tabs are in deep sleep; ordinary background tabs reload when selected",
+    "{count} tabs are in deep sleep; selecting one opens a confirmation page without loading the website",
   noTabsToDeepSleep: "No eligible tabs for deep sleep",
   deepSleepWarningTitle: "Before deep sleep",
   deepSleepWarningBody:
-    "Deep sleep saves each original URL, title, and group. Ordinary background tabs use Chrome native discard; special tabs use a lightweight local placeholder.",
+    "Deep sleep saves each original URL, title, and group. Ordinary background tabs move to an inert blank page; special tabs use a lightweight local placeholder.",
   deepSleepWarningRuntimeLoss:
     "Active pages are replaced immediately. Audio, loading, unsaved forms, and in-page app state will be interrupted.",
   deepSleepWarningRecovery:
-    "Original URLs are stored in Tab Vault; placeholder tabs also keep a redundant recovery address.",
+    "Selecting a sleeping tab opens a local confirmation page. The original website loads only after you confirm restore.",
   confirmDeepSleep: "Continue with deep sleep",
   deepSleepTabUnavailable: "Unable to identify the deep-sleeping tab",
   windowUnavailable: "The current browser window is unavailable",
@@ -168,7 +168,7 @@ const en = {
   sleepingStatusHint:
     "The tab remains in the browser, but its page process is unloaded",
   deepSleepingStatusHint:
-    "The original URL is saved and the page is replaced by a local placeholder",
+    "The original URL is saved; selecting this tab opens confirmation before loading the website",
   archivedStatusHint:
     "The browser tab is closed; its saved record can be reopened here",
   duplicateCount: "{count} duplicates",
@@ -418,15 +418,15 @@ const zh: Record<MessageKey, string> = {
   noTabsToSleepSafe: "安全级别没有可休眠标签，可尝试第 3 级扩大覆盖。",
   noTabsToSleep: "没有可休眠的标签",
   deepSleepTabsPutToSleep:
-    "已深度休眠 {count} 个标签；普通后台标签选中后自动重载",
+    "已深度休眠 {count} 个标签；选中标签只会打开确认页，不会加载原网页",
   noTabsToDeepSleep: "没有可深度休眠的标签",
   deepSleepWarningTitle: "深度休眠前确认",
   deepSleepWarningBody:
-    "深度休眠会先保存原 URL、标题和分组；普通后台标签使用 Chrome 原生丢弃，特殊状态标签使用轻量本地占位页。",
+    "深度休眠会先保存原 URL、标题和分组；普通后台标签移至无脚本空白页，特殊状态标签使用轻量本地占位页。",
   deepSleepWarningRuntimeLoss:
     "活动页面会立即被替换；音频、加载任务、未提交表单和网页应用临时状态都会中断。",
   deepSleepWarningRecovery:
-    "原 URL 保存在标签资产库中；使用占位页的标签还会在地址中保留冗余恢复信息。",
+    "选中休眠标签只会打开本地确认页；点击“确认恢复”后才会加载原网页。",
   confirmDeepSleep: "确认并开始深度休眠",
   deepSleepTabUnavailable: "无法识别待恢复的深度休眠标签",
   windowUnavailable: "无法获取当前浏览器窗口",
@@ -476,7 +476,7 @@ const zh: Record<MessageKey, string> = {
   statusArchived: "已归档",
   openStatusHint: "页面当前仍在浏览器中打开",
   sleepingStatusHint: "标签仍在浏览器标签栏，但页面进程已卸载",
-  deepSleepingStatusHint: "原 URL 已保存，网页已替换为本地轻量占位页",
+  deepSleepingStatusHint: "原 URL 已保存；选中标签后先确认，不会直接加载原网页",
   archivedStatusHint: "浏览器标签已关闭，记录保留在资产库中，可重新打开",
   duplicateCount: "重复 {count}",
   closeDuplicateTabs: "关闭多余标签",
