@@ -56,6 +56,33 @@ try {
     return (await state()).instances.some((item) =>
       item.browserTabId === fixture.tabId && (item.deepSleeping || item.discarded));
   }
+  async function bindParkedFixture(target) {
+    const recovery = await panel.evaluate(
+      (resourceId) =>
+        new Promise((resolveRecovery, rejectRecovery) => {
+          const request = indexedDB.open("tab-vault");
+          request.onerror = () => rejectRecovery(request.error);
+          request.onsuccess = () => {
+            const query = request.result
+              .transaction("deepSleepRecoveries", "readonly")
+              .objectStore("deepSleepRecoveries")
+              .index("resourceId")
+              .get(resourceId);
+            query.onerror = () => rejectRecovery(query.error);
+            query.onsuccess = () => resolveRecovery(query.result);
+          };
+        }),
+      target.resourceId,
+    );
+    expect(recovery?.browserTabId).toEqual(expect.any(Number));
+    target.tabId = recovery.browserTabId;
+    const parkedUrl = await worker.evaluate(
+      async (tabId) => (await chrome.tabs.get(tabId)).url,
+      target.tabId,
+    );
+    target.parkedUrl = parkedUrl;
+    return recovery;
+  }
   const guardedTab = await worker.evaluate(
     (url) => chrome.tabs.create({ url, active: false }),
     `${baseUrl}/guarded`,
@@ -64,6 +91,19 @@ try {
     .poll(() => requests.get("/guarded"))
     .toBeGreaterThan(0);
   await command({ type: "REFRESH_TABS" });
+  const guardedMetadata = await worker.evaluate(async (tabId) => {
+    const groupId = await chrome.tabs.group({ tabIds: [tabId] });
+    await chrome.tabGroups.update(groupId, {
+      title: "Guarded Group",
+      color: "cyan",
+    });
+    const tab = await chrome.tabs.get(tabId);
+    return {
+      groupId,
+      index: tab.index,
+      windowId: tab.windowId,
+    };
+  }, guardedTab.id);
   const guardedResource = (await state()).resources.find(
     (item) => item.originalUrl === `${baseUrl}/guarded`,
   );
@@ -82,6 +122,16 @@ try {
   expect(
     await command({ type: "DEEP_SLEEP_TAB", tabId: guarded.tabId }),
   ).toBe(true);
+  const guardedRecovery = await bindParkedFixture(guarded);
+  const parkedMetadata = await worker.evaluate(async (tabId) => {
+    const tab = await chrome.tabs.get(tabId);
+    return {
+      groupId: tab.groupId,
+      index: tab.index,
+      windowId: tab.windowId,
+    };
+  }, guarded.tabId);
+  expect(parkedMetadata).toEqual(guardedMetadata);
   const guardedState = await state();
   expect(
     guardedState.instances.find(
@@ -91,23 +141,22 @@ try {
     discarded: false,
     deepSleeping: true,
   });
-  const guardedRecovery = await panel.evaluate(
-    (tabId) =>
-      new Promise((resolveRecovery, rejectRecovery) => {
-        const request = indexedDB.open("tab-vault");
-        request.onerror = () => rejectRecovery(request.error);
-        request.onsuccess = () => {
-          const query = request.result
-            .transaction("deepSleepRecoveries", "readonly")
-            .objectStore("deepSleepRecoveries")
-            .index("browserTabId")
-            .get(tabId);
-          query.onerror = () => rejectRecovery(query.error);
-          query.onsuccess = () => resolveRecovery(query.result);
+  await expect
+    .poll(() =>
+      worker.evaluate(async (tabId) => {
+        const tab = await chrome.tabs.get(tabId);
+        return {
+          title: tab.title,
+          favIconUrl: tab.favIconUrl,
+          url: tab.url,
         };
-      }),
-    guarded.tabId,
-  );
+      }, guarded.tabId),
+    )
+    .toMatchObject({
+      title: "Unfreeze /guarded · 深度休眠",
+      favIconUrl: expect.stringMatching(/^data:image\//),
+      url: expect.stringMatching(/^data:text\/html/),
+    });
   expect(guardedRecovery.activationGuarded).toBe(true);
   await panel.evaluate(
     (recovery) =>
@@ -160,11 +209,27 @@ try {
     (tabId) => chrome.tabs.update(tabId, { active: true }),
     guarded.tabId,
   );
-  await guarded.page.waitForURL(
-    (url) =>
-      url.protocol === "chrome-extension:" &&
-      url.pathname.endsWith("/suspended.html"),
+  await expect
+    .poll(() =>
+      worker.evaluate(
+        async (tabId) => (await chrome.tabs.get(tabId)).url ?? "",
+        guarded.tabId,
+      ),
+    )
+    .toMatch(/^chrome-extension:\/\/.+\/suspended\.html/);
+  const confirmationUrl = await worker.evaluate(
+    async (tabId) => (await chrome.tabs.get(tabId)).url ?? "",
+    guarded.tabId,
   );
+  await expect
+    .poll(() =>
+      context.pages().some((page) => page.url() === confirmationUrl),
+    )
+    .toBe(true);
+  guarded.page = context
+    .pages()
+    .find((page) => page.url() === confirmationUrl);
+  expect(guarded.page).toBeTruthy();
   await expect(
     guarded.page.getByRole("button", { name: "确认恢复" }),
   ).toBeVisible();
@@ -186,13 +251,21 @@ try {
       tabId: guardedBatch.tabId,
     }),
   ).toBe(true);
+  await bindParkedFixture(guardedBatch);
   expect(
     await command({
       type: "WAKE_RESOURCES",
       resourceIds: [guardedBatch.resourceId],
     }),
   ).toEqual({ woken: 1, failed: 0 });
-  await guardedBatch.page.waitForURL(`${baseUrl}/guarded-batch`);
+  await expect
+    .poll(() =>
+      worker.evaluate(
+        async (tabId) => (await chrome.tabs.get(tabId)).url ?? "",
+        guardedBatch.tabId,
+      ),
+    )
+    .toBe(`${baseUrl}/guarded-batch`);
   expect(requests.get("/guarded-batch")).toBe(
     beforeGuardedBatch + 1,
   );
@@ -295,6 +368,8 @@ try {
     selectionKeepsDeepSleep: true,
     accidentalActivationRequiresConfirmation: true,
     guardedActivationAvoidsOriginalRequest: true,
+    parkedTabKeepsTitleAndFavicon: true,
+    parkedTabKeepsGroupAndPosition: true,
     parkedTabReboundAfterTabIdChange: true,
     parkedTabSnapshotKeepsOriginalUrl: true,
     explicitUnfreezeRestoresParkedTab: true,

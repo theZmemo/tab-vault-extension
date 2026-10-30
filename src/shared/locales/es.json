@@ -92,7 +92,7 @@
   "deepSleepTabsPutToSleep": "{count} pestañas están en suspensión profunda; al seleccionarlas solo se abre una página de confirmación, sin cargar el sitio original",
   "noTabsToDeepSleep": "No hay pestañas elegibles para el sueño profundo",
   "deepSleepWarningTitle": "Antes de la suspensión profunda",
-  "deepSleepWarningBody": "La suspensión profunda guarda la URL, el título y el grupo. Las pestañas normales en segundo plano pasan a una página en blanco sin scripts; los estados especiales usan un marcador local.",
+  "deepSleepWarningBody": "La suspensión profunda guarda la URL, el título y el grupo. Las pestañas normales usan una página ligera sin scripts que conserva el nombre y el icono; los estados especiales usan un marcador local.",
   "deepSleepWarningRuntimeLoss": "Las páginas activas se reemplazan inmediatamente. Se interrumpirán el audio, la carga, los formularios no guardados y el estado de la aplicación en la página.",
   "deepSleepWarningRecovery": "Al seleccionar una pestaña suspendida se abre una confirmación local. El sitio original solo se carga tras confirmar la restauración.",
   "confirmDeepSleep": "Confirmar e iniciar la suspensión profunda",

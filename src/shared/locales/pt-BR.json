@@ -92,7 +92,7 @@
   "deepSleepTabsPutToSleep": "{count} abas estão em suspensão profunda; ao selecionar, apenas uma página de confirmação é aberta sem carregar o site original",
   "noTabsToDeepSleep": "Nenhuma guia qualificada para sono profundo",
   "deepSleepWarningTitle": "Antes da suspensão profunda",
-  "deepSleepWarningBody": "A suspensão profunda salva URL, título e grupo. Abas comuns em segundo plano vão para uma página em branco sem scripts; estados especiais usam um espaço reservado local leve.",
+  "deepSleepWarningBody": "A suspensão profunda salva URL, título e grupo. Abas comuns usam uma página leve sem scripts que mantém o nome e o ícone; estados especiais usam um espaço reservado local.",
   "deepSleepWarningRuntimeLoss": "As páginas ativas são substituídas imediatamente. Áudio, carregamento, formulários não salvos e estado do aplicativo na página serão interrompidos.",
   "deepSleepWarningRecovery": "Selecionar uma aba suspensa abre uma confirmação local. O site original só carrega após confirmar a restauração.",
   "confirmDeepSleep": "Confirmar e iniciar a suspensão profunda",

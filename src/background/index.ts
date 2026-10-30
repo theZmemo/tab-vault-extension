@@ -15,6 +15,7 @@ import { sortCollections } from "../shared/collections";
 import {
   createDeepSleepUrl,
   createParkedDeepSleepUrl,
+  isDisplayParkedDeepSleepUrl,
   isDeepSleepPageUrl,
   parseDeepSleepPayload,
   parseParkedDeepSleepResourceId,
@@ -67,6 +68,8 @@ const CONTEXT_MENU_OPEN = "tab-vault:open";
 const CONTEXT_MENU_DEEP_SLEEP = "tab-vault:deep-sleep";
 const CONTEXT_MENU_COLLECTION_PREFIX = "tab-vault:collection:";
 const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
+const FALLBACK_PARKED_FAVICON =
+  "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%235f7182%27/%3E%3Cpath d=%27M16 7v18M7 16h18M9.6 9.6l12.8 12.8M22.4 9.6 9.6 22.4%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27 opacity=%27.82%27/%3E%3C/svg%3E";
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
 const SAVED_TITLE_MIGRATION_VERSION = 1;
 type CaptureLoadState = "reset" | "complete";
@@ -85,6 +88,106 @@ async function broadcastChange(): Promise<void> {
     await chrome.runtime.sendMessage({ type: "VAULT_DATA_CHANGED" });
   } catch {
     // The side panel is normally closed, so no receiver is expected.
+  }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 8_192) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, offset + 8_192),
+    );
+  }
+  return btoa(binary);
+}
+
+async function getParkedFaviconDataUrl(pageUrl: string): Promise<string> {
+  try {
+    const faviconUrl = new URL(chrome.runtime.getURL("/_favicon/"));
+    faviconUrl.searchParams.set("pageUrl", pageUrl);
+    faviconUrl.searchParams.set("size", "32");
+    const response = await fetch(faviconUrl);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!response.ok || !contentType.startsWith("image/")) {
+      return FALLBACK_PARKED_FAVICON;
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > 131_072) {
+      return FALLBACK_PARKED_FAVICON;
+    }
+    return `data:${contentType};base64,${bytesToBase64(bytes)}`;
+  } catch {
+    return FALLBACK_PARKED_FAVICON;
+  }
+}
+
+async function createDisplayParkedDeepSleepUrl(
+  recovery: Pick<DeepSleepRecovery, "resourceId" | "title" | "originalUrl">,
+): Promise<string> {
+  return createParkedDeepSleepUrl(
+    recovery.resourceId,
+    `${recovery.title} · ${t("deepSleepPageTitle")}`,
+    await getParkedFaviconDataUrl(recovery.originalUrl),
+  );
+}
+
+async function replaceTabWithParkedPage(
+  tab: chrome.tabs.Tab & { id: number },
+  recovery: DeepSleepRecovery,
+): Promise<{
+  recovery: DeepSleepRecovery;
+  tab: chrome.tabs.Tab & { id: number };
+}> {
+  const previousRecovery = await db.deepSleepRecoveries.get(recovery.id);
+  const created = await chrome.tabs.create({
+    windowId: tab.windowId,
+    url: await createDisplayParkedDeepSleepUrl(recovery),
+    active: false,
+    pinned: tab.pinned,
+    index: tab.index,
+  });
+  if (created.id === undefined) {
+    throw new Error("Unable to create parked deep sleep tab");
+  }
+
+  try {
+    if (tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+      await chrome.tabs.group({
+        groupId: tab.groupId,
+        tabIds: [created.id],
+      });
+    }
+    await chrome.tabs.move(created.id, { index: tab.index });
+    const parkedTab = (await chrome.tabs.get(created.id)) as chrome.tabs.Tab & {
+      id: number;
+    };
+    const parkedRecovery: DeepSleepRecovery = {
+      ...recovery,
+      browserTabId: created.id,
+      windowId: parkedTab.windowId,
+      index: parkedTab.index,
+      groupId: parkedTab.groupId,
+      pendingRemovalAt: undefined,
+      nativeDiscardPending: false,
+      activationGuarded: true,
+    };
+    await db.deepSleepRecoveries.put(parkedRecovery);
+    await captureParkedDeepSleepingTab(parkedTab, parkedRecovery);
+    await chrome.tabs.remove(tab.id);
+    return { recovery: parkedRecovery, tab: parkedTab };
+  } catch (error) {
+    await db.tabInstances.delete(created.id);
+    if (previousRecovery) {
+      await db.deepSleepRecoveries.put(previousRecovery);
+    } else {
+      await db.deepSleepRecoveries.delete(recovery.id);
+    }
+    try {
+      await chrome.tabs.remove(created.id);
+    } catch {
+      // The parked replacement may already be gone.
+    }
+    throw error;
   }
 }
 
@@ -624,19 +727,10 @@ async function migrateNextLegacyDeepSleepPlaceholderInternal(): Promise<void> {
     };
     await db.deepSleepRecoveries.put(migratedRecovery);
     try {
-      const parkedTab = await chrome.tabs.update(tab.id, {
-        url: createParkedDeepSleepUrl(recovery.resourceId),
-      });
-      if (parkedTab) {
-        await captureParkedDeepSleepingTab(
-          {
-            ...parkedTab,
-            id: tab.id,
-            discarded: false,
-          },
-          migratedRecovery,
-        );
-      }
+      await replaceTabWithParkedPage(
+        tab as chrome.tabs.Tab & { id: number },
+        migratedRecovery,
+      );
     } catch {
       await db.deepSleepRecoveries.put({
         ...recovery,
@@ -1091,35 +1185,19 @@ async function parkDeepSleepingTab(
     },
   );
 
-  let parkedTab: chrome.tabs.Tab | undefined;
   try {
-    parkedTab = await chrome.tabs.update(tab.id, {
-      url: createParkedDeepSleepUrl(resource.id),
+    const parked = await replaceTabWithParkedPage(tab, recovery);
+    await appendEvent({
+      type: "TAB_DEEP_SLEEP_COMMITTED",
+      resourceId: resource.id,
+      browserTabId: parked.tab.id,
+      payload: { activationGuarded: true },
+      createdAt: Date.now(),
     });
   } catch (error) {
     await db.deepSleepRecoveries.delete(recovery.id);
     throw error;
   }
-  if (!parkedTab) {
-    await db.deepSleepRecoveries.delete(recovery.id);
-    return false;
-  }
-
-  await captureParkedDeepSleepingTab(
-    {
-      ...parkedTab,
-      id: tab.id,
-      discarded: false,
-    },
-    recovery,
-  );
-  await appendEvent({
-    type: "TAB_DEEP_SLEEP_COMMITTED",
-    resourceId: resource.id,
-    browserTabId: tab.id,
-    payload: { activationGuarded: true },
-    createdAt: Date.now(),
-  });
   return true;
 }
 
@@ -1807,25 +1885,15 @@ async function rebuildMissingDeepSleepingTabsInternal(): Promise<void> {
       if (guardedTab.active) {
         await guardDeepSleepingTabOnActivationInternal(guardedTab.id);
       } else if (
-        parseParkedDeepSleepResourceId(
+        !isDisplayParkedDeepSleepUrl(
           guardedTab.pendingUrl ?? guardedTab.url ?? "",
-        ) !== recovery.resourceId
+        )
       ) {
         try {
-          const parkedTab = await chrome.tabs.update(
-            guardedTab.id,
-            { url: createParkedDeepSleepUrl(recovery.resourceId) },
+          await replaceTabWithParkedPage(
+            guardedTab as chrome.tabs.Tab & { id: number },
+            recovery,
           );
-          if (parkedTab) {
-            await captureParkedDeepSleepingTab(
-              {
-                ...parkedTab,
-                id: guardedTab.id,
-                discarded: false,
-              },
-              recovery,
-            );
-          }
         } catch {
           // Keep the activation guard even if Chrome temporarily declines.
         }

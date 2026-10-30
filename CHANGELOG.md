@@ -2,6 +2,23 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.30] - 2026-10-30
+
+### Fixed
+
+- Guarded Level 4 parking now preserves a recognizable tab title and the
+  website favicon instead of exposing an `about:blank` label with a generic
+  icon.
+- Parked replacements retain the original window, index, and native Chrome tab
+  group while still running no page scripts or original-site workers.
+- Existing blank parked tabs from v0.0.29 are upgraded to the display-preserving
+  format during recovery reconciliation.
+
+### Tests
+
+- Added browser coverage for parked titles, embedded cached favicons, native
+  group retention, and tab-index retention.
+
 ## [0.0.29] - 2026-10-30
 
 ### Fixed

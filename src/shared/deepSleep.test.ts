@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createDeepSleepUrl,
   createParkedDeepSleepUrl,
+  isDisplayParkedDeepSleepUrl,
   isDeepSleepPageUrl,
   parseDeepSleepPayload,
   parseParkedDeepSleepResourceId,
@@ -51,12 +52,19 @@ describe("deep sleep payload", () => {
 });
 
 describe("parked deep sleep URL", () => {
-  it("round-trips the resource ID without exposing the original URL", () => {
-    const parkedUrl = createParkedDeepSleepUrl("resource_治理 42");
-
-    expect(parkedUrl.startsWith("about:blank#tab-vault-deep-sleep=")).toBe(
-      true,
+  it("round-trips the resource ID and preserves display metadata", () => {
+    const parkedUrl = createParkedDeepSleepUrl(
+      "resource_治理 42",
+      '治理报告 "周会" · 深度休眠',
+      "data:image/png;base64,aWNvbg==",
     );
+
+    expect(isDisplayParkedDeepSleepUrl(parkedUrl)).toBe(true);
+    const parkedHtml = decodeURIComponent(parkedUrl.split(",", 2)[1]);
+    expect(parkedHtml).toContain(
+      "<title>治理报告 &quot;周会&quot; · 深度休眠</title>",
+    );
+    expect(parkedHtml).toContain("data:image/png;base64,aWNvbg==");
     expect(parkedUrl).not.toContain("example.com");
     expect(parseParkedDeepSleepResourceId(parkedUrl)).toBe(
       "resource_治理 42",
@@ -70,8 +78,20 @@ describe("parked deep sleep URL", () => {
         "about:blank#tab-vault-deep-sleep=%E0%A4%A",
       ),
     ).toBeNull();
-    expect(() => createParkedDeepSleepUrl("  ")).toThrow(
-      "Invalid parked deep sleep resource",
-    );
+    expect(() =>
+      createParkedDeepSleepUrl(
+        "  ",
+        "Title",
+        "data:image/png;base64,aWNvbg==",
+      ),
+    ).toThrow("Invalid parked deep sleep resource");
+  });
+
+  it("reads legacy blank parking URLs", () => {
+    expect(
+      parseParkedDeepSleepResourceId(
+        "about:blank#tab-vault-deep-sleep=resource_legacy",
+      ),
+    ).toBe("resource_legacy");
   });
 });

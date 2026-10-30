@@ -110,7 +110,7 @@ const en = {
   noTabsToDeepSleep: "No eligible tabs for deep sleep",
   deepSleepWarningTitle: "Before deep sleep",
   deepSleepWarningBody:
-    "Deep sleep saves each original URL, title, and group. Ordinary background tabs move to an inert blank page; special tabs use a lightweight local placeholder.",
+    "Deep sleep saves each original URL, title, and group. Ordinary background tabs use an inert lightweight page that keeps the title and favicon; special tabs use a local placeholder.",
   deepSleepWarningRuntimeLoss:
     "Active pages are replaced immediately. Audio, loading, unsaved forms, and in-page app state will be interrupted.",
   deepSleepWarningRecovery:
@@ -422,7 +422,7 @@ const zh: Record<MessageKey, string> = {
   noTabsToDeepSleep: "没有可深度休眠的标签",
   deepSleepWarningTitle: "深度休眠前确认",
   deepSleepWarningBody:
-    "深度休眠会先保存原 URL、标题和分组；普通后台标签移至无脚本空白页，特殊状态标签使用轻量本地占位页。",
+    "深度休眠会先保存原 URL、标题和分组；普通后台标签使用保留名称和图标的无脚本轻量停放页，特殊状态标签使用本地占位页。",
   deepSleepWarningRuntimeLoss:
     "活动页面会立即被替换；音频、加载任务、未提交表单和网页应用临时状态都会中断。",
   deepSleepWarningRecovery:

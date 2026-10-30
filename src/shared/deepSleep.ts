@@ -7,7 +7,11 @@ export interface DeepSleepPayload {
   title: string;
 }
 
-const PARKED_DEEP_SLEEP_HASH = "#tab-vault-deep-sleep=";
+const LEGACY_PARKED_DEEP_SLEEP_HASH = "#tab-vault-deep-sleep=";
+const PARKED_DEEP_SLEEP_PREFIX =
+  "data:text/html;charset=utf-8,";
+const PARKED_RESOURCE_META =
+  '<meta name="tab-vault-resource-id" content="';
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -84,25 +88,76 @@ export function parseDeepSleepPayload(
   }
 }
 
-export function createParkedDeepSleepUrl(resourceId: string): string {
-  if (!isNonEmptyString(resourceId)) {
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+export function createParkedDeepSleepUrl(
+  resourceId: string,
+  title: string,
+  faviconDataUrl: string,
+): string {
+  if (
+    !isNonEmptyString(resourceId) ||
+    !isNonEmptyString(title) ||
+    !faviconDataUrl.startsWith("data:image/")
+  ) {
     throw new Error("Invalid parked deep sleep resource");
   }
-  return `about:blank${PARKED_DEEP_SLEEP_HASH}${encodeURIComponent(resourceId)}`;
+  const html = [
+    "<!doctype html><meta charset=utf-8>",
+    `${PARKED_RESOURCE_META}${escapeHtmlAttribute(resourceId)}">`,
+    `<title>${escapeHtmlAttribute(title)}</title>`,
+    `<link rel=icon href="${escapeHtmlAttribute(faviconDataUrl)}">`,
+  ].join("");
+  return `${PARKED_DEEP_SLEEP_PREFIX}${encodeURIComponent(html)}`;
+}
+
+export function isDisplayParkedDeepSleepUrl(rawUrl: string): boolean {
+  return rawUrl.startsWith(PARKED_DEEP_SLEEP_PREFIX);
 }
 
 export function parseParkedDeepSleepResourceId(
   rawUrl: string,
 ): string | null {
-  if (!rawUrl.startsWith(`about:blank${PARKED_DEEP_SLEEP_HASH}`)) {
-    return null;
-  }
   try {
-    const resourceId = decodeURIComponent(
-      rawUrl.slice(
-        `about:blank${PARKED_DEEP_SLEEP_HASH}`.length,
-      ),
+    if (
+      rawUrl.startsWith(
+        `about:blank${LEGACY_PARKED_DEEP_SLEEP_HASH}`,
+      )
+    ) {
+      const resourceId = decodeURIComponent(
+        rawUrl.slice(
+          `about:blank${LEGACY_PARKED_DEEP_SLEEP_HASH}`.length,
+        ),
+      );
+      return isNonEmptyString(resourceId) ? resourceId : null;
+    }
+    if (!isDisplayParkedDeepSleepUrl(rawUrl)) {
+      return null;
+    }
+    const html = decodeURIComponent(
+      rawUrl.slice(PARKED_DEEP_SLEEP_PREFIX.length),
     );
+    const markerIndex = html.indexOf(PARKED_RESOURCE_META);
+    if (markerIndex < 0) {
+      return null;
+    }
+    const valueStart = markerIndex + PARKED_RESOURCE_META.length;
+    const valueEnd = html.indexOf('"', valueStart);
+    if (valueEnd < 0) {
+      return null;
+    }
+    const resourceId = html
+      .slice(valueStart, valueEnd)
+      .replaceAll("&quot;", '"')
+      .replaceAll("&gt;", ">")
+      .replaceAll("&lt;", "<")
+      .replaceAll("&amp;", "&");
     return isNonEmptyString(resourceId) ? resourceId : null;
   } catch {
     return null;

@@ -92,7 +92,7 @@
   "deepSleepTabsPutToSleep": "{count} Tabs befinden sich im Tiefschlaf; beim Auswählen öffnet sich nur eine Bestätigungsseite, ohne die ursprüngliche Website zu laden",
   "noTabsToDeepSleep": "Keine geeigneten Tabs für Tiefschlaf",
   "deepSleepWarningTitle": "Vor dem Tiefschlaf",
-  "deepSleepWarningBody": "Deep Sleep speichert URL, Titel und Gruppe. Normale Hintergrund-Tabs wechseln zu einer skriptfreien Leerseite; Tabs in besonderen Zuständen verwenden einen lokalen Platzhalter.",
+  "deepSleepWarningBody": "Deep Sleep speichert URL, Titel und Gruppe. Normale Hintergrund-Tabs verwenden eine skriptfreie Leichtseite mit Name und Symbol; Tabs in besonderen Zuständen verwenden einen lokalen Platzhalter.",
   "deepSleepWarningRuntimeLoss": "Aktive Seiten werden sofort ersetzt. Audio, Laden, nicht gespeicherte Formulare und In-Page-App-Status werden unterbrochen.",
   "deepSleepWarningRecovery": "Beim Auswählen eines schlafenden Tabs öffnet sich eine lokale Bestätigung. Die ursprüngliche Website wird erst nach Bestätigung geladen.",
   "confirmDeepSleep": "Bestätigen und Tiefschlaf starten",

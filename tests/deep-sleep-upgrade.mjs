@@ -292,7 +292,29 @@ try {
       }, originalUrl),
     )
     .toBe(0);
-  await worker.evaluate(async (tabId) => chrome.tabs.remove(tabId), rebuiltTabId);
+  const currentRecoveryTabId = await panel.evaluate(
+    (resourceId) =>
+      new Promise((resolveRecovery, rejectRecovery) => {
+        const request = indexedDB.open("tab-vault");
+        request.onerror = () => rejectRecovery(request.error);
+        request.onsuccess = () => {
+          const query = request.result
+            .transaction("deepSleepRecoveries", "readonly")
+            .objectStore("deepSleepRecoveries")
+            .index("resourceId")
+            .get(resourceId);
+          query.onerror = () => rejectRecovery(query.error);
+          query.onsuccess = () =>
+            resolveRecovery(query.result?.browserTabId);
+        };
+      }),
+    capturedResource.id,
+  );
+  expect(currentRecoveryTabId).toEqual(expect.any(Number));
+  await worker.evaluate(
+    async (tabId) => chrome.tabs.remove(tabId),
+    currentRecoveryTabId,
+  );
   await expect
     .poll(() =>
       panel.evaluate(
