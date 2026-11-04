@@ -13,6 +13,19 @@ const profilePath = join(
 );
 
 const server = createServer((request, response) => {
+  if (request.url?.startsWith("/spa-title")) {
+    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    response.end(`
+      <title>dorado_fe</title>
+      <main>Loading application</main>
+      <script>
+        setTimeout(() => {
+          document.title = "实例运维 - Dorado";
+        }, 1000);
+      </script>
+    `);
+    return;
+  }
   if (request.url?.startsWith("/delayed-title")) {
     response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     response.write("<title>正在加载</title><main>Loading</main>");
@@ -1108,6 +1121,40 @@ try {
     ),
   ).toBe(false);
 
+  const spaTitlePage = await context.newPage();
+  const spaTitleUrl = "http://127.0.0.1:4178/spa-title?id=106";
+  await spaTitlePage.goto(spaTitleUrl);
+  await expect(spaTitlePage).toHaveTitle("dorado_fe");
+  const spaTitleResourceId = await panel.evaluate(async (url) => {
+    const response = await chrome.runtime.sendMessage({
+      type: "REFRESH_TABS",
+    });
+    return response.data.resources.find(
+      (resource) => resource.originalUrl === url,
+    ).id;
+  }, spaTitleUrl);
+  const archiveSpaTitleResponse = await panel.evaluate(
+    async (resourceId) =>
+      chrome.runtime.sendMessage({
+        type: "ARCHIVE_RESOURCES",
+        resourceIds: [resourceId],
+      }),
+    spaTitleResourceId,
+  );
+  expect(archiveSpaTitleResponse.ok).toBe(true);
+  await expect.poll(() => spaTitlePage.isClosed()).toBe(true);
+  const archivedSpaTitle = await panel.evaluate(async (resourceId) => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data.resources.find(
+      (resource) => resource.id === resourceId,
+    );
+  }, spaTitleResourceId);
+  expect(archivedSpaTitle).toMatchObject({
+    title: "实例运维 - Dorado",
+    stableTitle: "实例运维 - Dorado",
+    savedTitle: "实例运维 - Dorado",
+  });
+
   const delayedTitlePage = await context.newPage();
   const delayedTitleUrl = "http://127.0.0.1:4178/delayed-title?id=105";
   const delayedNavigation = delayedTitlePage.goto(delayedTitleUrl);
@@ -1218,6 +1265,7 @@ try {
         collectionEdited: true,
         customTitlePersisted: true,
         savedTitlePersisted: true,
+        spaTitleWaitedForStableValue: true,
         collectionColorCount: 24,
         collectionSort: true,
         collectionMoveAndRemove: true,

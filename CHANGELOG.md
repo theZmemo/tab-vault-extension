@@ -2,6 +2,22 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.32] - 2026-11-04
+
+### Fixed
+
+- Saved page names no longer freeze the first shell title emitted at
+  `status=complete`. The title must remain unchanged for a short stability
+  window after loading before it can become the saved title.
+- Archiving a still-initializing SPA waits briefly for its final title; on
+  timeout, Tab Vault keeps the save pending instead of persisting a temporary
+  title such as `dorado_fe`.
+
+### Tests
+
+- Added browser coverage for a completed SPA that replaces `dorado_fe` with
+  “实例运维 - Dorado” one second later and is archived immediately.
+
 ## [0.0.31] - 2026-10-30
 
 ### Changed

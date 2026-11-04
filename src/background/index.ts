@@ -70,11 +70,19 @@ const CONTEXT_MENU_DEEP_SLEEP = "tab-vault:deep-sleep";
 const CONTEXT_MENU_COLLECTION_PREFIX = "tab-vault:collection:";
 const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
+const TITLE_STABILITY_DELAY_MS = 2_000;
+const TITLE_STABILITY_WAIT_TIMEOUT_MS = 7_000;
 const SAVED_TITLE_MIGRATION_VERSION = 1;
 type CaptureLoadState = "reset" | "complete";
+type CaptureTitleState = "reset" | "pending" | "settled";
 const captureQueue = new Map<number, Promise<void>>();
 const repeatedCaptureRequests = new Set<number>();
 const captureLoadStates = new Map<number, CaptureLoadState>();
+const captureTitleStates = new Map<number, CaptureTitleState>();
+const titleStabilityTimers = new Map<
+  number,
+  ReturnType<typeof setTimeout>
+>();
 const wakingTabs = new Map<number, Promise<boolean>>();
 const guardingDeepSleepTabs = new Map<number, Promise<boolean>>();
 let wakeQueue: Promise<unknown> = Promise.resolve();
@@ -260,22 +268,128 @@ async function preserveResourceTitles(
     return;
   }
 
+  const instances = await db.tabInstances
+    .filter((instance) => uniqueIds.includes(instance.resourceId))
+    .toArray();
+  const openResourceIds = new Set(
+    instances.map((instance) => instance.resourceId),
+  );
+  const settledResourceIds = new Set(
+    instances
+      .filter((instance) => instance.titleSettled)
+      .map((instance) => instance.resourceId),
+  );
+
   await db.transaction("rw", db.resources, async () => {
     const resources = await db.resources.bulkGet(uniqueIds);
     for (const resource of resources) {
       if (!resource || resource.savedTitle?.trim()) {
         continue;
       }
+      const canUseStableTitle =
+        !openResourceIds.has(resource.id) ||
+        settledResourceIds.has(resource.id);
       await db.resources.update(resource.id, {
-        ...getSavedTitleUpdate(resource, savedAt),
+        ...(canUseStableTitle
+          ? getSavedTitleUpdate(resource, savedAt)
+          : { savedTitleAt: resource.savedTitleAt ?? savedAt }),
         updatedAt: Math.max(resource.updatedAt, savedAt),
       });
     }
   });
 }
 
+function waitForTabTitleStability(
+  tabId: number,
+): Promise<{ settled: boolean; tab: chrome.tabs.Tab } | null> {
+  return new Promise((resolve) => {
+    let finished = false;
+    let stableTimer: ReturnType<typeof setTimeout> | null = null;
+    let inspectionSequence = 0;
+
+    const cleanup = () => {
+      chrome.tabs.onUpdated.removeListener(handleUpdated);
+      if (stableTimer) {
+        clearTimeout(stableTimer);
+      }
+      clearTimeout(timeoutTimer);
+    };
+    const finish = (
+      result: { settled: boolean; tab: chrome.tabs.Tab } | null,
+    ) => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      cleanup();
+      resolve(result);
+    };
+    const inspect = async () => {
+      const sequence = ++inspectionSequence;
+      let tab: chrome.tabs.Tab;
+      try {
+        tab = await chrome.tabs.get(tabId);
+      } catch {
+        finish(null);
+        return;
+      }
+      if (finished || sequence !== inspectionSequence) {
+        return;
+      }
+      const title = tab.title?.trim();
+      if (stableTimer) {
+        clearTimeout(stableTimer);
+        stableTimer = null;
+      }
+      if (tab.status !== "complete" || !title) {
+        return;
+      }
+      stableTimer = setTimeout(() => {
+        void chrome.tabs
+          .get(tabId)
+          .then((latest) => {
+            if (
+              latest.status === "complete" &&
+              latest.title?.trim() === title
+            ) {
+              finish({ settled: true, tab: latest });
+            } else {
+              void inspect();
+            }
+          })
+          .catch(() => finish(null));
+      }, TITLE_STABILITY_DELAY_MS);
+    };
+    const handleUpdated = (
+      updatedTabId: number,
+      changeInfo: Parameters<
+        Parameters<typeof chrome.tabs.onUpdated.addListener>[0]
+      >[1],
+    ) => {
+      if (
+        updatedTabId === tabId &&
+        (changeInfo.url !== undefined ||
+          changeInfo.title !== undefined ||
+          changeInfo.status !== undefined)
+      ) {
+        void inspect();
+      }
+    };
+    const timeoutTimer = setTimeout(() => {
+      void chrome.tabs
+        .get(tabId)
+        .then((tab) => finish({ settled: false, tab }))
+        .catch(() => finish(null));
+    }, TITLE_STABILITY_WAIT_TIMEOUT_MS);
+
+    chrome.tabs.onUpdated.addListener(handleUpdated);
+    void inspect();
+  });
+}
+
 async function refreshAndPreserveResourceTitles(
   resourceIds: Iterable<string>,
+  waitForStableTitles = false,
 ): Promise<void> {
   const selected = new Set(resourceIds);
   const instances = await db.tabInstances
@@ -283,8 +397,27 @@ async function refreshAndPreserveResourceTitles(
     .toArray();
   for (const instance of instances) {
     try {
-      const tab = await chrome.tabs.get(instance.browserTabId);
-      await captureTab(tab, "TAB_CAPTURED", false);
+      const result =
+        waitForStableTitles &&
+        !instance.deepSleeping &&
+        !instance.titleSettled
+          ? await waitForTabTitleStability(instance.browserTabId)
+          : null;
+      const tab =
+        result?.tab ?? (await chrome.tabs.get(instance.browserTabId));
+      await captureTab(tab, "TAB_CAPTURED", false, {
+        loadState:
+          result?.settled || tab.status === "complete"
+            ? "complete"
+            : tab.status === "loading"
+              ? "reset"
+              : undefined,
+        titleState: result?.settled
+          ? "settled"
+          : tab.status === "loading"
+            ? "reset"
+            : undefined,
+      });
     } catch {
       // The latest captured title remains the fallback if the tab closed.
     }
@@ -353,6 +486,7 @@ async function captureDeepSleepingTab(
     lastAccessed: tab.lastAccessed ?? previousInstance?.lastAccessed ?? now,
     lastSeenAt: now,
     loadCompleted: tab.status === "complete",
+    titleSettled: true,
   };
   await db.tabInstances.put(instance);
   return resource;
@@ -382,6 +516,7 @@ async function captureParkedDeepSleepingTab(
     lastAccessed: tab.lastAccessed ?? now,
     lastSeenAt: now,
     loadCompleted: tab.status === "complete",
+    titleSettled: true,
   });
   return resource;
 }
@@ -390,7 +525,10 @@ async function captureTab(
   tab: chrome.tabs.Tab,
   eventType: "TAB_CAPTURED" | "RESOURCE_RESTORED" = "TAB_CAPTURED",
   notify = true,
-  options: { loadState?: CaptureLoadState } = {},
+  options: {
+    loadState?: CaptureLoadState;
+    titleState?: CaptureTitleState;
+  } = {},
 ): Promise<Resource | null> {
   if (tab.id === undefined) {
     return null;
@@ -505,12 +643,17 @@ async function captureTab(
             ? false
             : tab.status === "complete" ||
               (sameResource && previousInstance?.loadCompleted === true);
+      const titleSettled =
+        options.titleState === "settled"
+          ? loadCompleted && tab.status !== "loading"
+          : options.titleState === "reset" ||
+              options.titleState === "pending"
+            ? false
+            : sameResource &&
+              previousInstance?.titleSettled === true;
       const completedTitle = getCompletedTabTitle(
         tab,
-        loadCompleted ||
-          (resource?.savedTitleAt !== undefined &&
-            options.loadState !== "reset" &&
-            tab.status !== "loading"),
+        titleSettled,
       );
 
       const isNewVisit =
@@ -571,6 +714,7 @@ async function captureTab(
         lastAccessed: tab.lastAccessed ?? now,
         lastSeenAt: now,
         loadCompleted,
+        titleSettled,
       };
       await db.tabInstances.put(instance);
 
@@ -620,9 +764,13 @@ async function captureTab(
 function queueTabCapture(
   tabId: number,
   loadState?: CaptureLoadState,
+  titleState?: CaptureTitleState,
 ): void {
   if (loadState) {
     captureLoadStates.set(tabId, loadState);
+  }
+  if (titleState) {
+    captureTitleStates.set(tabId, titleState);
   }
   if (captureQueue.has(tabId)) {
     repeatedCaptureRequests.add(tabId);
@@ -635,10 +783,13 @@ function queueTabCapture(
       repeatedCaptureRequests.delete(tabId);
       const nextLoadState = captureLoadStates.get(tabId);
       captureLoadStates.delete(tabId);
+      const nextTitleState = captureTitleStates.get(tabId);
+      captureTitleStates.delete(tabId);
       try {
         const tab = await chrome.tabs.get(tabId);
         await captureTab(tab, "TAB_CAPTURED", false, {
           loadState: nextLoadState,
+          titleState: nextTitleState,
         });
         captured = true;
       } catch {
@@ -656,12 +807,32 @@ function queueTabCapture(
       captureQueue.delete(tabId);
       if (
         repeatedCaptureRequests.has(tabId) ||
-        captureLoadStates.has(tabId)
+        captureLoadStates.has(tabId) ||
+        captureTitleStates.has(tabId)
       ) {
         queueTabCapture(tabId);
       }
     }
   });
+}
+
+function clearTitleStabilityTimer(tabId: number): void {
+  const timer = titleStabilityTimers.get(tabId);
+  if (timer) {
+    clearTimeout(timer);
+    titleStabilityTimers.delete(tabId);
+  }
+}
+
+function scheduleTitleStabilityCapture(tabId: number): void {
+  clearTitleStabilityTimer(tabId);
+  titleStabilityTimers.set(
+    tabId,
+    setTimeout(() => {
+      titleStabilityTimers.delete(tabId);
+      queueTabCapture(tabId, undefined, "settled");
+    }, TITLE_STABILITY_DELAY_MS),
+  );
 }
 
 async function migrateNextLegacyDeepSleepPlaceholderInternal(): Promise<void> {
@@ -735,7 +906,23 @@ async function syncOpenTabs(): Promise<void> {
       continue;
     }
     liveIds.add(tab.id);
-    await captureTab(tab, "TAB_CAPTURED", false);
+    await captureTab(tab, "TAB_CAPTURED", false, {
+      loadState:
+        tab.status === "complete"
+          ? "complete"
+          : tab.status === "loading"
+            ? "reset"
+            : undefined,
+      titleState:
+        tab.status === "complete"
+          ? "pending"
+          : tab.status === "loading"
+            ? "reset"
+            : undefined,
+    });
+    if (tab.status === "complete") {
+      scheduleTitleStabilityCapture(tab.id);
+    }
   }
 
   const savedInstances = await db.tabInstances.toArray();
@@ -771,7 +958,9 @@ async function removeTabInstance(tabId: number): Promise<void> {
       const resource = await db.resources.get(instance.resourceId);
       if (resource && !resource.savedTitle?.trim()) {
         await db.resources.update(resource.id, {
-          ...getSavedTitleUpdate(resource, now),
+          ...(instance.titleSettled
+            ? getSavedTitleUpdate(resource, now)
+            : { savedTitleAt: resource.savedTitleAt ?? now }),
           updatedAt: Math.max(resource.updatedAt, now),
         });
       }
@@ -1419,7 +1608,7 @@ async function closeDuplicateTabs(
 
 async function archiveResources(resourceIds: string[]): Promise<void> {
   const selected = new Set(resourceIds);
-  await refreshAndPreserveResourceTitles(selected);
+  await refreshAndPreserveResourceTitles(selected, true);
 
   const liveInstances = await db.tabInstances
     .filter((instance) => selected.has(instance.resourceId))
@@ -3002,10 +3191,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 chrome.tabs.onCreated.addListener((tab) => {
   if (tab.id !== undefined) {
+    const complete = tab.status === "complete";
     queueTabCapture(
       tab.id,
-      tab.status === "complete" ? "complete" : "reset",
+      complete ? "complete" : "reset",
+      complete ? "pending" : "reset",
     );
+    if (complete) {
+      scheduleTitleStabilityCapture(tab.id);
+    }
   }
 });
 
@@ -3014,17 +3208,30 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     changeInfo.url !== undefined ||
     changeInfo.title !== undefined ||
     changeInfo.status === "complete" ||
+    changeInfo.status === "loading" ||
     changeInfo.discarded !== undefined ||
     changeInfo.pinned !== undefined
   ) {
+    const resetting =
+      changeInfo.url !== undefined ||
+      changeInfo.status === "loading";
+    const titlePending =
+      changeInfo.status === "complete" ||
+      changeInfo.title !== undefined;
     queueTabCapture(
       tabId,
       changeInfo.status === "complete"
         ? "complete"
-        : changeInfo.url !== undefined || changeInfo.status === "loading"
+        : resetting
           ? "reset"
           : undefined,
+      resetting ? "reset" : titlePending ? "pending" : undefined,
     );
+    if (resetting) {
+      clearTitleStabilityTimer(tabId);
+    } else if (titlePending) {
+      scheduleTitleStabilityCapture(tabId);
+    }
   }
 });
 
@@ -3047,13 +3254,17 @@ chrome.tabs.onAttached.addListener((tabId) => {
 });
 
 chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
+  clearTitleStabilityTimer(removedTabId);
+  captureTitleStates.delete(removedTabId);
   void handleTabRemoved(removedTabId);
-  queueTabCapture(addedTabId, "reset");
+  queueTabCapture(addedTabId, "reset", "reset");
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  clearTitleStabilityTimer(tabId);
   repeatedCaptureRequests.delete(tabId);
   captureLoadStates.delete(tabId);
+  captureTitleStates.delete(tabId);
   void handleTabRemoved(tabId);
 });
 

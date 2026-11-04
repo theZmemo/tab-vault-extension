@@ -40,6 +40,7 @@ export interface TabInstance {
   lastAccessed: number;
   lastSeenAt: number;
   loadCompleted?: boolean;
+  titleSettled?: boolean;
 }
 
 export interface DeepSleepRecovery {
