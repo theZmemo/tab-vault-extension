@@ -17,19 +17,53 @@ const restoreButton =
   document.querySelector<HTMLButtonElement>("#restore-button");
 let restoreStarted = false;
 
-function setDeepSleepFavicon(): void {
+function getFaviconUrl(pageUrl: string): string {
+  const url = new URL(chrome.runtime.getURL("/_favicon/"));
+  url.searchParams.set("pageUrl", pageUrl);
+  url.searchParams.set("size", "32");
+  return url.toString();
+}
+
+async function setWebsiteFavicon(pageUrl: string): Promise<void> {
   if (!faviconLink) {
     return;
   }
-  faviconLink.href = DEEP_SLEEP_FAVICON_DATA_URL;
-  faviconLink.dataset.deepSleepIcon = "true";
+  const sourceUrl = getFaviconUrl(pageUrl);
+  faviconLink.href = sourceUrl;
+  faviconLink.dataset.sourceUrl = sourceUrl;
+  const image = new Image();
+  image.decoding = "async";
+  image.src = sourceUrl;
+  try {
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = 32;
+    canvas.height = 32;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+    context.filter = "grayscale(60%)";
+    context.globalAlpha = 0.7;
+    context.drawImage(image, 0, 0, 32, 32);
+    faviconLink.href = canvas.toDataURL("image/png");
+    faviconLink.dataset.dimmed = "true";
+  } catch {
+    faviconLink.href = DEEP_SLEEP_FAVICON_DATA_URL;
+    faviconLink.dataset.fallback = "true";
+  }
 }
 
 document.documentElement.lang = uiLocale;
 document.title = payload
   ? `${payload.title} · ${t("deepSleepPageTitle")}`
   : t("deepSleepPageTitle");
-setDeepSleepFavicon();
+if (payload) {
+  void setWebsiteFavicon(payload.url);
+} else if (faviconLink) {
+  faviconLink.href = DEEP_SLEEP_FAVICON_DATA_URL;
+  faviconLink.dataset.fallback = "true";
+}
 
 if (stateLabel) {
   stateLabel.textContent = t("deepSleepPageTitle");

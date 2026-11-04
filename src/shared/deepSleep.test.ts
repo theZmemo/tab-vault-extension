@@ -3,6 +3,7 @@ import {
   DEEP_SLEEP_FAVICON_DATA_URL,
   createDeepSleepUrl,
   createParkedDeepSleepUrl,
+  isCurrentDisplayParkedDeepSleepUrl,
   isDisplayParkedDeepSleepUrl,
   isDeepSleepPageUrl,
   parseDeepSleepPayload,
@@ -71,6 +72,7 @@ describe("parked deep sleep URL", () => {
     );
 
     expect(isDisplayParkedDeepSleepUrl(parkedUrl)).toBe(true);
+    expect(isCurrentDisplayParkedDeepSleepUrl(parkedUrl)).toBe(true);
     const parkedHtml = decodeURIComponent(parkedUrl.split(",", 2)[1]);
     expect(parkedHtml).toContain(
       "<title>治理报告 &quot;周会&quot; · 深度休眠</title>",
@@ -104,5 +106,22 @@ describe("parked deep sleep URL", () => {
         "about:blank#tab-vault-deep-sleep=resource_legacy",
       ),
     ).toBe("resource_legacy");
+    expect(
+      isCurrentDisplayParkedDeepSleepUrl(
+        "about:blank#tab-vault-deep-sleep=resource_legacy",
+      ),
+    ).toBe(false);
+  });
+
+  it("marks the previous uniform-icon parked format as legacy", () => {
+    const legacyDisplayUrl =
+      "data:text/html;charset=utf-8," +
+      encodeURIComponent(
+        '<meta name="tab-vault-parked-version" content="2">',
+      );
+    expect(isDisplayParkedDeepSleepUrl(legacyDisplayUrl)).toBe(true);
+    expect(isCurrentDisplayParkedDeepSleepUrl(legacyDisplayUrl)).toBe(
+      false,
+    );
   });
 });

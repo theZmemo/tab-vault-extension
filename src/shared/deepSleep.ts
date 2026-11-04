@@ -12,6 +12,8 @@ const PARKED_DEEP_SLEEP_PREFIX =
   "data:text/html;charset=utf-8,";
 const PARKED_RESOURCE_META =
   '<meta name="tab-vault-resource-id" content="';
+const PARKED_VERSION_META =
+  '<meta name="tab-vault-parked-version" content="3">';
 
 export const DEEP_SLEEP_FAVICON_DATA_URL =
   "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%235f7182%27/%3E%3Cpath d=%27M16 7v18M7 16h18M9.6 9.6l12.8 12.8M22.4 9.6 9.6 22.4%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27 opacity=%27.82%27/%3E%3C/svg%3E";
@@ -113,6 +115,7 @@ export function createParkedDeepSleepUrl(
   }
   const html = [
     "<!doctype html><meta charset=utf-8>",
+    PARKED_VERSION_META,
     `${PARKED_RESOURCE_META}${escapeHtmlAttribute(resourceId)}">`,
     `<title>${escapeHtmlAttribute(title)}</title>`,
     `<link rel=icon href="${escapeHtmlAttribute(faviconDataUrl)}">`,
@@ -122,6 +125,21 @@ export function createParkedDeepSleepUrl(
 
 export function isDisplayParkedDeepSleepUrl(rawUrl: string): boolean {
   return rawUrl.startsWith(PARKED_DEEP_SLEEP_PREFIX);
+}
+
+export function isCurrentDisplayParkedDeepSleepUrl(
+  rawUrl: string,
+): boolean {
+  if (!isDisplayParkedDeepSleepUrl(rawUrl)) {
+    return false;
+  }
+  try {
+    return decodeURIComponent(
+      rawUrl.slice(PARKED_DEEP_SLEEP_PREFIX.length),
+    ).includes(PARKED_VERSION_META);
+  } catch {
+    return false;
+  }
 }
 
 export function parseParkedDeepSleepResourceId(

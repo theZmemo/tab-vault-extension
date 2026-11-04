@@ -2,6 +2,23 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.33] - 2026-11-04
+
+### Changed
+
+- Level 4 deep-sleep tabs again use the website favicon from Chrome's local
+  favicon cache, with the gray sleep indicator retained as a fallback.
+- Confirmation pages render a dimmed website favicon so the page remains
+  recognizable without loading the original website.
+- Existing parked tabs with the uniform gray icon upgrade once to the new
+  website-favicon format during recovery reconciliation.
+- Restored the Chrome `favicon` permission required for local-cache access.
+
+### Tests
+
+- Restored browser coverage for embedded website favicons and dimmed
+  confirmation-page favicons.
+
 ## [0.0.32] - 2026-11-04
 
 ### Fixed

@@ -16,7 +16,7 @@ import {
   DEEP_SLEEP_FAVICON_DATA_URL,
   createDeepSleepUrl,
   createParkedDeepSleepUrl,
-  isDisplayParkedDeepSleepUrl,
+  isCurrentDisplayParkedDeepSleepUrl,
   isDeepSleepPageUrl,
   parseDeepSleepPayload,
   parseParkedDeepSleepResourceId,
@@ -98,13 +98,43 @@ async function broadcastChange(): Promise<void> {
   }
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 8_192) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, offset + 8_192),
+    );
+  }
+  return btoa(binary);
+}
+
+async function getParkedFaviconDataUrl(pageUrl: string): Promise<string> {
+  try {
+    const faviconUrl = new URL(chrome.runtime.getURL("/_favicon/"));
+    faviconUrl.searchParams.set("pageUrl", pageUrl);
+    faviconUrl.searchParams.set("size", "32");
+    const response = await fetch(faviconUrl);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!response.ok || !contentType.startsWith("image/")) {
+      return DEEP_SLEEP_FAVICON_DATA_URL;
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > 131_072) {
+      return DEEP_SLEEP_FAVICON_DATA_URL;
+    }
+    return `data:${contentType};base64,${bytesToBase64(bytes)}`;
+  } catch {
+    return DEEP_SLEEP_FAVICON_DATA_URL;
+  }
+}
+
 async function createDisplayParkedDeepSleepUrl(
-  recovery: Pick<DeepSleepRecovery, "resourceId" | "title">,
+  recovery: Pick<DeepSleepRecovery, "resourceId" | "title" | "originalUrl">,
 ): Promise<string> {
   return createParkedDeepSleepUrl(
     recovery.resourceId,
     `${recovery.title} · ${t("deepSleepPageTitle")}`,
-    DEEP_SLEEP_FAVICON_DATA_URL,
+    await getParkedFaviconDataUrl(recovery.originalUrl),
   );
 }
 
@@ -2043,7 +2073,7 @@ async function rebuildMissingDeepSleepingTabsInternal(): Promise<void> {
       if (guardedTab.active) {
         await guardDeepSleepingTabOnActivationInternal(guardedTab.id);
       } else if (
-        !isDisplayParkedDeepSleepUrl(
+        !isCurrentDisplayParkedDeepSleepUrl(
           guardedTab.pendingUrl ?? guardedTab.url ?? "",
         )
       ) {
