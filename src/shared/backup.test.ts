@@ -66,6 +66,22 @@ describe("parseVaultExport", () => {
     expect(parseVaultExport(makeBackup())).toEqual(makeBackup());
   });
 
+  it("accepts provisional title state and rejects invalid values", () => {
+    const backup = makeBackup();
+    backup.resources[0].savedTitle = "Report";
+    backup.resources[0].savedTitleAt = 1_000;
+    backup.resources[0].savedTitleProvisional = true;
+    expect(
+      parseVaultExport(backup).resources[0].savedTitleProvisional,
+    ).toBe(true);
+
+    const invalid = makeBackup() as unknown as {
+      resources: Array<Record<string, unknown>>;
+    };
+    invalid.resources[0].savedTitleProvisional = "yes";
+    expect(() => parseVaultExport(invalid)).toThrow();
+  });
+
   it.each(["aqua", "yellow", "brown", "lavender"] as const)(
     "accepts the new %s collection color",
     (color) => {

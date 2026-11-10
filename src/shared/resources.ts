@@ -9,22 +9,68 @@ function normalizedTitle(title: string | undefined): string {
   return title?.trim() ?? "";
 }
 
+export function isLikelyTransientPageTitle(
+  title: string | undefined,
+  rawUrl?: string,
+): boolean {
+  const normalized = normalizedTitle(title).toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  if (
+    normalized === "dorado_fe" ||
+    normalized === "loading" ||
+    normalized === "loading..." ||
+    normalized === "loading…"
+  ) {
+    return true;
+  }
+  if (normalized !== "docs" || !rawUrl) {
+    return false;
+  }
+  try {
+    const hostname = new URL(rawUrl).hostname.toLowerCase();
+    return (
+      hostname === "larkoffice.com" ||
+      hostname.endsWith(".larkoffice.com") ||
+      hostname === "feishu.cn" ||
+      hostname.endsWith(".feishu.cn") ||
+      hostname === "larksuite.com" ||
+      hostname.endsWith(".larksuite.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function getCompletedTabTitle(
-  tab: Pick<chrome.tabs.Tab, "status" | "title">,
+  tab: Pick<
+    chrome.tabs.Tab,
+    "status" | "title" | "url" | "pendingUrl"
+  >,
   completed = tab.status === "complete",
 ): string | undefined {
   const title = normalizedTitle(tab.title);
-  return completed && title ? title : undefined;
+  const rawUrl = tab.pendingUrl ?? tab.url;
+  return completed &&
+    title &&
+    !isLikelyTransientPageTitle(title, rawUrl)
+    ? title
+    : undefined;
 }
 
 export function getSavedTitleUpdate(
   resource: Pick<Resource, "stableTitle" | "savedTitleAt">,
   savedAt: number,
-): Pick<Resource, "savedTitleAt"> & Partial<Pick<Resource, "savedTitle">> {
+  mode: "candidate" | "final" = "candidate",
+): Pick<Resource, "savedTitleAt" | "savedTitleProvisional"> &
+  Partial<Pick<Resource, "savedTitle">> {
   const stableTitle = normalizedTitle(resource.stableTitle);
   return {
     ...(stableTitle ? { savedTitle: stableTitle } : {}),
     savedTitleAt: resource.savedTitleAt ?? savedAt,
+    savedTitleProvisional:
+      stableTitle.length === 0 || mode === "candidate",
   };
 }
 

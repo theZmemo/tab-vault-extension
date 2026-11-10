@@ -2,6 +2,30 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.34] - 2026-11-10
+
+### Fixed
+
+- Automatically captured names now use a two-stage lifecycle: while a real
+  page remains open the saved name is provisional and follows later stable
+  title changes; the last valid candidate freezes when the final real tab
+  closes, or immediately before archive and Level 4 deep sleep.
+- Known application shell titles no longer qualify as saved page names:
+  `Docs` on Feishu/Lark document domains, `dorado_fe`, and standard loading
+  labels remain transient until the real page title arrives.
+- Existing automatically captured shell titles are removed by an idempotent
+  saved-title migration; custom names are never changed.
+- A domain remains a display fallback only and is no longer persisted as a
+  saved title during concurrent migration startup.
+
+### Tests
+
+- Added a browser lifecycle regression covering provisional capture, stable
+  candidate replacement, archive freeze, restore, and post-freeze title
+  changes.
+- Added domain-scoped title validation and an upgrade regression that clears
+  an existing Feishu `Docs` saved title.
+
 ## [0.0.33] - 2026-11-04
 
 ### Changed

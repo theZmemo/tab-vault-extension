@@ -14,6 +14,7 @@ export interface Resource {
   stableTitle?: string;
   savedTitle?: string;
   savedTitleAt?: number;
+  savedTitleProvisional?: boolean;
   customTitle?: string;
   domain: string;
   createdAt: number;

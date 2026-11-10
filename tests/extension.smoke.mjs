@@ -1216,6 +1216,7 @@ try {
           stableTitle: resource?.stableTitle,
           savedTitle: resource?.savedTitle,
           savedTitleAt: resource?.savedTitleAt,
+          savedTitleProvisional: resource?.savedTitleProvisional,
         };
       }, delayedTitleTarget.resourceId),
     )
@@ -1223,6 +1224,7 @@ try {
       title: "最终治理报告",
       stableTitle: "最终治理报告",
       savedTitle: "最终治理报告",
+      savedTitleProvisional: true,
     });
   await delayedTitlePage.evaluate(() => {
     document.title = "治理报告处理中";
@@ -1239,13 +1241,78 @@ try {
           title: resource?.title,
           stableTitle: resource?.stableTitle,
           savedTitle: resource?.savedTitle,
+          savedTitleProvisional: resource?.savedTitleProvisional,
         };
       }, delayedTitleTarget.resourceId),
     )
     .toEqual({
       title: "治理报告已完成",
       stableTitle: "治理报告已完成",
-      savedTitle: "最终治理报告",
+      savedTitle: "治理报告已完成",
+      savedTitleProvisional: true,
+    });
+  const freezeCandidateResponse = await panel.evaluate(
+    async (resourceId) =>
+      chrome.runtime.sendMessage({
+        type: "ARCHIVE_RESOURCES",
+        resourceIds: [resourceId],
+      }),
+    delayedTitleTarget.resourceId,
+  );
+  expect(freezeCandidateResponse.ok).toBe(true);
+  await expect.poll(() => delayedTitlePage.isClosed()).toBe(true);
+  await expect
+    .poll(() =>
+      panel.evaluate(async (resourceId) => {
+        const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+        const resource = response.data.resources.find(
+          (item) => item.id === resourceId,
+        );
+        return {
+          savedTitle: resource?.savedTitle,
+          savedTitleProvisional: resource?.savedTitleProvisional,
+        };
+      }, delayedTitleTarget.resourceId),
+    )
+    .toEqual({
+      savedTitle: "治理报告已完成",
+      savedTitleProvisional: false,
+    });
+
+  const [restoredFrozenTitlePage] = await Promise.all([
+    context.waitForEvent("page"),
+    panel.evaluate(
+      async (resourceId) =>
+        chrome.runtime.sendMessage({
+          type: "RESTORE_RESOURCES",
+          resourceIds: [resourceId],
+        }),
+      delayedTitleTarget.resourceId,
+    ),
+  ]);
+  await restoredFrozenTitlePage.waitForLoadState("load");
+  await expect(restoredFrozenTitlePage).toHaveTitle("最终治理报告");
+  await restoredFrozenTitlePage.evaluate(() => {
+    document.title = "冻结后的页面变化";
+  });
+  await expect
+    .poll(() =>
+      panel.evaluate(async (resourceId) => {
+        const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+        const resource = response.data.resources.find(
+          (item) => item.id === resourceId,
+        );
+        return {
+          title: resource?.title,
+          savedTitle: resource?.savedTitle,
+          savedTitleProvisional: resource?.savedTitleProvisional,
+        };
+      }, delayedTitleTarget.resourceId),
+    )
+    .toEqual({
+      title: "冻结后的页面变化",
+      savedTitle: "治理报告已完成",
+      savedTitleProvisional: false,
     });
 
   if (runtimeErrors.length > 0) {
@@ -1265,6 +1332,7 @@ try {
         collectionEdited: true,
         customTitlePersisted: true,
         savedTitlePersisted: true,
+        provisionalTitleUpdatedAndFrozen: true,
         spaTitleWaitedForStableValue: true,
         collectionColorCount: 24,
         collectionSort: true,

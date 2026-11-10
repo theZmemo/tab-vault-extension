@@ -27,6 +27,7 @@ import {
   getResourceDisplayTitle,
   getResourceSavedTitle,
   getSavedTitleUpdate,
+  isLikelyTransientPageTitle,
   selectHistoricalSavedTitle,
   type ResourceTitleCandidate,
 } from "../shared/resources";
@@ -72,7 +73,7 @@ const SUSPENDED_PAGE_URL = chrome.runtime.getURL("suspended.html");
 const DEEP_SLEEP_CLOSE_CONFIRMATION_MS = 3_000;
 const TITLE_STABILITY_DELAY_MS = 2_000;
 const TITLE_STABILITY_WAIT_TIMEOUT_MS = 7_000;
-const SAVED_TITLE_MIGRATION_VERSION = 1;
+const SAVED_TITLE_MIGRATION_VERSION = 3;
 type CaptureLoadState = "reset" | "complete";
 type CaptureTitleState = "reset" | "pending" | "settled";
 const captureQueue = new Map<number, Promise<void>>();
@@ -302,18 +303,27 @@ async function preserveResourceTitles(
     .filter((instance) => uniqueIds.includes(instance.resourceId))
     .toArray();
   const openResourceIds = new Set(
-    instances.map((instance) => instance.resourceId),
+    instances
+      .filter((instance) => !instance.deepSleeping)
+      .map((instance) => instance.resourceId),
   );
   const settledResourceIds = new Set(
     instances
-      .filter((instance) => instance.titleSettled)
+      .filter(
+        (instance) =>
+          !instance.deepSleeping && instance.titleSettled,
+      )
       .map((instance) => instance.resourceId),
   );
 
   await db.transaction("rw", db.resources, async () => {
     const resources = await db.resources.bulkGet(uniqueIds);
     for (const resource of resources) {
-      if (!resource || resource.savedTitle?.trim()) {
+      if (
+        !resource ||
+        (resource.savedTitle?.trim() &&
+          resource.savedTitleProvisional !== true)
+      ) {
         continue;
       }
       const canUseStableTitle =
@@ -321,9 +331,55 @@ async function preserveResourceTitles(
         settledResourceIds.has(resource.id);
       await db.resources.update(resource.id, {
         ...(canUseStableTitle
-          ? getSavedTitleUpdate(resource, savedAt)
-          : { savedTitleAt: resource.savedTitleAt ?? savedAt }),
+          ? getSavedTitleUpdate(
+              resource,
+              savedAt,
+              openResourceIds.has(resource.id) ? "candidate" : "final",
+            )
+          : {
+              savedTitleAt: resource.savedTitleAt ?? savedAt,
+              savedTitleProvisional: true,
+            }),
         updatedAt: Math.max(resource.updatedAt, savedAt),
+      });
+    }
+  });
+}
+
+async function finalizeResourceTitles(
+  resourceIds: Iterable<string>,
+  force = false,
+  finalizedAt = Date.now(),
+): Promise<void> {
+  const uniqueIds = [...new Set(resourceIds)];
+  if (uniqueIds.length === 0) {
+    return;
+  }
+  const liveInstances = await db.tabInstances
+    .filter(
+      (instance) =>
+        uniqueIds.includes(instance.resourceId) &&
+        !instance.deepSleeping,
+    )
+    .toArray();
+  const stillOpen = new Set(
+    liveInstances.map((instance) => instance.resourceId),
+  );
+
+  await db.transaction("rw", db.resources, async () => {
+    const resources = await db.resources.bulkGet(uniqueIds);
+    for (const resource of resources) {
+      if (
+        !resource ||
+        (!force && stillOpen.has(resource.id)) ||
+        (resource.savedTitle?.trim() &&
+          resource.savedTitleProvisional !== true)
+      ) {
+        continue;
+      }
+      await db.resources.update(resource.id, {
+        ...getSavedTitleUpdate(resource, finalizedAt, "final"),
+        updatedAt: Math.max(resource.updatedAt, finalizedAt),
       });
     }
   });
@@ -366,7 +422,7 @@ function waitForTabTitleStability(
       if (finished || sequence !== inspectionSequence) {
         return;
       }
-      const title = tab.title?.trim();
+      const title = getCompletedTabTitle(tab, true);
       if (stableTimer) {
         clearTimeout(stableTimer);
         stableTimer = null;
@@ -379,8 +435,7 @@ function waitForTabTitleStability(
           .get(tabId)
           .then((latest) => {
             if (
-              latest.status === "complete" &&
-              latest.title?.trim() === title
+              getCompletedTabTitle(latest, true) === title
             ) {
               finish({ settled: true, tab: latest });
             } else {
@@ -617,6 +672,9 @@ async function captureTab(
   const now = Date.now();
   const dedupeKey = await createDedupeKey(normalized.normalizedUrl);
   const liveTitle = tab.title?.trim();
+  const capturedTitle = isLikelyTransientPageTitle(liveTitle, rawUrl)
+    ? undefined
+    : liveTitle;
   let capturedResource: Resource | null = null;
   let activationGuarded = false;
 
@@ -695,7 +753,7 @@ async function captureTab(
           originalUrl: normalized.originalUrl,
           normalizedUrl: normalized.normalizedUrl,
           dedupeKey,
-          title: liveTitle || normalized.domain,
+          title: capturedTitle || normalized.domain,
           stableTitle: completedTitle,
           domain: normalized.domain,
           createdAt: now,
@@ -706,18 +764,45 @@ async function captureTab(
           notes: "",
         };
       } else {
-        const stableTitle = completedTitle ?? resource.stableTitle;
+        const storedTitle = isLikelyTransientPageTitle(
+          resource.title,
+          resource.originalUrl,
+        )
+          ? undefined
+          : resource.title;
+        const storedStableTitle = isLikelyTransientPageTitle(
+          resource.stableTitle,
+          resource.originalUrl,
+        )
+          ? undefined
+          : resource.stableTitle;
+        const storedSavedTitle = isLikelyTransientPageTitle(
+          resource.savedTitle,
+          resource.originalUrl,
+        )
+          ? undefined
+          : resource.savedTitle;
+        const stableTitle = completedTitle ?? storedStableTitle;
+        const savedTitleProvisional =
+          resource.savedTitleProvisional === true ||
+          (resource.savedTitleAt !== undefined && !storedSavedTitle);
+        const savedTitle =
+          savedTitleProvisional &&
+          resource.savedTitleAt !== undefined &&
+          stableTitle
+            ? stableTitle
+            : storedSavedTitle;
         resource = {
           ...resource,
           originalUrl: normalized.originalUrl,
           normalizedUrl: normalized.normalizedUrl,
-          title: liveTitle || resource.title,
+          title: capturedTitle || storedTitle || normalized.domain,
           stableTitle,
-          ...(!resource.savedTitle?.trim() &&
-          resource.savedTitleAt !== undefined &&
-          stableTitle
-            ? { savedTitle: stableTitle }
-            : {}),
+          savedTitle,
+          savedTitleProvisional:
+            resource.savedTitleAt !== undefined
+              ? savedTitleProvisional
+              : resource.savedTitleProvisional,
           updatedAt: now,
           lastVisitedAt: Math.max(
             resource.lastVisitedAt,
@@ -962,10 +1047,11 @@ async function syncOpenTabs(): Promise<void> {
   const staleIds = staleInstances.map((instance) => instance.browserTabId);
 
   if (staleIds.length > 0) {
-    await preserveResourceTitles(
-      staleInstances.map((instance) => instance.resourceId),
+    const staleResourceIds = staleInstances.map(
+      (instance) => instance.resourceId,
     );
     await db.tabInstances.bulkDelete(staleIds);
+    await finalizeResourceTitles(staleResourceIds);
   }
 
   void migrateNextLegacyDeepSleepPlaceholder();
@@ -979,21 +1065,7 @@ async function removeTabInstance(tabId: number): Promise<void> {
   }
 
   const now = Date.now();
-  await db.transaction(
-    "rw",
-    db.resources,
-    db.tabInstances,
-    db.events,
-    async () => {
-      const resource = await db.resources.get(instance.resourceId);
-      if (resource && !resource.savedTitle?.trim()) {
-        await db.resources.update(resource.id, {
-          ...(instance.titleSettled
-            ? getSavedTitleUpdate(resource, now)
-            : { savedTitleAt: resource.savedTitleAt ?? now }),
-          updatedAt: Math.max(resource.updatedAt, now),
-        });
-      }
+  await db.transaction("rw", db.tabInstances, db.events, async () => {
       await db.tabInstances.delete(tabId);
       await db.events.add({
         type: "TAB_CLOSED",
@@ -1001,8 +1073,8 @@ async function removeTabInstance(tabId: number): Promise<void> {
         browserTabId: tabId,
         createdAt: now,
       });
-    },
-  );
+    });
+  await finalizeResourceTitles([instance.resourceId], false, now);
   await broadcastChange();
 }
 
@@ -1260,12 +1332,15 @@ async function deepSleepTab(
   tab: chrome.tabs.Tab & { id: number },
   group?: chrome.tabGroups.TabGroup,
 ): Promise<boolean> {
-  const resource = await captureTab(tab, "TAB_CAPTURED", false);
-  if (!resource || resource.protected) {
+  const capturedResource = await captureTab(tab, "TAB_CAPTURED", false);
+  if (!capturedResource || capturedResource.protected) {
     return false;
   }
 
-  await preserveResourceTitles([resource.id]);
+  await refreshAndPreserveResourceTitles([capturedResource.id], true);
+  await finalizeResourceTitles([capturedResource.id], true);
+  const resource =
+    (await db.resources.get(capturedResource.id)) ?? capturedResource;
   const displayTitle = getResourceDisplayTitle(resource);
   const placeholderUrl = createDeepSleepUrl(SUSPENDED_PAGE_URL, {
     version: 1,
@@ -1330,12 +1405,15 @@ async function parkDeepSleepingTab(
   tab: chrome.tabs.Tab & { id: number },
   group?: chrome.tabGroups.TabGroup,
 ): Promise<boolean> {
-  const resource = await captureTab(tab, "TAB_CAPTURED", false);
-  if (!resource || resource.protected) {
+  const capturedResource = await captureTab(tab, "TAB_CAPTURED", false);
+  if (!capturedResource || capturedResource.protected) {
     return false;
   }
 
-  await preserveResourceTitles([resource.id]);
+  await refreshAndPreserveResourceTitles([capturedResource.id], true);
+  await finalizeResourceTitles([capturedResource.id], true);
+  const resource =
+    (await db.resources.get(capturedResource.id)) ?? capturedResource;
   const recovery: DeepSleepRecovery = {
     id: `${resource.id}:${tab.id}`,
     browserTabId: tab.id,
@@ -1639,6 +1717,7 @@ async function closeDuplicateTabs(
 async function archiveResources(resourceIds: string[]): Promise<void> {
   const selected = new Set(resourceIds);
   await refreshAndPreserveResourceTitles(selected, true);
+  await finalizeResourceTitles(selected, true);
 
   const liveInstances = await db.tabInstances
     .filter((instance) => selected.has(instance.resourceId))
@@ -2434,7 +2513,16 @@ async function migrateSavedResourceTitles(): Promise<void> {
 
   await db.transaction("rw", db.resources, db.settings, async () => {
     for (const resource of resources) {
-      if (resource.savedTitle?.trim()) {
+      const savedTitleIsTransient = isLikelyTransientPageTitle(
+        resource.savedTitle,
+        resource.originalUrl,
+      );
+      if (resource.savedTitle?.trim() && !savedTitleIsTransient) {
+        if (resource.savedTitleProvisional === undefined) {
+          await db.resources.update(resource.id, {
+            savedTitleProvisional: false,
+          });
+        }
         continue;
       }
       const savedAt =
@@ -2444,15 +2532,65 @@ async function migrateSavedResourceTitles(): Promise<void> {
         resource.updatedAt;
       const customTitle = resource.customTitle?.trim();
       const candidates = (candidatesByResource.get(resource.id) ?? []).filter(
-        (candidate) => candidate.title.trim() !== customTitle,
+        (candidate) =>
+          candidate.title.trim() !== customTitle &&
+          !isLikelyTransientPageTitle(
+            candidate.title,
+            resource.originalUrl,
+          ),
       );
+      if (
+        resource.stableTitle?.trim() &&
+        !isLikelyTransientPageTitle(
+          resource.stableTitle,
+          resource.originalUrl,
+        )
+      ) {
+        candidates.push({
+          title: resource.stableTitle,
+          createdAt: resource.updatedAt,
+        });
+      }
+      const currentTitle = isLikelyTransientPageTitle(
+        resource.title,
+        resource.originalUrl,
+      )
+        ? resource.domain
+        : resource.title;
+      const currentTitleIsMeaningful =
+        currentTitle.trim().length > 0 &&
+        currentTitle.trim().toLowerCase() !==
+          resource.domain.trim().toLowerCase();
+      const recoveredSavedTitle =
+        candidates.length > 0 || currentTitleIsMeaningful
+          ? selectHistoricalSavedTitle(
+              {
+                ...resource,
+                savedTitle: undefined,
+                title: currentTitle,
+              },
+              candidates,
+              savedAt,
+            )
+          : undefined;
       await db.resources.update(resource.id, {
-        savedTitle: selectHistoricalSavedTitle(
-          resource,
-          candidates,
-          savedAt,
-        ),
+        title: currentTitle,
+        stableTitle: isLikelyTransientPageTitle(
+          resource.stableTitle,
+          resource.originalUrl,
+        )
+          ? undefined
+          : resource.stableTitle,
+        savedTitle:
+          recoveredSavedTitle?.trim().toLowerCase() ===
+          resource.domain.trim().toLowerCase()
+            ? undefined
+            : recoveredSavedTitle,
         savedTitleAt: savedAt,
+        savedTitleProvisional:
+          !recoveredSavedTitle ||
+          recoveredSavedTitle.trim().toLowerCase() ===
+            resource.domain.trim().toLowerCase(),
       });
     }
     await db.settings.put({
@@ -2894,6 +3032,7 @@ async function importData(data: VaultExport): Promise<void> {
           snapshotTitleByResource.get(resource.id) ||
           resource.title,
         savedTitleAt: resource.savedTitleAt ?? resource.updatedAt,
+        savedTitleProvisional: false,
       };
     }),
   );
@@ -2937,6 +3076,8 @@ async function importData(data: VaultExport): Promise<void> {
               existing.savedTitleAt ??
               resource.savedTitleAt ??
               resource.updatedAt,
+            savedTitleProvisional:
+              existing.savedTitleProvisional ?? false,
             customTitle: existing.customTitle || resource.customTitle,
             notes: resource.notes || existing.notes,
             protected: existing.protected || resource.protected,

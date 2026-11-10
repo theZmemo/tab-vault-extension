@@ -97,6 +97,8 @@ function isResource(value: unknown): value is Resource {
     isOptionalString(value.stableTitle) &&
     isOptionalString(value.savedTitle) &&
     (value.savedTitleAt === undefined || isFiniteNumber(value.savedTitleAt)) &&
+    (value.savedTitleProvisional === undefined ||
+      typeof value.savedTitleProvisional === "boolean") &&
     isOptionalString(value.customTitle) &&
     isNonEmptyString(value.domain) &&
     isFiniteNumber(value.createdAt) &&

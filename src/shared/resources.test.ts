@@ -3,6 +3,7 @@ import {
   getCompletedTabTitle,
   getResourceDisplayTitle,
   getSavedTitleUpdate,
+  isLikelyTransientPageTitle,
   selectHistoricalSavedTitle,
 } from "./resources";
 
@@ -56,17 +57,69 @@ describe("resource titles", () => {
     expect(
       getCompletedTabTitle({ status: undefined, title: "Final report" }, true),
     ).toBe("Final report");
+    expect(
+      getCompletedTabTitle({
+        status: "complete",
+        title: "Docs",
+        url: "https://bytedance.larkoffice.com/docx/example",
+      }),
+    ).toBeUndefined();
+    expect(
+      getCompletedTabTitle({
+        status: "complete",
+        title: "Docs",
+        url: "https://example.com/docs",
+      }),
+    ).toBe("Docs");
+  });
+
+  it("recognizes known application shell titles without blocking real titles", () => {
+    expect(isLikelyTransientPageTitle("dorado_fe")).toBe(true);
+    expect(isLikelyTransientPageTitle("Loading...")).toBe(true);
+    expect(
+      isLikelyTransientPageTitle(
+        "Docs",
+        "https://bytedance.larkoffice.com/docx/example",
+      ),
+    ).toBe(true);
+    expect(
+      isLikelyTransientPageTitle("Docs", "https://example.com/docs"),
+    ).toBe(false);
+    expect(
+      isLikelyTransientPageTitle(
+        "G1 治理周报",
+        "https://bytedance.larkoffice.com/docx/example",
+      ),
+    ).toBe(false);
   });
 
   it("keeps a pending save until a stable title is available", () => {
     expect(
       getSavedTitleUpdate({ stableTitle: undefined, savedTitleAt: undefined }, 100),
-    ).toEqual({ savedTitleAt: 100 });
+    ).toEqual({
+      savedTitleAt: 100,
+      savedTitleProvisional: true,
+    });
     expect(
       getSavedTitleUpdate(
         { stableTitle: "Final report", savedTitleAt: 100 },
         200,
       ),
-    ).toEqual({ savedTitle: "Final report", savedTitleAt: 100 });
+    ).toEqual({
+      savedTitle: "Final report",
+      savedTitleAt: 100,
+      savedTitleProvisional: true,
+    });
+    expect(
+      getSavedTitleUpdate(
+        { stableTitle: "Final report", savedTitleAt: 100 },
+        200,
+        "final",
+      ),
+    ).toEqual({
+      savedTitle: "Final report",
+      savedTitleAt: 100,
+      savedTitleProvisional: false,
+    });
   });
 });

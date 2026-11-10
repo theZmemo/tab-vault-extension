@@ -99,6 +99,20 @@ try {
         savedTitle: undefined,
         savedTitleAt: undefined,
       });
+      transaction.objectStore("resources").put({
+        ...resource,
+        id: "resource_transient_docs",
+        originalUrl:
+          "https://bytedance.larkoffice.com/docx/transient-title",
+        normalizedUrl:
+          "https://bytedance.larkoffice.com/docx/transient-title",
+        dedupeKey: "transient-docs-title",
+        domain: "bytedance.larkoffice.com",
+        title: "Docs",
+        stableTitle: "Docs",
+        savedTitle: "Docs",
+        savedTitleAt: Date.now() - 1_000,
+      });
       const titleBase = Date.now() + 1_000;
       transaction.objectStore("events").add({
         type: "TAB_CAPTURED",
@@ -179,11 +193,33 @@ try {
     return {
       latestTitle: resource?.title,
       savedTitle: resource?.savedTitle,
+      savedTitleProvisional: resource?.savedTitleProvisional,
     };
   }, capturedResource.id);
   expect(migratedTitle).toEqual({
     latestTitle: "飞书云文档",
     savedTitle: capturedResource.title,
+    savedTitleProvisional: false,
+  });
+  const transientTitleMigration = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    const resource = response.data.resources.find(
+      (item) => item.id === "resource_transient_docs",
+    );
+    return {
+      title: resource?.title,
+      stableTitle: resource?.stableTitle,
+      savedTitle: resource?.savedTitle,
+      savedTitleAt: resource?.savedTitleAt,
+      savedTitleProvisional: resource?.savedTitleProvisional,
+    };
+  });
+  expect(transientTitleMigration).toMatchObject({
+    title: "bytedance.larkoffice.com",
+    stableTitle: undefined,
+    savedTitle: undefined,
+    savedTitleAt: expect.any(Number),
+    savedTitleProvisional: true,
   });
   await expect
     .poll(
@@ -347,6 +383,7 @@ try {
         staleDuplicateCleanup: true,
         manualCloseCleanup: true,
         savedTitleMigrated: true,
+        transientSavedTitleCleared: true,
       },
       null,
       2,
