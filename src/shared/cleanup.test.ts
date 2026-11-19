@@ -93,6 +93,7 @@ describe("stale resource cleanup", () => {
             lastVisitedAt: now - 10 * DAY_MS,
           }),
           makeResource("protected", { protected: true }),
+          makeResource("pinned", { pinned: true, pinOrder: 0 }),
           makeResource("noted", { notes: "Keep this" }),
           makeResource("renamed", { customTitle: "Keep this" }),
           makeResource("trashed", { trashedAt: now - DAY_MS }),

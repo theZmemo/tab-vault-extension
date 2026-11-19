@@ -22,6 +22,8 @@ import {
   Moon,
   PanelRight,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -60,6 +62,7 @@ import type {
   Resource,
   ResourceRuntimeState,
   Rule,
+  Snapshot,
   SnapshotSummary,
   StaleResourceDeleteResult,
   StaleResourceScanResult,
@@ -74,6 +77,7 @@ import { downloadBackup, readBackup, sendCommand } from "./api";
 
 type ViewKey =
   | "groups"
+  | "pinned"
   | "all"
   | "open"
   | "discarded"
@@ -583,7 +587,7 @@ function DeepSleepWarningDialog({
 
 export function App() {
   const [state, setState] = useState<VaultState | null>(null);
-  const [view, setView] = useState<ViewKey>("groups");
+  const [view, setView] = useState<ViewKey>("pinned");
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [resourceRenderLimit, setResourceRenderLimit] = useState(
     RESOURCE_RENDER_BATCH,
@@ -606,6 +610,8 @@ export function App() {
   const [draggedCollectionId, setDraggedCollectionId] = useState<string | null>(
     null,
   );
+  const [draggedPinnedResourceId, setDraggedPinnedResourceId] =
+    useState<string | null>(null);
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(
     new Set(),
   );
@@ -991,11 +997,15 @@ export function App() {
     }
     return resultIds;
   }, [query, resourceViews, searchIndex]);
+  const isPinnedOrdering = view === "pinned" && searchResultIds === null;
 
   const visibleResources = useMemo(() => {
     const filtered = resourceViews.filter((item) => {
       if (searchResultIds && !searchResultIds.has(item.resource.id)) {
         return false;
+      }
+      if (searchResultIds) {
+        return true;
       }
 
       if (view.startsWith("collection:")) {
@@ -1003,6 +1013,8 @@ export function App() {
       }
 
       switch (view) {
+        case "pinned":
+          return item.resource.pinned === true;
         case "open":
           return item.state === "open";
         case "discarded":
@@ -1021,6 +1033,14 @@ export function App() {
     });
 
     return filtered.sort((left, right) => {
+      if (isPinnedOrdering) {
+        return (
+          (left.resource.pinOrder ?? Number.MAX_SAFE_INTEGER) -
+            (right.resource.pinOrder ?? Number.MAX_SAFE_INTEGER) ||
+          (left.resource.pinnedAt ?? 0) - (right.resource.pinnedAt ?? 0) ||
+          left.resource.id.localeCompare(right.resource.id)
+        );
+      }
       if (searchResultIds) {
         const permanentGroupOrder =
           Number(right.collectionIds.length > 0) -
@@ -1042,7 +1062,7 @@ export function App() {
       }
       return right.resource.lastVisitedAt - left.resource.lastVisitedAt;
     });
-  }, [resourceViews, searchResultIds, sortMode, view]);
+  }, [isPinnedOrdering, resourceViews, searchResultIds, sortMode, view]);
 
   const renderedResources = useMemo(
     () => visibleResources.slice(0, resourceRenderLimit),
@@ -1062,6 +1082,8 @@ export function App() {
   const counts = useMemo(
     () => ({
       all: resourceViews.length,
+      pinned: resourceViews.filter((item) => item.resource.pinned === true)
+        .length,
       open: resourceViews.filter((item) => item.state === "open").length,
       discarded: resourceViews.filter(
         (item) =>
@@ -1090,6 +1112,7 @@ export function App() {
     }
     const titles: Record<Exclude<ViewKey, `collection:${string}`>, string> = {
       groups: t("permanentGroups"),
+      pinned: t("pinnedResources"),
       all: t("allResources"),
       open: t("currentOpen"),
       discarded: t("sleeping"),
@@ -1200,6 +1223,35 @@ export function App() {
     collectionIds.splice(targetIndex, 0, draggedCollectionId);
     setDraggedCollectionId(null);
     void run({ type: "REORDER_COLLECTIONS", collectionIds });
+  };
+
+  const dropPinnedResourceBefore = (targetResourceId: string) => {
+    if (
+      !draggedPinnedResourceId ||
+      draggedPinnedResourceId === targetResourceId
+    ) {
+      setDraggedPinnedResourceId(null);
+      return;
+    }
+    const resourceIds = resourceViews
+      .filter((item) => item.resource.pinned)
+      .sort(
+        (left, right) =>
+          (left.resource.pinOrder ?? Number.MAX_SAFE_INTEGER) -
+            (right.resource.pinOrder ?? Number.MAX_SAFE_INTEGER) ||
+          left.resource.id.localeCompare(right.resource.id),
+      )
+      .map((item) => item.resource.id);
+    const sourceIndex = resourceIds.indexOf(draggedPinnedResourceId);
+    const targetIndex = resourceIds.indexOf(targetResourceId);
+    if (sourceIndex < 0 || targetIndex < 0) {
+      setDraggedPinnedResourceId(null);
+      return;
+    }
+    resourceIds.splice(sourceIndex, 1);
+    resourceIds.splice(targetIndex, 0, draggedPinnedResourceId);
+    setDraggedPinnedResourceId(null);
+    void run({ type: "REORDER_PINNED_RESOURCES", resourceIds });
   };
 
   const handleExport = async () => {
@@ -1315,6 +1367,13 @@ export function App() {
         <nav className={cx("navigation", navOpen && "is-open")}>
           <div className="nav-section">
             <span className="section-label">{t("status")}</span>
+            <NavItem
+              active={view === "pinned"}
+              icon={<Pin size={16} />}
+              label={t("pinnedResources")}
+              count={counts.pinned}
+              onClick={() => chooseView("pinned")}
+            />
             <NavItem
               active={view === "all"}
               icon={<Layers3 size={16} />}
@@ -1551,21 +1610,25 @@ export function App() {
                       <CopyX size={15} />
                     </IconButton>
                   )}
-                  <select
-                    value={sortMode}
-                    aria-label={t("sortResources")}
-                    onChange={(event) => {
-                      setResourceRenderLimit(RESOURCE_RENDER_BATCH);
-                      setSortMode(
-                        (event.currentTarget as HTMLSelectElement)
-                          .value as SortMode,
-                      );
-                    }}
-                  >
-                    <option value="recent">{t("recentlyVisited")}</option>
-                    <option value="title">{t("sortByTitle")}</option>
-                    <option value="visits">{t("visits")}</option>
-                  </select>
+                  {isPinnedOrdering ? (
+                    <span>{t("sortManual")}</span>
+                  ) : (
+                    <select
+                      value={sortMode}
+                      aria-label={t("sortResources")}
+                      onChange={(event) => {
+                        setResourceRenderLimit(RESOURCE_RENDER_BATCH);
+                        setSortMode(
+                          (event.currentTarget as HTMLSelectElement)
+                            .value as SortMode,
+                        );
+                      }}
+                    >
+                      <option value="recent">{t("recentlyVisited")}</option>
+                      <option value="title">{t("sortByTitle")}</option>
+                      <option value="visits">{t("visits")}</option>
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -1594,6 +1657,13 @@ export function App() {
                     collectionMap={collectionMap}
                     checked={selected.has(item.resource.id)}
                     busy={busy}
+                    draggable={isPinnedOrdering}
+                    onDragStart={() =>
+                      setDraggedPinnedResourceId(item.resource.id)
+                    }
+                    onDrop={() =>
+                      dropPinnedResourceBefore(item.resource.id)
+                    }
                     onToggle={() => toggleSelected(item.resource.id)}
                     onFocus={() =>
                       void run({
@@ -1637,6 +1707,12 @@ export function App() {
                     onProtect={() =>
                       void run({
                         type: "TOGGLE_PROTECTED",
+                        resourceId: item.resource.id,
+                      })
+                    }
+                    onPin={() =>
+                      void run({
+                        type: "TOGGLE_RESOURCE_PIN",
                         resourceId: item.resource.id,
                       })
                     }
@@ -1886,12 +1962,18 @@ export function App() {
           onCreate={() =>
             void run({ type: "CREATE_SNAPSHOT" }, t("currentSessionSaved"))
           }
-          onRestore={(snapshotId) => {
+          onOpenResource={(resourceId) =>
+            void run({
+              type: "FOCUS_RESOURCE",
+              resourceId,
+            })
+          }
+          onRestoreSnapshot={(snapshotId) => {
+            setDialog(null);
             void run(
               { type: "RESTORE_SNAPSHOT", snapshotId },
-              t("snapshotQueued"),
+              t("snapshotRestoredSleeping"),
             );
-            setDialog(null);
           }}
         />
       )}
@@ -2061,6 +2143,7 @@ function NavigationRail({
 }: {
   view: ViewKey;
   counts: {
+    pinned: number;
     all: number;
     open: number;
     discarded: number;
@@ -2073,6 +2156,12 @@ function NavigationRail({
   onNewCollection: () => void;
 }) {
   const railItems = [
+    {
+      view: "pinned" as const,
+      label: t("pinnedResources"),
+      icon: <Pin size={18} />,
+      count: counts.pinned,
+    },
     {
       view: "groups" as const,
       label: t("permanentGroups"),
@@ -2448,6 +2537,9 @@ function ResourceRow({
   collectionMap,
   checked,
   busy,
+  draggable,
+  onDragStart,
+  onDrop,
   onToggle,
   onFocus,
   onDiscard,
@@ -2456,6 +2548,7 @@ function ResourceRow({
   onDelete,
   onRestore,
   onProtect,
+  onPin,
   onRename,
   onManageGroup,
 }: {
@@ -2463,6 +2556,9 @@ function ResourceRow({
   collectionMap: ReadonlyMap<string, Collection>;
   checked: boolean;
   busy: boolean;
+  draggable: boolean;
+  onDragStart: () => void;
+  onDrop: () => void;
   onToggle: () => void;
   onFocus: () => void;
   onDiscard: () => void;
@@ -2471,6 +2567,7 @@ function ResourceRow({
   onDelete: () => void;
   onRestore: () => void;
   onProtect: () => void;
+  onPin: () => void;
   onRename: () => void;
   onManageGroup?: () => void;
 }) {
@@ -2485,7 +2582,20 @@ function ResourceRow({
         "resource-row",
         `resource-${state}`,
         checked && "is-selected",
+        resource.pinned && "is-pinned",
+        draggable && "is-draggable",
       )}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={(event) => {
+        if (draggable) {
+          event.preventDefault();
+        }
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDrop();
+      }}
       onDblClick={onFocus}
     >
       <label className="row-checkbox">
@@ -2523,6 +2633,13 @@ function ResourceRow({
               size={13}
               className="protected-icon"
               aria-label={t("protected")}
+            />
+          )}
+          {resource.pinned && (
+            <Pin
+              size={13}
+              className="pinned-resource-icon"
+              aria-label={t("pinned")}
             />
           )}
         </div>
@@ -2608,6 +2725,12 @@ function ResourceRow({
             </IconButton>
           </>
         )}
+        <IconButton
+          label={resource.pinned ? t("unpinResource") : t("pinResource")}
+          onClick={onPin}
+        >
+          {resource.pinned ? <PinOff size={15} /> : <Pin size={15} />}
+        </IconButton>
         <IconButton
           label={resource.protected ? t("unprotectPage") : t("protectPage")}
           onClick={onProtect}
@@ -3465,24 +3588,142 @@ function SnapshotsDialog({
   snapshots,
   onClose,
   onCreate,
-  onRestore,
+  onOpenResource,
+  onRestoreSnapshot,
 }: {
   snapshots: SnapshotSummary[];
   onClose: () => void;
   onCreate: () => void;
-  onRestore: (snapshotId: string) => void;
+  onOpenResource: (resourceId: string) => void;
+  onRestoreSnapshot: (snapshotId: string) => void;
 }) {
+  const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(
+    null,
+  );
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const visibleTabs = useMemo(() => {
+    if (!selectedSnapshot) {
+      return [];
+    }
+    const normalizedQuery = query.trim().toLocaleLowerCase(uiLocale);
+    if (!normalizedQuery) {
+      return selectedSnapshot.tabs;
+    }
+    return selectedSnapshot.tabs.filter((tab) =>
+      `${tab.title} ${tab.url} ${tab.groupTitle ?? ""}`
+        .toLocaleLowerCase(uiLocale)
+        .includes(normalizedQuery),
+    );
+  }, [query, selectedSnapshot]);
+  const inspectSnapshot = async (snapshotId: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      setSelectedSnapshot(
+        await sendCommand<Snapshot>({
+          type: "GET_SNAPSHOT",
+          snapshotId,
+        }),
+      );
+      setQuery("");
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error ? nextError.message : t("readFailed"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Modal title={t("recoveryCenter")} onClose={onClose} width="wide">
       <div className="modal-toolbar">
-        <button type="button" className="button-primary" onClick={onCreate}>
-          <Database size={15} />
-          {t("saveCurrentSession")}
-        </button>
+        {selectedSnapshot ? (
+          <>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => {
+                setSelectedSnapshot(null);
+                setQuery("");
+              }}
+            >
+              <ChevronRight size={15} className="icon-back" />
+              {t("backToSnapshots")}
+            </button>
+            <button
+              type="button"
+              className="button-primary"
+              onClick={() => onRestoreSnapshot(selectedSnapshot.id)}
+            >
+              <Moon size={15} />
+              {t("restoreAllSleeping")}
+            </button>
+          </>
+        ) : (
+          <button type="button" className="button-primary" onClick={onCreate}>
+            <Database size={15} />
+            {t("saveCurrentSession")}
+          </button>
+        )}
       </div>
-      <div className="snapshot-list">
-        {snapshots.map((snapshot) => {
-          return (
+      {selectedSnapshot ? (
+        <>
+          <p className="modal-note snapshot-restore-note">
+            {t("restoreListNote")}
+          </p>
+          <label className="snapshot-search">
+            <Search size={15} />
+            <input
+              type="search"
+              value={query}
+              placeholder={t("searchPlaceholder")}
+              onInput={(event) =>
+                setQuery((event.currentTarget as HTMLInputElement).value)
+              }
+            />
+          </label>
+          <div className="snapshot-list snapshot-detail-list">
+            {visibleTabs.map((tab) => (
+              <div
+                className="snapshot-row snapshot-detail-row"
+                key={`${tab.windowKey}:${tab.index}:${tab.resourceId}`}
+              >
+                <span className="snapshot-icon">
+                  {tab.pinned ? <Pin size={15} /> : <FileText size={15} />}
+                </span>
+                <div>
+                  <strong title={tab.title}>{tab.title}</strong>
+                  <span title={tab.url}>
+                    {tab.groupTitle
+                      ? `${tab.groupTitle} · ${tab.url}`
+                      : tab.url}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="button-primary compact"
+                  onClick={() => onOpenResource(tab.resourceId)}
+                >
+                  <ArchiveRestore size={14} />
+                  {t("confirmOpenPage")}
+                </button>
+              </div>
+            ))}
+            {visibleTabs.length === 0 && (
+              <EmptyState
+                icon={<Search size={20} />}
+                title={t("noMatches")}
+                detail={t("noMatchingResources")}
+              />
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="snapshot-list">
+          {snapshots.map((snapshot) => (
             <div className="snapshot-row" key={snapshot.id}>
               <span className="snapshot-icon">
                 {snapshot.type === "manual" ? (
@@ -3507,34 +3748,24 @@ function SnapshotsDialog({
               <button
                 type="button"
                 className="button-secondary compact"
-                onClick={() => {
-                  if (
-                    snapshot.tabCount > 20 &&
-                    !window.confirm(
-                      t("confirmRestoreSnapshot", {
-                        count: snapshot.tabCount,
-                      }),
-                    )
-                  ) {
-                    return;
-                  }
-                  onRestore(snapshot.id);
-                }}
+                disabled={loading}
+                onClick={() => void inspectSnapshot(snapshot.id)}
               >
                 <RotateCcw size={14} />
-                {t("restore")}
+                {t("viewRestoreList")}
               </button>
             </div>
-          );
-        })}
-        {snapshots.length === 0 && (
-          <EmptyState
-            icon={<Clock3 size={20} />}
-            title={t("noSnapshots")}
-            detail={t("noRecoverableRecords")}
-          />
-        )}
-      </div>
+          ))}
+          {error && <p className="modal-note">{error}</p>}
+          {snapshots.length === 0 && (
+            <EmptyState
+              icon={<Clock3 size={20} />}
+              title={t("noSnapshots")}
+              detail={t("noRecoverableRecords")}
+            />
+          )}
+        </div>
+      )}
     </Modal>
   );
 }

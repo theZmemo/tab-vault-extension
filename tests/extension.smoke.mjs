@@ -234,21 +234,17 @@ try {
   panel.on("pageerror", (error) => runtimeErrors.push(error.message));
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   await expect(panel.getByText("标签资产库", { exact: true })).toBeVisible();
-  await expect(panel.locator(".group-overview")).toBeVisible();
-  await expect(
-    panel.locator(".group-overview").getByText("暂无永久分组", { exact: true }),
-  ).toBeVisible();
   await expect(panel.locator(".resource-row")).toHaveCount(0);
   await expect(
     panel.locator(
-      '.navigation-rail button.is-active[aria-label="永久分组"]',
+      '.navigation-rail button.is-active[aria-label="置顶"]',
     ),
   ).toBeVisible();
   await panel.screenshot({
-    path: join(artifactsPath, "group-overview-empty.png"),
+    path: join(artifactsPath, "pinned-empty.png"),
     fullPage: true,
   });
-  await expectVisibleIconGeometry(panel, "empty group overview");
+  await expectVisibleIconGeometry(panel, "empty pinned view");
 
   await panel.getByLabel("搜索资源").fill("任务校验");
   await expect(panel.getByText("治理任务校验 SQL", { exact: true })).toBeVisible(
@@ -279,13 +275,33 @@ try {
   await panel
     .getByRole("button", { name: "清除搜索", exact: true })
     .click();
+  await expect(panel.locator(".resource-row")).toHaveCount(0);
+  await panel
+    .locator(".navigation-rail")
+    .getByLabel("永久分组", { exact: true })
+    .click();
   await expect(panel.locator(".group-overview")).toBeVisible();
+  await expect(
+    panel.locator(".group-overview").getByText("暂无永久分组", { exact: true }),
+  ).toBeVisible();
 
   await panel
     .locator(".navigation-rail")
     .getByLabel("全部资源", { exact: true })
     .click();
   await expect(panel.locator(".resource-row")).toHaveCount(1);
+  await panel
+    .getByRole("button", { name: "置顶资源", exact: true })
+    .click();
+  await expect(
+    panel.getByRole("button", { name: "取消置顶", exact: true }),
+  ).toBeVisible();
+  await panel.reload();
+  await expect(
+    panel.locator('.navigation-rail button.is-active[aria-label="置顶"]'),
+  ).toBeVisible();
+  await expect(panel.locator(".resource-row.is-pinned")).toHaveCount(1);
+  await expect(panel.getByText("治理任务校验 SQL", { exact: true })).toBeVisible();
   await panel
     .locator(".navigation-rail")
     .getByLabel("永久分组", { exact: true })
@@ -355,6 +371,40 @@ try {
   await expect(
     panel.locator("main").getByText("数据治理工作台", { exact: true }),
   ).toBeVisible({ timeout: 10_000 });
+  await panel
+    .locator(".navigation-rail")
+    .getByLabel("全部资源", { exact: true })
+    .click();
+  await expect(panel.locator(".resource-row").first()).toContainText(
+    "数据治理工作台",
+  );
+  const unpinnedRecentRow = panel
+    .locator(".resource-row")
+    .filter({ hasText: "数据治理工作台" });
+  await expect(unpinnedRecentRow).not.toHaveClass(/is-pinned/);
+  await unpinnedRecentRow
+    .getByRole("button", { name: "置顶资源", exact: true })
+    .click();
+  await panel
+    .locator(".navigation-rail")
+    .getByLabel("置顶", { exact: true })
+    .click();
+  await expect(panel.locator(".resource-row.is-pinned")).toHaveCount(2);
+  const firstPinnedRow = panel.locator(".resource-row.is-pinned").filter({
+    hasText: "治理任务校验 SQL",
+  });
+  const secondPinnedRow = panel.locator(".resource-row.is-pinned").filter({
+    hasText: "数据治理工作台",
+  });
+  await expect(firstPinnedRow).toHaveAttribute("draggable", "true");
+  await secondPinnedRow.dragTo(firstPinnedRow);
+  await expect(panel.locator(".resource-row.is-pinned").first()).toContainText(
+    "数据治理工作台",
+  );
+  await panel
+    .locator(".navigation-rail")
+    .getByLabel("永久分组", { exact: true })
+    .click();
   await panel.screenshot({
     path: join(artifactsPath, "group-overview.png"),
     fullPage: true,
@@ -500,7 +550,7 @@ try {
     panel.locator(".quick-tooltip").filter({
       hasText: "移动或移除页面",
     }),
-  ).toBeVisible({ timeout: 300 });
+  ).toBeVisible({ timeout: 1_000 });
   const quickTooltipElapsedMs = Date.now() - quickTooltipStartedAt;
   expect(quickTooltipElapsedMs).toBeLessThan(300);
   await panel.screenshot({
@@ -977,6 +1027,258 @@ try {
       (tab) => tab.url === deepSleepOriginalUrl,
     ),
   ).toBe(true);
+  const snapshotRestoreTarget = storedSnapshot.tabs.find((tab) =>
+    tab.url.includes("/report?id=42"),
+  );
+  expect(snapshotRestoreTarget).toBeTruthy();
+  const restoreTargetInstance = await panel.evaluate(
+    async (resourceId) => {
+      const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+      return response.data.instances.find(
+        (instance) => instance.resourceId === resourceId,
+      );
+    },
+    snapshotRestoreTarget.resourceId,
+  );
+  expect(restoreTargetInstance).toBeTruthy();
+  await serviceWorker.evaluate(
+    async (tabId) => chrome.tabs.remove(tabId),
+    restoreTargetInstance.browserTabId,
+  );
+  await expect
+    .poll(() =>
+      panel.evaluate(async (resourceId) => {
+        const response = await chrome.runtime.sendMessage({
+          type: "GET_STATE",
+        });
+        return response.data.instances.some(
+          (instance) => instance.resourceId === resourceId,
+        );
+      }, snapshotRestoreTarget.resourceId),
+    )
+    .toBe(false);
+  const tabIdsBeforeSnapshotInspection = await serviceWorker.evaluate(
+    async () =>
+      (await chrome.tabs.query({}))
+        .map((tab) => tab.id)
+        .filter((tabId) => tabId !== undefined)
+        .sort((left, right) => left - right),
+  );
+  await panel.bringToFront();
+  await panel
+    .getByRole("button", { name: "展开导航", exact: true })
+    .click();
+  await panel.getByRole("button", { name: /恢复中心/ }).click();
+  await panel
+    .getByRole("button", { name: "查看恢复清单", exact: true })
+    .first()
+    .click();
+  await expect(
+    panel.getByText(
+      "恢复全部只会创建轻量休眠标签，不加载原网页；选择恢复后的标签，再确认才会加载页面。",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await panel.screenshot({
+    path: join(artifactsPath, "snapshot-restore-list.png"),
+    fullPage: true,
+  });
+  await expectVisibleIconGeometry(panel, "snapshot restore list");
+  const tabIdsAfterSnapshotInspection = await serviceWorker.evaluate(
+    async () =>
+      (await chrome.tabs.query({}))
+        .map((tab) => tab.id)
+        .filter((tabId) => tabId !== undefined)
+        .sort((left, right) => left - right),
+  );
+  expect(tabIdsAfterSnapshotInspection).toEqual(
+    tabIdsBeforeSnapshotInspection,
+  );
+  const originalRequestsDuringSnapshotRestore = [];
+  const recordSnapshotRestoreRequest = (request) => {
+    if (/^https?:/.test(request.url())) {
+      originalRequestsDuringSnapshotRestore.push(request.url());
+    }
+  };
+  context.on("request", recordSnapshotRestoreRequest);
+  await panel
+    .getByRole("button", {
+      name: "全部恢复为休眠标签",
+      exact: true,
+    })
+    .click();
+  await expect(
+    panel.getByText("快照已恢复为休眠标签", { exact: true }),
+  ).toBeVisible({ timeout: 30_000 });
+  context.off("request", recordSnapshotRestoreRequest);
+  expect(originalRequestsDuringSnapshotRestore).toEqual([]);
+  const getRestoredSnapshotTabs = async () => {
+    const tabs = await serviceWorker.evaluate(async () =>
+      (await chrome.tabs.query({})).flatMap((tab) =>
+        tab.id === undefined
+          ? []
+          : [
+              {
+                id: tab.id,
+                url: tab.pendingUrl ?? tab.url ?? "",
+                windowId: tab.windowId,
+                pinned: tab.pinned,
+              },
+            ],
+      ),
+    );
+    return tabs.filter(
+      (tab) => !tabIdsBeforeSnapshotInspection.includes(tab.id),
+    );
+  };
+  await expect
+    .poll(async () => (await getRestoredSnapshotTabs()).length, {
+      timeout: 30_000,
+    })
+    .toBe(storedSnapshot.tabs.length);
+  const restoredSnapshotTabs = await getRestoredSnapshotTabs();
+  expect(
+    restoredSnapshotTabs.every(
+      (tab) =>
+        tab.url.startsWith("data:text/html") ||
+        tab.url.startsWith(
+          `chrome-extension://${extensionId}/suspended.html`,
+        ),
+    ),
+  ).toBe(true);
+  expect(
+    new Set(restoredSnapshotTabs.map((tab) => tab.windowId)).size,
+  ).toBe(new Set(storedSnapshot.tabs.map((tab) => tab.windowKey)).size);
+  expect(restoredSnapshotTabs.filter((tab) => tab.pinned).length).toBe(
+    storedSnapshot.tabs.filter((tab) => tab.pinned).length,
+  );
+  const restoredSnapshotState = await panel.evaluate(async () => {
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    return response.data;
+  });
+  const restoredTabIds = new Set(
+    restoredSnapshotTabs.map((tab) => tab.id),
+  );
+  expect(
+    restoredSnapshotState.instances.filter((instance) =>
+      restoredTabIds.has(instance.browserTabId),
+    ),
+  ).toHaveLength(storedSnapshot.tabs.length);
+  expect(
+    restoredSnapshotState.instances
+      .filter((instance) => restoredTabIds.has(instance.browserTabId))
+      .every((instance) => instance.deepSleeping),
+  ).toBe(true);
+  const restoredTargetInstance = restoredSnapshotState.instances.find(
+    (instance) =>
+      restoredTabIds.has(instance.browserTabId) &&
+      instance.resourceId === snapshotRestoreTarget.resourceId,
+  );
+  expect(restoredTargetInstance).toBeTruthy();
+  await serviceWorker.evaluate(async (tabId) => {
+    const tab = await chrome.tabs.get(tabId);
+    await chrome.windows.update(tab.windowId, { focused: true });
+    await chrome.tabs.update(tabId, { active: true });
+  }, restoredTargetInstance.browserTabId);
+  await expect
+    .poll(
+      () =>
+        serviceWorker.evaluate(
+          async (tabId) =>
+            (await chrome.tabs.get(tabId)).pendingUrl ??
+            (await chrome.tabs.get(tabId)).url ??
+            "",
+          restoredTargetInstance.browserTabId,
+        ),
+      { timeout: 10_000 },
+    )
+    .toContain(`chrome-extension://${extensionId}/suspended.html`);
+  const restoredTargetUrl = await serviceWorker.evaluate(
+    async (tabId) => {
+      const tab = await chrome.tabs.get(tabId);
+      return tab.pendingUrl ?? tab.url ?? "";
+    },
+    restoredTargetInstance.browserTabId,
+  );
+  await expect
+    .poll(
+      () =>
+        context.pages().some((page) => page.url() === restoredTargetUrl),
+      { timeout: 10_000 },
+    )
+    .toBe(true);
+  const restoredTargetPage = context
+    .pages()
+    .find((page) => page.url() === restoredTargetUrl);
+  if (!restoredTargetPage) {
+    throw new Error("Restored snapshot confirmation page not found");
+  }
+  await restoredTargetPage
+    .getByRole("button", { name: "确认恢复", exact: true })
+    .click();
+  await expect
+    .poll(
+      () =>
+        serviceWorker.evaluate(
+          async (tabId) =>
+            (await chrome.tabs.get(tabId)).pendingUrl ??
+            (await chrome.tabs.get(tabId)).url ??
+            "",
+          restoredTargetInstance.browserTabId,
+        ),
+      { timeout: 10_000 },
+    )
+    .toBe(snapshotRestoreTarget.url);
+  await serviceWorker.evaluate(
+    async (tabIds) => chrome.tabs.remove(tabIds),
+    restoredSnapshotTabs.map((tab) => tab.id),
+  );
+  await expect
+    .poll(() =>
+      serviceWorker.evaluate(
+        async (tabIds) => {
+          const existing = new Set(
+            (await chrome.tabs.query({})).flatMap((tab) =>
+              tab.id === undefined ? [] : [tab.id],
+            ),
+          );
+          return tabIds.some((tabId) => existing.has(tabId));
+        },
+        restoredSnapshotTabs.map((tab) => tab.id),
+      ),
+    )
+    .toBe(false);
+  await expect
+    .poll(
+      () =>
+        panel.evaluate(
+          (tabIds) =>
+            new Promise((resolveRecoveries, rejectRecoveries) => {
+              const request = indexedDB.open("tab-vault");
+              request.onerror = () => rejectRecoveries(request.error);
+              request.onsuccess = () => {
+                const query = request.result
+                  .transaction("deepSleepRecoveries", "readonly")
+                  .objectStore("deepSleepRecoveries")
+                  .getAll();
+                query.onerror = () => rejectRecoveries(query.error);
+                query.onsuccess = () =>
+                  resolveRecoveries(
+                    query.result.filter((recovery) =>
+                      tabIds.includes(recovery.browserTabId),
+                    ).length,
+                  );
+              };
+            }),
+          restoredSnapshotTabs.map((tab) => tab.id),
+        ),
+      { timeout: 10_000 },
+    )
+    .toBe(0);
+  await panel.bringToFront();
+  await panel
+    .getByRole("button", { name: "收起导航", exact: true })
+    .click();
 
   const focusResponse = await panel.evaluate(async (resourceId) => {
     return chrome.runtime.sendMessage({ type: "FOCUS_RESOURCE", resourceId });
@@ -1328,6 +1630,9 @@ try {
         duplicateCleanup: true,
         groupedDuplicateRetained: true,
         duplicateCleanupScreenshot: "artifacts/duplicate-cleanup.png",
+        pinnedViewDefault: true,
+        pinnedManualSort: true,
+        pinnedDoesNotOverrideOtherViewSort: true,
         collection: true,
         collectionEdited: true,
         customTitlePersisted: true,
@@ -1381,6 +1686,11 @@ try {
         archiveRestore: true,
         permanentDelete: true,
         snapshot: true,
+        snapshotInspectionLoadsNoTabs: true,
+        snapshotRestoresAllTabsSleeping: true,
+        snapshotRestoreLoadsNoWebsites: true,
+        snapshotTabRequiresConfirmation: true,
+        snapshotRestoreListScreenshot: "artifacts/snapshot-restore-list.png",
         groupOverviewScreenshot: "artifacts/group-overview.png",
         screenshot: "artifacts/sidepanel-smoke.png",
       },

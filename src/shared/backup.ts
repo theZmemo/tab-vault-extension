@@ -100,6 +100,9 @@ function isResource(value: unknown): value is Resource {
     (value.savedTitleProvisional === undefined ||
       typeof value.savedTitleProvisional === "boolean") &&
     isOptionalString(value.customTitle) &&
+    (value.pinned === undefined || typeof value.pinned === "boolean") &&
+    (value.pinOrder === undefined || isFiniteNumber(value.pinOrder)) &&
+    (value.pinnedAt === undefined || isFiniteNumber(value.pinnedAt)) &&
     isNonEmptyString(value.domain) &&
     isFiniteNumber(value.createdAt) &&
     isFiniteNumber(value.updatedAt) &&

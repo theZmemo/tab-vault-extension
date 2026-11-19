@@ -2,6 +2,36 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.35] - 2026-11-19
+
+### Added
+
+- Added a dedicated pinned-resources view as the default side-panel entry.
+- Resources can be pinned from every resource view and manually reordered by
+  dragging inside the pinned view.
+- Pinned resources are excluded from storage-cleanup candidates.
+
+### Changed
+
+- Inspecting a session snapshot opens a read-only restore list without creating
+  windows, tabs, placeholders, or website requests.
+- Restoring a snapshot rebuilds every saved window and tab as an inert sleeping
+  tab, preserving order, pinned state, and native groups without loading any
+  original website.
+- Selecting a restored tab opens the local confirmation page; its original URL
+  loads only after explicit confirmation.
+- Pin status remains visible in other resource views without changing their
+  existing sort order. Global search also retains its normal sorting controls.
+
+### Tests
+
+- Added browser coverage for the default pinned view, manual pin ordering, and
+  unchanged ordering in other views.
+- Added browser coverage proving that snapshot inspection creates zero tabs,
+  full restore recreates every tab without website requests, and one selected
+  tab loads only after confirmation.
+- Added backup-schema and cleanup-protection coverage for pinned resources.
+
 ## [0.0.34] - 2026-11-10
 
 ### Fixed

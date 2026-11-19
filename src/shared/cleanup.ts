@@ -51,6 +51,7 @@ export function findStaleResourceCandidates(
         resource.trashedAt === undefined &&
         resource.lastVisitedAt <= cutoff &&
         !resource.protected &&
+        !resource.pinned &&
         !resource.notes.trim() &&
         !resource.customTitle?.trim() &&
         !openResourceIds.has(resource.id) &&

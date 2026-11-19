@@ -2619,97 +2619,332 @@ async function focusResource(resourceId: string): Promise<void> {
   }
 }
 
-async function restoreSnapshot(snapshotId: string): Promise<void> {
+async function getSnapshot(snapshotId: string): Promise<Snapshot> {
+  const snapshot = await db.snapshots.get(snapshotId);
+  if (!snapshot) {
+    throw new Error(t("snapshotMissing"));
+  }
+  return {
+    ...snapshot,
+    tabs: [...snapshot.tabs].sort(
+      (left, right) =>
+        left.windowKey.localeCompare(right.windowKey) ||
+        left.index - right.index,
+    ),
+  };
+}
+
+async function resolveSnapshotResource(
+  snapshotTab: SnapshotTab,
+): Promise<Resource | null> {
+  const directResource = await db.resources.get(snapshotTab.resourceId);
+  if (directResource) {
+    return directResource;
+  }
+
+  const normalized = normalizeUrl(snapshotTab.url);
+  if (!normalized) {
+    return null;
+  }
+  const dedupeKey = await createDedupeKey(normalized.normalizedUrl);
+  const existing = await db.resources
+    .where("dedupeKey")
+    .equals(dedupeKey)
+    .first();
+  if (existing) {
+    return existing;
+  }
+
+  const now = Date.now();
+  const resource: Resource = {
+    id: snapshotTab.resourceId,
+    originalUrl: normalized.originalUrl,
+    normalizedUrl: normalized.normalizedUrl,
+    dedupeKey,
+    title: snapshotTab.title,
+    stableTitle: snapshotTab.title,
+    savedTitle: snapshotTab.title,
+    savedTitleAt: now,
+    savedTitleProvisional: false,
+    domain: normalized.domain,
+    createdAt: now,
+    updatedAt: now,
+    lastVisitedAt: now,
+    visitCount: 1,
+    protected: false,
+    notes: "",
+  };
+  await db.resources.put(resource);
+  return resource;
+}
+
+type RestoredSnapshotTab = {
+  snapshotTab: SnapshotTab;
+  tab: chrome.tabs.Tab & { id: number };
+  recovery: DeepSleepRecovery;
+};
+
+async function registerRestoredSnapshotTab(
+  snapshotId: string,
+  snapshotTab: SnapshotTab,
+  resource: Resource,
+  tab: chrome.tabs.Tab & { id: number },
+  activationGuarded: boolean,
+): Promise<RestoredSnapshotTab> {
+  const now = Date.now();
+  const recovery: DeepSleepRecovery = {
+    id: `${resource.id}:${tab.id}`,
+    browserTabId: tab.id,
+    resourceId: resource.id,
+    originalUrl: snapshotTab.url,
+    title: snapshotTab.title || getResourceDisplayTitle(resource),
+    windowId: tab.windowId,
+    index: tab.index,
+    pinned: tab.pinned,
+    groupId: tab.groupId,
+    groupKey: snapshotTab.groupKey,
+    groupTitle: snapshotTab.groupTitle,
+    groupColor: snapshotTab.groupColor,
+    groupCollapsed: snapshotTab.groupCollapsed,
+    createdAt: now,
+    pendingRemovalAt: undefined,
+    activationGuarded,
+  };
+
+  await db.transaction(
+    "rw",
+    db.deepSleepRecoveries,
+    db.events,
+    async () => {
+      await db.deepSleepRecoveries.put(recovery);
+      await db.events.bulkAdd([
+        {
+          type: "TAB_DEEP_SLEEP_PREPARED",
+          resourceId: resource.id,
+          browserTabId: tab.id,
+          payload: {
+            originalUrl: snapshotTab.url,
+            snapshotId,
+            activationGuarded,
+          },
+          createdAt: now,
+        },
+        {
+          type: "TAB_DEEP_SLEEP_COMMITTED",
+          resourceId: resource.id,
+          browserTabId: tab.id,
+          payload: { snapshotId, activationGuarded },
+          createdAt: now,
+        },
+      ]);
+    },
+  );
+
+  if (activationGuarded) {
+    await captureParkedDeepSleepingTab(tab, recovery);
+  } else {
+    await captureDeepSleepingTab(
+      tab,
+      tab.pendingUrl ?? tab.url ?? "",
+    );
+  }
+  return { snapshotTab, tab, recovery };
+}
+
+async function restoreSnapshot(
+  snapshotId: string,
+): Promise<{ restoredTabs: number; restoredWindows: number }> {
   const [snapshot, settings] = await Promise.all([
-    db.snapshots.get(snapshotId),
+    getSnapshot(snapshotId),
     ensureDatabaseDefaults(),
   ]);
-  if (!snapshot || snapshot.tabs.length === 0) {
-    return;
+  if (snapshot.tabs.length === 0) {
+    return { restoredTabs: 0, restoredWindows: 0 };
   }
 
-  const windowGroups = new Map<string, SnapshotTab[]>();
-  for (const tab of snapshot.tabs) {
-    const group = windowGroups.get(tab.windowKey) ?? [];
-    group.push(tab);
-    windowGroups.set(tab.windowKey, group);
+  const tabsByWindow = new Map<string, SnapshotTab[]>();
+  for (const snapshotTab of snapshot.tabs) {
+    const tabs = tabsByWindow.get(snapshotTab.windowKey) ?? [];
+    tabs.push(snapshotTab);
+    tabsByWindow.set(snapshotTab.windowKey, tabs);
   }
 
-  for (const tabs of windowGroups.values()) {
-    tabs.sort((left, right) => left.index - right.index);
-    const first = tabs[0];
-    const restoredWindow = await chrome.windows.create({
-      url: first.url,
-      focused: first.active,
-    });
-    if (!restoredWindow?.id) {
+  const restoredEntries: RestoredSnapshotTab[] = [];
+  let restoredWindows = 0;
+  for (const snapshotTabs of tabsByWindow.values()) {
+    const resolved: Array<{
+      snapshotTab: SnapshotTab;
+      resource: Resource;
+    }> = [];
+    for (const snapshotTab of snapshotTabs) {
+      const resource = await resolveSnapshotResource(snapshotTab);
+      if (resource) {
+        resolved.push({ snapshotTab, resource });
+      }
+    }
+    if (resolved.length === 0) {
       continue;
     }
-    const firstTab = restoredWindow.tabs?.[0];
-    const created = new Map<number, SnapshotTab>();
 
-    if (firstTab?.id !== undefined) {
-      await chrome.tabs.update(firstTab.id, { pinned: first.pinned });
-      created.set(firstTab.id, first);
+    const [first, ...remaining] = resolved;
+    const firstPlaceholderUrl = createDeepSleepUrl(SUSPENDED_PAGE_URL, {
+      version: 1,
+      resourceId: first.resource.id,
+      url: first.snapshotTab.url,
+      title:
+        first.snapshotTab.title ||
+        getResourceDisplayTitle(first.resource),
+    });
+    const restoredWindow = await chrome.windows.create({
+      url: firstPlaceholderUrl,
+      focused: false,
+    });
+    const firstCreated = restoredWindow?.tabs?.[0];
+    if (
+      !restoredWindow ||
+      restoredWindow.id === undefined ||
+      firstCreated?.id === undefined
+    ) {
+      continue;
     }
+    const restoredWindowId = restoredWindow.id;
+    restoredWindows += 1;
+
+    await chrome.tabs.update(firstCreated.id, {
+      pinned: first.snapshotTab.pinned,
+    });
+    const firstTab = (await chrome.tabs.get(
+      firstCreated.id,
+    )) as chrome.tabs.Tab & { id: number };
+    restoredEntries.push(
+      await registerRestoredSnapshotTab(
+        snapshot.id,
+        first.snapshotTab,
+        first.resource,
+        firstTab,
+        false,
+      ),
+    );
 
     for (const chunk of chunkItems(
-      tabs.slice(1),
+      remaining,
       settings.restoreConcurrency,
     )) {
-      const createdTabs = await Promise.all(
-        chunk.map((tab) =>
-          chrome.tabs.create({
-            windowId: restoredWindow.id,
-            url: tab.url,
+      const created = await Promise.all(
+        chunk.map(async ({ snapshotTab, resource }) => {
+          const recoverySeed = {
+            resourceId: resource.id,
+            title:
+              snapshotTab.title || getResourceDisplayTitle(resource),
+            originalUrl: snapshotTab.url,
+          };
+          const tab = await chrome.tabs.create({
+            windowId: restoredWindowId,
+            url: await createDisplayParkedDeepSleepUrl(recoverySeed),
             active: false,
-            pinned: tab.pinned,
-            index: tab.index,
-          }),
+            pinned: snapshotTab.pinned,
+            index: snapshotTab.index,
+          });
+          if (tab.id === undefined) {
+            return null;
+          }
+          return registerRestoredSnapshotTab(
+            snapshot.id,
+            snapshotTab,
+            resource,
+            tab as chrome.tabs.Tab & { id: number },
+            true,
+          );
+        }),
+      );
+      restoredEntries.push(
+        ...created.filter(
+          (entry): entry is RestoredSnapshotTab => entry !== null,
         ),
       );
-      createdTabs.forEach((tab, index) => {
-        if (tab.id !== undefined) {
-          created.set(tab.id, chunk[index]);
-        }
-      });
-    }
-
-    const groupedTabIds = new Map<string, number[]>();
-    for (const [tabId, tab] of created) {
-      if (!tab.groupKey) {
-        continue;
-      }
-      const ids = groupedTabIds.get(tab.groupKey) ?? [];
-      ids.push(tabId);
-      groupedTabIds.set(tab.groupKey, ids);
-    }
-
-    for (const [groupKey, tabIds] of groupedTabIds) {
-      if (tabIds.length === 0) {
-        continue;
-      }
-      const sample = [...created.values()].find(
-        (tab) => tab.groupKey === groupKey,
-      );
-      const groupId = await chrome.tabs.group({
-        tabIds: tabIds as [number, ...number[]],
-        createProperties: { windowId: restoredWindow.id },
-      });
-      await chrome.tabGroups.update(groupId, {
-        title: sample?.groupTitle,
-        color: sample?.groupColor,
-        collapsed: sample?.groupCollapsed,
-      });
-    }
-
-    const activeEntry = [...created.entries()].find(([, tab]) => tab.active);
-    if (activeEntry) {
-      await chrome.tabs.update(activeEntry[0], { active: true });
     }
   }
 
-  await syncOpenTabs();
+  const groups = new Map<string, RestoredSnapshotTab[]>();
+  for (const entry of restoredEntries) {
+    if (!entry.snapshotTab.groupKey) {
+      continue;
+    }
+    const key = `${entry.tab.windowId}:${entry.snapshotTab.groupKey}`;
+    const entries = groups.get(key) ?? [];
+    entries.push(entry);
+    groups.set(key, entries);
+  }
+  for (const entries of groups.values()) {
+    try {
+      const [sample] = entries;
+      const groupId = await chrome.tabs.group({
+        tabIds: entries.map((entry) => entry.tab.id) as [
+          number,
+          ...number[],
+        ],
+        createProperties: { windowId: sample.tab.windowId },
+      });
+      await chrome.tabGroups.update(groupId, {
+        title: sample.snapshotTab.groupTitle,
+        color: sample.snapshotTab.groupColor,
+        collapsed: sample.snapshotTab.groupCollapsed,
+      });
+    } catch {
+      // A malformed legacy group must not block restoring the other tabs.
+    }
+  }
+
+  const finalEntries = (
+    await Promise.all(
+      restoredEntries.map(async (entry) => {
+        try {
+          return {
+            entry,
+            tab: await chrome.tabs.get(entry.tab.id),
+          };
+        } catch {
+          return null;
+        }
+      }),
+    )
+  ).filter(
+    (
+      value,
+    ): value is { entry: RestoredSnapshotTab; tab: chrome.tabs.Tab } =>
+      value !== null,
+  );
+  await db.transaction(
+    "rw",
+    db.deepSleepRecoveries,
+    db.tabInstances,
+    async () => {
+      for (const { entry, tab } of finalEntries) {
+        await db.deepSleepRecoveries.update(entry.recovery.id, {
+          browserTabId: entry.tab.id,
+          windowId: tab.windowId,
+          index: tab.index,
+          pinned: tab.pinned,
+          groupId: tab.groupId,
+          pendingRemovalAt: undefined,
+        });
+        await db.tabInstances.update(entry.tab.id, {
+          windowId: tab.windowId,
+          index: tab.index,
+          pinned: tab.pinned,
+          active: tab.active,
+          groupId: tab.groupId,
+          deepSleeping: true,
+          lastSeenAt: Date.now(),
+        });
+      }
+    },
+  );
+  await broadcastChange();
+  return {
+    restoredTabs: restoredEntries.length,
+    restoredWindows,
+  };
 }
 
 async function createCollection(
@@ -2998,6 +3233,63 @@ async function updateResourceTitle(
   await broadcastChange();
 }
 
+async function toggleResourcePin(resourceId: string): Promise<void> {
+  const resource = await db.resources.get(resourceId);
+  if (!resource) {
+    throw new Error(t("resourceMissing"));
+  }
+  const now = Date.now();
+  if (resource.pinned) {
+    await db.resources.update(resourceId, {
+      pinned: false,
+      pinOrder: undefined,
+      pinnedAt: undefined,
+      updatedAt: now,
+    });
+  } else {
+    const pinnedResources = await db.resources
+      .filter((candidate) => candidate.pinned === true)
+      .toArray();
+    const nextOrder =
+      pinnedResources.reduce(
+        (maximum, candidate) =>
+          Math.max(maximum, candidate.pinOrder ?? -1),
+        -1,
+      ) + 1;
+    await db.resources.update(resourceId, {
+      pinned: true,
+      pinOrder: nextOrder,
+      pinnedAt: now,
+      updatedAt: now,
+    });
+  }
+  await broadcastChange();
+}
+
+async function reorderPinnedResources(resourceIds: string[]): Promise<void> {
+  const requestedIds = [...new Set(resourceIds)];
+  const pinnedResources = await db.resources
+    .filter((resource) => resource.pinned === true)
+    .toArray();
+  const pinnedIds = new Set(pinnedResources.map((resource) => resource.id));
+  if (
+    requestedIds.length !== pinnedIds.size ||
+    requestedIds.some((resourceId) => !pinnedIds.has(resourceId))
+  ) {
+    throw new Error(t("resourceMissing"));
+  }
+  const now = Date.now();
+  await db.transaction("rw", db.resources, async () => {
+    for (const [pinOrder, resourceId] of requestedIds.entries()) {
+      await db.resources.update(resourceId, {
+        pinOrder,
+        updatedAt: now,
+      });
+    }
+  });
+  await broadcastChange();
+}
+
 async function importData(data: VaultExport): Promise<void> {
   const validated = parseVaultExport(data);
   const snapshotTitleByResource = new Map<string, string>();
@@ -3081,6 +3373,13 @@ async function importData(data: VaultExport): Promise<void> {
             customTitle: existing.customTitle || resource.customTitle,
             notes: resource.notes || existing.notes,
             protected: existing.protected || resource.protected,
+            pinned: existing.pinned || resource.pinned,
+            pinOrder:
+              existing.pinOrder ??
+              resource.pinOrder,
+            pinnedAt:
+              existing.pinnedAt ??
+              resource.pinnedAt,
             blockedCollectionIds: [
               ...new Set([
                 ...(existing.blockedCollectionIds ?? []),
@@ -3252,9 +3551,10 @@ async function handleCommand(
       return undefined;
     case "CREATE_SNAPSHOT":
       return createSnapshot("manual");
+    case "GET_SNAPSHOT":
+      return getSnapshot(command.snapshotId);
     case "RESTORE_SNAPSHOT":
-      await restoreSnapshot(command.snapshotId);
-      return undefined;
+      return restoreSnapshot(command.snapshotId);
     case "CREATE_COLLECTION":
       return createCollection(command.name, command.color);
     case "UPDATE_COLLECTION":
@@ -3310,6 +3610,12 @@ async function handleCommand(
       await broadcastChange();
       return undefined;
     }
+    case "TOGGLE_RESOURCE_PIN":
+      await toggleResourcePin(command.resourceId);
+      return undefined;
+    case "REORDER_PINNED_RESOURCES":
+      await reorderPinnedResources(command.resourceIds);
+      return undefined;
     case "IMPORT_DATA":
       await importData(command.data);
       return undefined;

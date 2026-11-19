@@ -16,6 +16,9 @@ export interface Resource {
   savedTitleAt?: number;
   savedTitleProvisional?: boolean;
   customTitle?: string;
+  pinned?: boolean;
+  pinOrder?: number;
+  pinnedAt?: number;
   domain: string;
   createdAt: number;
   updatedAt: number;
@@ -276,6 +279,7 @@ export type VaultCommand =
   | { type: "RESTORE_RESOURCES"; resourceIds: string[] }
   | { type: "FOCUS_RESOURCE"; resourceId: string }
   | { type: "CREATE_SNAPSHOT" }
+  | { type: "GET_SNAPSHOT"; snapshotId: string }
   | { type: "RESTORE_SNAPSHOT"; snapshotId: string }
   | {
       type: "CREATE_COLLECTION";
@@ -316,6 +320,8 @@ export type VaultCommand =
       customTitle: string;
     }
   | { type: "TOGGLE_PROTECTED"; resourceId: string }
+  | { type: "TOGGLE_RESOURCE_PIN"; resourceId: string }
+  | { type: "REORDER_PINNED_RESOURCES"; resourceIds: string[] }
   | { type: "IMPORT_DATA"; data: VaultExport };
 
 export interface VaultResponse<T = undefined> {

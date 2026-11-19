@@ -16,7 +16,8 @@ const expectations = {
   "zh-CN": {
     appName: "标签资产库",
     searchPlaceholder: "搜索标题、URL、域名或备注",
-    noPermanentGroups: "暂无永久分组",
+    pinnedResources: "置顶",
+    noResources: "这里还没有资源",
     settings: "设置",
     browserPanelSide: "浏览器侧边栏",
     privacyAndData: "隐私与数据",
@@ -31,7 +32,8 @@ const expectations = {
   "en-US": {
     appName: "Tab Vault",
     searchPlaceholder: "Search title, URL, domain, or notes",
-    noPermanentGroups: "No permanent groups",
+    pinnedResources: "Pinned",
+    noResources: "No resources yet",
     settings: "Settings",
     browserPanelSide: "Browser side panel",
     privacyAndData: "Privacy and data",
@@ -47,7 +49,8 @@ const expectations = {
   "ja-JP": {
     appName: "タブ保管庫",
     searchPlaceholder: "タイトル、URL、ドメイン、またはメモを検索します",
-    noPermanentGroups: "永続的なグループはありません",
+    pinnedResources: "ピン留め",
+    noResources: "まだリソースがありません",
     settings: "設定",
     browserPanelSide: "ブラウザのサイドパネル",
     privacyAndData: "プライバシーとデータ",
@@ -63,7 +66,8 @@ const expectations = {
   "ko-KR": {
     appName: "탭 보관함",
     searchPlaceholder: "제목, URL, 도메인, 메모 검색",
-    noPermanentGroups: "영구 그룹 없음",
+    pinnedResources: "고정됨",
+    noResources: "아직 리소스가 없습니다.",
     settings: "설정",
     browserPanelSide: "브라우저 측면 패널",
     privacyAndData: "개인정보 보호 및 데이터",
@@ -79,7 +83,8 @@ const expectations = {
   "zh-TW": {
     appName: "標籤資產庫",
     searchPlaceholder: "搜尋標題、URL、網域或備註",
-    noPermanentGroups: "暫無永久分組",
+    pinnedResources: "置頂",
+    noResources: "這裡還沒有資源",
     settings: "設定",
     browserPanelSide: "瀏覽器側邊欄",
     privacyAndData: "隱私與資料",
@@ -94,7 +99,8 @@ const expectations = {
   "de-DE": {
     appName: "Tab Vault",
     searchPlaceholder: "Suchen Sie nach Titel, URL, Domäne oder Notizen",
-    noPermanentGroups: "Keine festen Gruppen",
+    pinnedResources: "Angeheftet",
+    noResources: "Noch keine Ressourcen",
     settings: "Einstellungen",
     browserPanelSide: "Seitenbereich des Browsers",
     privacyAndData: "Privatsphäre und Daten",
@@ -110,7 +116,8 @@ const expectations = {
   "es-ES": {
     appName: "Tab Vault",
     searchPlaceholder: "Buscar título, URL, dominio o notas",
-    noPermanentGroups: "Sin grupos permanentes",
+    pinnedResources: "Fijados",
+    noResources: "Aún no hay recursos",
     settings: "Configuración",
     browserPanelSide: "Panel lateral del navegador",
     privacyAndData: "Privacidad y datos",
@@ -126,7 +133,8 @@ const expectations = {
   "fr-FR": {
     appName: "Tab Vault",
     searchPlaceholder: "Rechercher un titre, un URL, un domaine ou des notes",
-    noPermanentGroups: "Pas de groupes permanents",
+    pinnedResources: "Épinglés",
+    noResources: "Pas encore de ressources",
     settings: "Paramètres",
     browserPanelSide: "Panneau latéral du navigateur",
     privacyAndData: "Confidentialité et données",
@@ -142,7 +150,8 @@ const expectations = {
   "pt-BR": {
     appName: "Tab Vault",
     searchPlaceholder: "Título de pesquisa, URL, domínio ou notas",
-    noPermanentGroups: "Nenhum grupo permanente",
+    pinnedResources: "Fixados",
+    noResources: "Ainda não há recursos",
     settings: "Configurações",
     browserPanelSide: "Painel lateral do navegador",
     privacyAndData: "Privacidade e dados",
@@ -158,7 +167,8 @@ const expectations = {
   "ru-RU": {
     appName: "Tab Vault",
     searchPlaceholder: "Поиск по названию, URL, домену или заметкам.",
-    noPermanentGroups: "Нет постоянных групп",
+    pinnedResources: "Закреплённые",
+    noResources: "Ресурсов пока нет",
     settings: "Настройки",
     browserPanelSide: "Боковая панель браузера",
     privacyAndData: "Конфиденциальность и данные",
@@ -262,18 +272,58 @@ try {
   await expect(
     panel.getByPlaceholder(expectations.searchPlaceholder),
   ).toBeVisible();
-  await expect(panel.locator(".group-overview")).toBeVisible();
   await expect(
-    panel.getByText(expectations.noPermanentGroups, { exact: true }),
+    panel.locator(
+      `.navigation-rail button.is-active[aria-label="${expectations.pinnedResources}"]`,
+    ),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(expectations.noResources, { exact: true }),
   ).toBeVisible();
   await expect(panel.locator(".navigation-rail")).toHaveCSS("width", "42px");
   await panel.screenshot({
     path: join(
       artifactsPath,
-      `group-overview-${localeKey}-${requestedTheme}.png`,
+      `pinned-view-${localeKey}-${requestedTheme}.png`,
     ),
     fullPage: true,
   });
+  await panel.locator(".topbar .icon-button").first().click();
+  await panel.locator(".nav-footer button").nth(1).click();
+  await panel
+    .locator(".snapshot-row .button-secondary")
+    .first()
+    .click();
+  await expect(panel.locator(".snapshot-restore-note")).toBeVisible();
+  const recoveryLayout = await panel.evaluate(() => {
+    const toolbar = document.querySelector(".modal-toolbar");
+    const buttons = [
+      ...document.querySelectorAll(".modal-toolbar button"),
+    ];
+    return {
+      toolbarOverflow: Boolean(
+        toolbar && toolbar.scrollWidth > toolbar.clientWidth + 1,
+      ),
+      buttonOverflow: buttons.some(
+        (button) =>
+          button.scrollWidth > button.clientWidth + 1 ||
+          button.scrollHeight > button.clientHeight + 1,
+      ),
+    };
+  });
+  expect(recoveryLayout).toEqual({
+    toolbarOverflow: false,
+    buttonOverflow: false,
+  });
+  await panel.screenshot({
+    path: join(
+      artifactsPath,
+      `recovery-center-${localeKey}-${requestedTheme}.png`,
+    ),
+    fullPage: true,
+  });
+  await panel.locator(".modal-header .icon-button").click();
+  await panel.locator(".topbar .icon-button").first().click();
   await panel
     .getByRole("button", { name: expectations.settings, exact: true })
     .click();
@@ -507,12 +557,14 @@ try {
         locale: requestedLocale,
         theme: requestedTheme,
         appName: true,
-        groupOverviewDefault: true,
+        pinnedViewDefault: true,
         settings: true,
         privacyDisclosure: true,
         packagedAboutPage: true,
         deepSleepRequiresConfirmation: true,
-        groupOverviewScreenshot: `artifacts/group-overview-${localeKey}-${requestedTheme}.png`,
+        recoveryCenterLayout: true,
+        pinnedViewScreenshot: `artifacts/pinned-view-${localeKey}-${requestedTheme}.png`,
+        recoveryCenterScreenshot: `artifacts/recovery-center-${localeKey}-${requestedTheme}.png`,
         screenshot: `artifacts/sidepanel-${localeKey}-${requestedTheme}.png`,
         suspendedScreenshot: `artifacts/suspended-${localeKey}-${requestedTheme}.png`,
       },

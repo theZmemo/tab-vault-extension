@@ -1,6 +1,6 @@
 # Chrome Web Store 发布资料
 
-版本：0.0.34
+版本：0.0.35
 
 插件内产品介绍：`about.html`，从扩展“设置”中打开。
 
@@ -35,6 +35,7 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 自动保存标签 URL、标题、窗口位置和状态。
 - 自动保存名称采用候选与冻结两阶段：页面仍打开时跟随后续稳定标题更新，最后一个真实标签关闭、归档或四级深睡时冻结；飞书 `Docs`、`dorado_fe` 等应用壳标题不会成为候选，手工名称永不自动覆盖。
 - 永久分组、24 种颜色、规则分类和组内移动。
+- 独立置顶视图默认只展示常用资源，支持手工拖动排序；其他视图保留原排序。
 - 中文子串、标题、URL、域名和备注搜索。
 - 规范化 URL 去重，合并常见跟踪参数造成的重复记录。
 - 重复页面支持安全关闭多余标签；原始 URL 完全一致时直接清理，仅跟踪参数不同时再次确认，并优先保留活动、固定、有声或 Chrome 分组内标签。
@@ -45,7 +46,7 @@ Save, organize, search, deduplicate, sleep, and restore browser tabs locally.
 - 四级深睡标签使用原站 favicon，确认页显示低饱和版本；缓存不可用时回退本地灰色休眠星标。
 - 更新或重新加载扩展时，旧版后台占位页会逐个迁移为无脚本轻量停放状态，避免扩展渲染进程积累。
 - 安全归档，在本地写入成功后才关闭真实标签。
-- 自动及手动会话快照，并按窗口、顺序和标签组恢复。
+- 自动及手动会话快照；恢复中心可整批重建全部窗口和标签，但只创建轻量休眠标签，不加载原网站。选择标签并确认后才加载对应页面。
 - JSON 备份导出、校验和合并导入。
 - 自动适配简中、繁中、英、日、韩、西、法、德、葡、俄语及系统深浅色模式。
 
@@ -68,6 +69,8 @@ Key features:
 - Preserves a non-empty title after page loading completes, independently from
   later live-tab title changes.
 - Permanent groups, 24 colors, deterministic rules, and group management.
+- A dedicated pinned view opens by default and supports manual drag ordering
+  without changing the sort order of other views.
 - Search across custom names, titles, URLs, domains, and notes.
 - Normalized URL deduplication for common tracking parameters.
 - Safe duplicate cleanup closes exact extra tabs directly and asks again before
@@ -87,7 +90,9 @@ Key features:
 - Confirmation tabs use a dimmed website favicon and fall back to a local gray
   sleep indicator when the cached favicon is unavailable.
 - Safe archiving that persists data before closing live tabs.
-- Automatic and manual session snapshots with window and tab-group restoration.
+- Automatic and manual session snapshots can rebuild every saved window and
+  tab as inert sleeping tabs without loading original websites. A page loads
+  only after the user selects its restored tab and confirms.
 - Validated JSON backup export, import, and merge.
 - Browser-language localization for ten languages and automatic light or dark
   appearance.
@@ -107,7 +112,7 @@ Privacy:
 | `contextMenus` | 允许用户从浏览器右键菜单完全睡眠当前页面、加入永久分组或打开管理界面。 |
 | `favicon` | 从 Chrome 本地 favicon 缓存读取原网站图标，用于深睡标签识别；不向网站发起请求。 |
 | `sidePanel` | 在 Chrome 原生侧边栏中提供扩展的主要管理界面。 |
-| `tabGroups` | 读取标签组元数据，并在恢复会话快照时重建标签组。 |
+| `tabGroups` | 读取标签组元数据，并在深度休眠、解冻及恢复既有标签时保留原生标签组。 |
 | `tabs` | 读取标签 URL、标题和状态，并执行用户请求的聚焦、原生休眠、深度休眠占位替换、关闭和恢复操作。 |
 | `unlimitedStorage` | 将大量标签资源、分组和会话快照长期保存在本机 IndexedDB，避免浏览器配额导致资产丢失。 |
 
@@ -155,6 +160,6 @@ Privacy:
 - [ ] 商店中英文说明与本文件一致。
 - [ ] 隐私权规范与 `PRIVACY.md` 一致。
 - [ ] 隐私政策 URL 已公开访问。
-- [ ] 截图来自 0.0.34 最新界面且尺寸合规。
+- [ ] 截图来自 0.0.35 最新界面且尺寸合规。
 - [ ] 权限理由逐项填写，无额外权限。
 - [ ] 初次发布先选择“未公开”完成审核验证，再切换公开范围。

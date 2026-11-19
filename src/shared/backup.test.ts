@@ -82,6 +82,24 @@ describe("parseVaultExport", () => {
     expect(() => parseVaultExport(invalid)).toThrow();
   });
 
+  it("accepts pinned resource order and rejects invalid pin state", () => {
+    const backup = makeBackup();
+    backup.resources[0].pinned = true;
+    backup.resources[0].pinOrder = 0;
+    backup.resources[0].pinnedAt = 1_000;
+    expect(parseVaultExport(backup).resources[0]).toMatchObject({
+      pinned: true,
+      pinOrder: 0,
+      pinnedAt: 1_000,
+    });
+
+    const invalid = makeBackup() as unknown as {
+      resources: Array<Record<string, unknown>>;
+    };
+    invalid.resources[0].pinned = "yes";
+    expect(() => parseVaultExport(invalid)).toThrow();
+  });
+
   it.each(["aqua", "yellow", "brown", "lavender"] as const)(
     "accepts the new %s collection color",
     (color) => {
