@@ -496,14 +496,28 @@ try {
   await expect(
     aboutPage.getByRole("heading", { name: expectations.appName }),
   ).toBeVisible();
+  await expect(aboutPage.locator(".spotlight-card")).toHaveCount(2);
+  await expect(aboutPage.locator(".capability-row")).toHaveCount(8);
   await expect(
     aboutPage.getByRole("link", { name: expectations.officialWebsite }),
   ).toHaveAttribute("href", "https://tidr.dev/xxx");
-  expect(
-    await aboutPage.evaluate(
-      () => document.documentElement.scrollWidth > window.innerWidth,
-    ),
-  ).toBe(false);
+  const aboutLayout = await aboutPage.evaluate(() => {
+    const content = [
+      ...document.querySelectorAll(
+        ".spotlight-card, .capability-row, .privacy-section",
+      ),
+    ];
+    return {
+      pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
+      contentOverflow: content.some(
+        (element) => element.scrollWidth > element.clientWidth + 1,
+      ),
+    };
+  });
+  expect(aboutLayout).toEqual({
+    pageOverflow: false,
+    contentOverflow: false,
+  });
   await aboutPage.screenshot({
     path: join(artifactsPath, `about-${localeKey}-${requestedTheme}.png`),
     fullPage: true,
@@ -561,6 +575,7 @@ try {
         settings: true,
         privacyDisclosure: true,
         packagedAboutPage: true,
+        aboutFeatureCoverage: true,
         deepSleepRequiresConfirmation: true,
         recoveryCenterLayout: true,
         pinnedViewScreenshot: `artifacts/pinned-view-${localeKey}-${requestedTheme}.png`,

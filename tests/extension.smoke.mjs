@@ -759,10 +759,23 @@ try {
   await expect(
     aboutPage.getByRole("heading", { name: "标签资产库" }),
   ).toBeVisible();
+  await expect(aboutPage.locator(".spotlight-card")).toHaveCount(2);
+  await expect(aboutPage.locator(".capability-row")).toHaveCount(8);
+  await expect(
+    aboutPage.locator(".spotlight-card").filter({ hasText: "置顶" }),
+  ).toBeVisible();
+  await expect(
+    aboutPage.locator(".spotlight-card").filter({ hasText: "恢复中心" }),
+  ).toBeVisible();
   await expect(aboutPage.getByRole("link", { name: "访问官网" })).toHaveAttribute(
     "href",
     "https://tidr.dev/xxx",
   );
+  expect(
+    await aboutPage.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    ),
+  ).toBe(false);
   await aboutPage.screenshot({
     path: join(artifactsPath, "about-page.png"),
     fullPage: true,
@@ -1674,6 +1687,8 @@ try {
         modalEscapeClose: true,
         privacyDisclosure: true,
         packagedAboutPage: true,
+        aboutHighlightsPinnedAndSleepingRestore: true,
+        aboutCompleteToolkit: true,
         locale: "zh-CN",
         navigationFollowsBrowser: true,
         compactRail: true,

@@ -53,7 +53,30 @@ const en = {
   refreshTabs: "Refresh tabs",
   settings: "Settings",
   productIntroduction: "About Tab Vault",
-  aboutDescription: "Save, organize, sleep, and restore browser tabs locally.",
+  aboutDescription:
+    "Keep every page within reach without keeping every page loaded.",
+  aboutHighlights: "Signature features",
+  aboutToolkit: "Complete tab toolkit",
+  aboutPinnedFeature:
+    "Keep frequent pages ordered and one click away without leaving them open.",
+  aboutRecoveryFeature:
+    "Rebuild every saved tab as a lightweight sleeper; a website loads only after you confirm that tab.",
+  aboutGroupsFeature:
+    "Organize pages with colored permanent groups and deterministic matching rules.",
+  aboutSearchFeature:
+    "Search custom names, saved titles, live titles, URLs, domains, and notes across the full vault.",
+  aboutSleepFeature:
+    "Choose four progressive memory-saving levels, from native discard to guarded deep sleep.",
+  aboutDuplicateFeature:
+    "Find repeated pages, distinguish tracking-only variants, and close extras safely.",
+  aboutArchiveFeature:
+    "Archive only after local data is saved, then reopen the page whenever it is needed.",
+  aboutCleanupFeature:
+    "Review stale records before deletion while pinned, grouped, protected, and snapshotted pages stay safe.",
+  aboutBackupFeature:
+    "Export, validate, and merge a complete local JSON backup whenever needed.",
+  aboutPrivacyFeature:
+    "URLs and metadata remain in this browser, with no page-body collection, analytics, or remote code.",
   viewProductIntroduction: "View introduction",
   officialWebsite: "Official website",
   versionLabel: "Version {version}",
@@ -383,7 +406,23 @@ const zh: Record<MessageKey, string> = {
   refreshTabs: "刷新标签",
   settings: "设置",
   productIntroduction: "关于标签资产库",
-  aboutDescription: "在本地保存、整理、休眠和恢复浏览器标签。",
+  aboutDescription: "让每个页面随时可达，而不是让每个页面一直加载。",
+  aboutHighlights: "核心特色",
+  aboutToolkit: "完整标签工具箱",
+  aboutPinnedFeature: "常用页面手工排序、一键直达，无需长期占用浏览器标签。",
+  aboutRecoveryFeature:
+    "按快照恢复全部标签为轻量休眠状态，只有确认某个标签后才加载原网页。",
+  aboutGroupsFeature: "用彩色永久分组和确定性规则持续整理页面。",
+  aboutSearchFeature:
+    "跨全库搜索手工名称、保存时名称、实时标题、URL、域名和备注。",
+  aboutSleepFeature: "四级渐进式释放内存，从原生休眠到带确认保护的深度休眠。",
+  aboutDuplicateFeature: "识别重复页面和仅跟踪参数差异，安全关闭多余标签。",
+  aboutArchiveFeature: "本地数据保存成功后才关闭真实标签，需要时可随时重新打开。",
+  aboutCleanupFeature:
+    "删除前先审核陈旧记录，置顶、分组、保护及快照页面始终排除。",
+  aboutBackupFeature: "随时导出、校验并合并完整的本地 JSON 备份。",
+  aboutPrivacyFeature:
+    "URL 与元数据只留在当前浏览器，不采集正文，不含分析或远程代码。",
   viewProductIntroduction: "查看产品介绍",
   officialWebsite: "访问官网",
   versionLabel: "版本 {version}",

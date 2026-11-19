@@ -2,6 +2,24 @@
 
 All notable changes to Tab Vault are documented in this file.
 
+## [0.0.36] - 2026-11-19
+
+### Changed
+
+- Reworked the packaged product introduction to emphasize the pinned workspace
+  and zero-load sleeping snapshot restoration as signature features.
+- Expanded the complete toolkit overview to cover permanent groups and rules,
+  full-vault search, four-level sleep, duplicate cleanup, safe archive,
+  reviewed storage cleanup, JSON backup, and local-first privacy.
+- Added result-oriented introduction copy for all ten supported languages.
+
+### Tests
+
+- Added browser assertions for two signature features and eight complete
+  toolkit capabilities.
+- Added 390px overflow coverage for every supported language in light and dark
+  appearance.
+
 ## [0.0.35] - 2026-11-19
 
 ### Added
